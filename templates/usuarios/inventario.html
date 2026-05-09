@@ -1,0 +1,939 @@
+{% extends 'base_con_condicion.html' %}
+
+{% block title %}Inventario - {{ block.super }}{% endblock %}
+{% block extra_css %}
+<style>
+    /* Estilos personalizados para las pestañas de las compañías */
+    .nav-pills-custom .nav-item {
+        margin-right: 0.5rem;
+    }
+
+    .nav-pills-custom .nav-link {
+        font-size: 1.1rem;
+        font-weight: 600;
+        padding: 0.65rem 1.5rem;
+        border-radius: 0.5rem;
+        background-color: var(--bs-danger-bg-subtle);
+        color: var(--bs-danger-text-emphasis);
+        border: 1px solid var(--bs-danger-border-subtle);
+        transition: all 0.2s ease-in-out;
+    }
+
+    .nav-pills-custom .nav-link.active,
+    .nav-pills-custom .show > .nav-link {
+        color: #fff;
+        background-color: var(--bs-danger);
+        border-color: var(--bs-danger);
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    }
+
+    .nav-pills-custom .nav-link:not(.active):hover {
+        background-color: var(--bs-danger);
+        color: #fff;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Header del contenido principal -->
+<div class="d-flex flex-column flex-md-row align-items-center justify-content-between pb-3 mb-4 border-bottom gap-3">
+    <div>
+        <h1 class="h2 mb-0">Inventario de Equipos</h1>
+        <p class="mb-0 text-muted">Gestiona, asigna y da seguimiento a todos los equipos.</p>
+    </div>
+    {% if request.user.is_superuser or request.user.rol.editar_inventario %}
+    <div class="d-flex gap-2">
+        <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#createInventarioModal">
+            <i class="bi bi-plus-lg me-1"></i> Agregar Ítem
+        </button>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Contenido de Inventario -->
+<main>
+    {% if messages %}
+        <div class="mb-3">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {% endfor %}
+        </div>
+    {% endif %}
+
+    <div class="row g-4">
+        <!-- Columna Principal (Izquierda) -->
+        <div class="col-lg-8">
+            <!-- Barra de Búsqueda -->
+            <form method="get" class="mb-3">
+                <div class="input-group">
+                    <input type="text" name="q" class="form-control" placeholder="Buscar por nombre de ítem, usuario asignado, ubicación..." value="{{ request.GET.q|default:'' }}">
+                    <input type="hidden" name="compania_activa" id="compania_activa_input" value="{{ compania_activa_id|default:'' }}">
+                    <button class="btn btn-outline-secondary" type="submit"><i class="bi bi-search"></i></button>
+                </div>
+            </form>
+
+            <!-- Acordeón por Compañía -->
+            <div class="accordion" id="accordionInventario">
+                {% for compania, data in inventario_por_compania.items %}
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="heading-{{ compania.id }}" data-compania-id="{{ compania.id }}">
+                        <button class="accordion-button {% if not forloop.first %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-{{ compania.id }}" aria-expanded="{% if forloop.first %}true{% else %}false{% endif %}" aria-controls="collapse-{{ compania.id }}">
+                            <i class="bi bi-building-fill me-2"></i>
+                            {{ compania.nombre }}
+                        </button>
+                    </h2>
+                    <div id="collapse-{{ compania.id }}" class="accordion-collapse collapse {% if forloop.first %}show{% endif %}" aria-labelledby="heading-{{ compania.id }}">
+                        <div class="accordion-body p-0">
+                                <!-- Sub-pestañas para Asignados y Disponibles -->
+                            <ul class="nav nav-tabs nav-justified" id="subTab-{{ compania.id }}" role="tablist">
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link active" id="asignados-tab-{{ compania.id }}" data-bs-toggle="tab" data-bs-target="#asignados-content-{{ compania.id }}" type="button" role="tab">
+                                        <i class="bi bi-person-badge me-1"></i>Ítems Asignados
+                                    </button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="disponibles-tab-{{ compania.id }}" data-bs-toggle="tab" data-bs-target="#disponibles-content-{{ compania.id }}" type="button" role="tab">
+                                        <i class="bi bi-box-seam me-1"></i>Disponibles en Bodega
+                                    </button>
+                                </li>
+                            </ul>
+
+                            <div class="tab-content" id="subTabContent-{{ compania.id }}">
+                                <!-- Contenido de Ítems Asignados -->
+                                <div class="tab-pane fade show active" id="asignados-content-{{ compania.id }}" role="tabpanel">
+                                    <div class="table-responsive">
+                                        <table class="table table-hover mb-0">
+                                            <thead>
+                                                <tr>
+                                                    <th scope="col">Usuario</th>
+                                                    <th scope="col">Cantidad Asignada</th>
+                                                    <th scope="col" class="text-end">Acciones</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for grupo in data.asignados %}
+                                                <tr class="align-middle">
+                                                    <td>
+                                                        <div class="d-flex align-items-center">
+                                                            {% if grupo.usuario.foto_perfil %}
+                                                                <img src="{{ grupo.usuario.foto_perfil.url }}" class="rounded-circle me-2 shadow-sm" style="width: 35px; height: 35px; object-fit: cover;">
+                                                            {% else %}
+                                                                <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center me-2 shadow-sm" style="width: 35px; height: 35px; font-size: 0.85rem;">
+                                                                    {{ grupo.usuario.nombre.0|default:"" }}{{ grupo.usuario.apellido.0|default:"" }}
+                                                                </div>
+                                                            {% endif %}
+                                                            <strong>{{ grupo.usuario.get_full_name }}</strong>
+                                                        </div>
+                                                    </td>
+                                                    <td><span class="badge bg-secondary">{{ grupo.items|length }} equipo(s)</span></td>
+                                                    <td class="text-end">
+                                                        <button class="btn btn-sm btn-outline-danger" type="button" data-bs-toggle="modal" data-bs-target="#modalUserItems-{{ compania.id }}-{{ grupo.usuario.id }}">
+                                                            <i class="bi bi-eye-fill me-1"></i> Ver equipos
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                                {% empty %}
+                                                <tr><td colspan="3" class="text-center text-muted py-4">No hay ítems asignados en esta compañía.</td></tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+
+                                <!-- Contenido de Ítems Disponibles -->
+                                <div class="tab-pane fade" id="disponibles-content-{{ compania.id }}" role="tabpanel">
+                                    <div class="table-responsive">
+                                        <table class="table table-hover mb-0">
+                                            <thead>
+                                                <tr>
+                                                    <th scope="col">Nombre del Ítem</th>
+                                                    <th scope="col">Ubicación</th>
+                                                    <th scope="col">Estado</th>
+                                                    <th scope="col">Cantidad Disponible</th>
+                                                    <th scope="col">Acciones</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for item_agrupado in data.disponibles_agrupados %}
+                                                <tr class="align-middle">
+                                                    <td><strong>{{ item_agrupado.nombre_completo|default:item_agrupado.nombre }}</strong></td>
+                                                    <td>{{ item_agrupado.ubicacion }}</td>
+                                                    <td>
+                                                        {% if item_agrupado.estado == 'Bueno' %}<span class="badge bg-success">{{ item_agrupado.estado }}</span>
+                                                        {% elif item_agrupado.estado == 'Regular' %}<span class="badge bg-info text-dark">{{ item_agrupado.estado }}</span>
+                                                        {% elif item_agrupado.estado == 'En Reparación' %}<span class="badge bg-warning text-dark">{{ item_agrupado.estado }}</span>
+                                                        {% else %}<span class="badge bg-danger">{{ item_agrupado.estado }}</span>
+                                                        {% endif %}
+                                                    </td>
+                                                    <td class="fw-bold fs-5">{{ item_agrupado.cantidad }}</td>
+                                                    <td>
+                                                        {% if request.user.is_superuser or request.user.rol.editar_inventario %}
+                                                        <div class="btn-group" role="group">
+                                                            <button type="button" class="btn btn-sm btn-outline-primary" title="Editar grupo"
+                                                                    data-bs-toggle="modal" data-bs-target="#editGroupModal"
+                                                                    data-group-nombre="{{ item_agrupado.nombre }}"
+                                                                    data-group-ubicacion="{{ item_agrupado.ubicacion }}"
+                                                                    data-group-estado="{{ item_agrupado.estado }}">
+                                                                <i class="bi bi-pencil-fill"></i>
+                                                            </button>
+                                                            <button type="button" class="btn btn-sm btn-outline-danger" title="Eliminar grupo"
+                                                                    data-bs-toggle="modal" data-bs-target="#deleteGroupModal"
+                                                                    data-group-nombre="{{ item_agrupado.nombre }}"
+                                                                    data-group-ubicacion="{{ item_agrupado.ubicacion }}"
+                                                                    data-group-estado="{{ item_agrupado.estado }}">
+                                                                <i class="bi bi-trash-fill"></i>
+                                                            </button>
+                                                        </div>
+                                                        {% endif %}
+                                                    </td>
+                                                </tr>
+                                                {% empty %}
+                                                <tr><td colspan="5" class="text-center text-muted py-4">No hay ítems disponibles en bodega para esta compañía.</td></tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="col-12"> <!-- Este col-12 no es necesario pero lo dejamos por si acaso -->
+                    <div class="card text-center p-5 border-dashed mt-4">
+                        <div class="card-body">
+                        <i class="bi bi-box-seam display-1 text-muted"></i>
+                        <h5 class="card-title mt-3">No hay ítems en el inventario</h5>
+                        <p class="card-text text-muted">Agrega un nuevo ítem para comenzar a gestionar el inventario.</p>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Columna Lateral (Derecha) -->
+        <div class="col-lg-4">
+            {% if request.user.is_superuser or request.user.rol.editar_inventario %}
+            <div class="card shadow-sm">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0"><i class="bi bi-person-check-fill me-2"></i>Asignación de Equipos</h5>
+                </div>
+                <div class="card-body">
+                    <form action="{% url 'inventario_assign' %}" method="post" id="assign-form">
+                        <input type="hidden" name="compania_a_asignar" id="compania_a_asignar" value="">
+                        {% csrf_token %}
+                        <div class="d-flex flex-column gap-4">
+                            <!-- Paso 1 -->
+                            <div>
+                                <div class="d-flex align-items-center mb-2">
+                                    <div class="fs-4 text-danger me-3"><i class="bi bi-1-circle-fill"></i></div>
+                                    <h6 class="mb-0">SELECCIONAR USUARIO</h6>
+                                </div>
+                                <select name="usuario_a_asignar" id="usuario_a_asignar" class="form-select" required>
+                                    <option value="" selected disabled>-- Elige un bombero --</option>
+                                    {% for user in usuarios_activos %} {# Se llenará dinámicamente con JS #}
+                                    <option value="{{ user.id }}">{{ user.get_full_name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <!-- Paso 2 -->
+                            <div>
+                                <div class="d-flex align-items-center mb-2">
+                                    <div class="fs-4 text-danger me-3"><i class="bi bi-2-circle-fill"></i></div>
+                                    <h6 class="mb-0">SELECCIONAR EQUIPOS</h6>
+                                </div>
+                                <div id="items-asignacion-container">
+                                    <div class="input-group mb-2 item-asignacion-row">
+                                        <select name="item_a_asignar" class="form-select item-select" required>
+                                            <option value="" selected disabled>-- Elige un tipo de ítem --</option>
+                                            {% for item_agrupado in items_disponibles_para_asignar %}
+                                            <option value="{{ item_agrupado.nombre }}" data-max="{{ item_agrupado.cantidad }}" data-compania="{{ item_agrupado.compania_id }}">{{ item_agrupado.nombre_completo }} ({{ item_agrupado.cantidad }} disp.)</option>
+                                            {% endfor %}
+                                        </select>
+                                        <input type="number" name="cantidad_a_asignar" class="form-control cantidad-input" value="1" min="1" required style="max-width: 80px;" title="Cantidad">
+                                        <button type="button" class="btn btn-outline-danger remove-row-btn" style="display: none;" title="Quitar"><i class="bi bi-trash"></i></button>
+                                    </div>
+                                </div>
+                                <button type="button" class="btn btn-sm btn-link text-danger text-decoration-none p-0 mt-1" id="add-item-btn">
+                                    <i class="bi bi-plus-circle me-1"></i> Añadir otro equipo
+                                </button>
+                            </div>
+
+                            <!-- Paso 3 -->
+                            <div>
+                                <div class="d-flex align-items-center mb-2">
+                                    <div class="fs-4 text-danger me-3"><i class="bi bi-3-circle-fill"></i></div>
+                                    <h6 class="mb-0">FINALIZAR</h6>
+                                </div>
+                                <button type="submit" class="btn btn-danger w-100">
+                                    <i class="bi bi-check-lg me-1"></i> Asignar Equipo
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</main>
+
+<!-- Modal Ver/Imprimir QR -->
+<div class="modal fade" id="qrCodeModal" tabindex="-1" aria-labelledby="qrCodeModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 400px;">
+        <div class="modal-content">
+            <div class="modal-header border-0">
+                <h5 class="modal-title" id="qrCodeModalLabel">Código QR del Ítem</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center" id="qrCodeModalBody">
+                <!-- Contenido inyectado por JavaScript -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Editar Grupo de Ítems -->
+<div class="modal fade" id="editGroupModal" tabindex="-1" aria-labelledby="editGroupModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editGroupModalLabel">Editar Grupo de Ítems</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="editGroupForm" action="{% url 'inventario_group_edit' %}" method="post">
+                {% csrf_token %}
+                <input type="hidden" name="group_nombre" id="edit_group_nombre">
+                <input type="hidden" name="group_ubicacion" id="edit_group_ubicacion_actual">
+                <input type="hidden" name="group_estado" id="edit_group_estado_actual">
+                <div class="modal-body">
+                    <p>Estás editando todos los ítems del tipo <strong id="edit_group_nombre_text"></strong> que se encuentran en <strong id="edit_group_ubicacion_text"></strong> con estado <strong id="edit_group_estado_text"></strong>.</p>
+                    <hr>
+                    <div class="mb-3">
+                        <label for="{{ group_edit_form.ubicacion.id_for_label }}" class="form-label">{{ group_edit_form.ubicacion.label }}</label>
+                        {{ group_edit_form.ubicacion }}
+                    </div>
+                    <div class="mb-3">
+                        <label for="{{ group_edit_form.estado.id_for_label }}" class="form-label">{{ group_edit_form.estado.label }}</label>
+                        {{ group_edit_form.estado }}
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-danger">Actualizar Grupo</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Eliminar Grupo de Ítems -->
+<div class="modal fade" id="deleteGroupModal" tabindex="-1" aria-labelledby="deleteGroupModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteGroupModalLabel">Confirmar Eliminación de Grupo</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="deleteGroupForm" action="{% url 'inventario_group_delete' %}" method="post">
+                {% csrf_token %}
+                <input type="hidden" name="group_nombre" id="delete_group_nombre">
+                <input type="hidden" name="group_ubicacion" id="delete_group_ubicacion">
+                <input type="hidden" name="group_estado" id="delete_group_estado">
+                <div class="modal-body">
+                    <p>¿Estás seguro de que quieres eliminar <strong>todos</strong> los ítems del grupo <strong id="delete_group_nombre_text"></strong> que se encuentran en <strong id="delete_group_ubicacion_text"></strong> con estado <strong id="delete_group_estado_text"></strong>?</p>
+                    <p class="text-danger small">Esta acción no se puede deshacer.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-danger">Sí, eliminar grupo</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Crear Ítem de Inventario -->
+<div class="modal fade" id="createInventarioModal" tabindex="-1" aria-labelledby="createInventarioModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="createInventarioModalLabel">Agregar Nuevo Ítem al Inventario</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form method="post">
+                    {% csrf_token %}
+                    {% if form.non_field_errors %}
+                    <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+                    {% endif %}
+
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label for="{{ form.nombre.id_for_label }}" class="form-label">Nombre del Ítem</label>
+                            {{ form.nombre }} {# Este es el InventarioForm #}
+                            {% for error in form.nombre.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                        </div>
+                        <div class="col-12">
+                            <label for="{{ form.compania.id_for_label }}" class="form-label">Compañía</label>
+                            {{ form.compania }}
+                            {% for error in form.compania.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                        </div>
+                        <div class="col-md-12">
+                            <label for="{{ form.cantidad.id_for_label }}" class="form-label">Cantidad</label>
+                            {{ form.cantidad }}
+                            {% for error in form.cantidad.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="{{ form.ubicacion.id_for_label }}" class="form-label">Ubicación</label>
+                            {{ form.ubicacion }}
+                            {% for error in form.ubicacion.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="{{ form.estado.id_for_label }}" class="form-label">Estado</label>
+                            {{ form.estado }}
+                            {% for error in form.estado.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="{{ form.fecha_adquisicion.id_for_label }}" class="form-label">Fecha de Adquisición (Opcional)</label>
+                            {{ form.fecha_adquisicion }}
+                            {% for error in form.fecha_adquisicion.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                        </div>
+                    </div>
+                    
+                    <div class="modal-footer mt-4">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-danger">Guardar Ítem</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modales de Equipos Asignados por Usuario -->
+{% for compania, data in inventario_por_compania.items %}
+    {% for grupo in data.asignados %}
+    <div class="modal fade" id="modalUserItems-{{ compania.id }}-{{ grupo.usuario.id }}" tabindex="-1" aria-labelledby="modalUserItemsLabel-{{ compania.id }}-{{ grupo.usuario.id }}" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header border-bottom">
+                    <h5 class="modal-title" id="modalUserItemsLabel-{{ compania.id }}-{{ grupo.usuario.id }}">
+                        <i class="bi bi-person-badge-fill text-danger me-2"></i>Equipos de {{ grupo.usuario.get_full_name|upper }}
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th class="ps-4">Ítem</th>
+                                    <th>Ubicación</th>
+                                    <th>Estado</th>
+                                    <th class="text-end pe-4">Opciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in grupo.items %}
+                                <tr class="align-middle">
+                                    <td class="ps-4"><strong>{{ item.get_nombre_display }}</strong></td>
+                                    <td>{{ item.ubicacion }}</td>
+                                    <td>
+                                        {% if item.estado == 'Bueno' %}<span class="badge bg-success">{{ item.estado }}</span>
+                                        {% elif item.estado == 'Regular' %}<span class="badge bg-info text-dark">{{ item.estado }}</span>
+                                        {% elif item.estado == 'En Reparación' %}<span class="badge bg-warning text-dark">{{ item.estado }}</span>
+                                        {% else %}<span class="badge bg-danger">{{ item.estado }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-end pe-4">
+                                        {% if request.user.is_superuser or request.user.rol.editar_inventario %}
+                                        <div class="btn-group" role="group">
+                                            <button type="button" class="btn btn-sm btn-outline-primary" title="Editar ítem"
+                                                    data-bs-toggle="modal" data-bs-target="#editInventarioModal"
+                                                    data-item-id="{{ item.id }}"
+                                                    data-item-nombre="{{ item.nombre }}"
+                                                    data-item-compania="{{ item.compania.id }}"
+                                                    data-item-asignado_a="{{ item.asignado_a.id }}"
+                                                    data-item-ubicacion="{{ item.ubicacion }}"
+                                                    data-item-estado="{{ item.estado }}"
+                                                    data-item-fecha_adquisicion="{{ item.fecha_adquisicion|date:'Y-m-d' }}">
+                                                <i class="bi bi-pencil-fill"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-outline-warning" title="Devolver a bodega"
+                                                    data-bs-toggle="modal" data-bs-target="#unassignInventarioModal"
+                                                    data-item-id="{{ item.id }}"
+                                                    data-item-nombre="{{ item.get_nombre_display }}">
+                                                <i class="bi bi-arrow-return-left"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-outline-danger" title="Eliminar registro"
+                                                    data-bs-toggle="modal" data-bs-target="#deleteInventarioModal"
+                                                    data-item-id="{{ item.id }}"
+                                                    data-item-nombre="{{ item.get_nombre_display }}">
+                                                <i class="bi bi-trash-fill"></i>
+                                            </button>
+                                            {% if item.qr_code %}
+                                            <button type="button" class="btn btn-sm btn-outline-secondary view-qr-btn" 
+                                                    data-bs-toggle="modal" data-bs-target="#qrCodeModal"
+                                                    data-item-name="{{ item.get_nombre_display }}"
+                                                    data-item-user="{{ item.asignado_a.get_full_name }}"
+                                                    data-item-location="{{ item.ubicacion }}"
+                                                    data-qr-url="{{ item.qr_code.url }}"
+                                                    data-item-id="{{ item.id }}"
+                                                    title="Ver/Imprimir Código QR">
+                                                <i class="bi bi-qr-code"></i>
+                                            </button>
+                                            {% endif %}
+                                        </div>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer border-top">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+{% endfor %}
+{% endblock %}
+
+{% block scripts %}
+{{ block.super }}
+<!-- Modal Editar Ítem de Inventario -->
+<div class="modal fade" id="editInventarioModal" tabindex="-1" aria-labelledby="editInventarioModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editInventarioModalLabel">Editar Ítem del Inventario</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editInventarioForm" method="post">
+                    {% csrf_token %}
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label for="edit_nombre" class="form-label">Nombre del Ítem</label>
+                            <input type="text" id="edit_nombre" name="nombre" class="form-control" list="datalist-items" required>
+                        </div>
+                        <div class="col-12">
+                            <label for="edit_compania" class="form-label">Compañía</label>
+                            <select id="edit_compania" name="compania" class="form-select">
+                                {% for compania in edit_form.fields.compania.queryset %}
+                                    <option value="{{ compania.id }}">{{ compania.nombre }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label for="edit_asignado_a" class="form-label">Asignado a</label>
+                            <select id="edit_asignado_a" name="asignado_a" class="form-select">
+                                <option value="">Sin asignar / Bodega</option>
+                                {% for user in edit_form.fields.asignado_a.queryset %}
+                                    <option value="{{ user.id }}">{{ user.get_full_name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="edit_ubicacion" class="form-label">Ubicación</label>
+                            <input type="text" id="edit_ubicacion" name="ubicacion" class="form-control">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="edit_estado" class="form-label">Estado</label>
+                            <select id="edit_estado" name="estado" class="form-select">
+                                {% for value, text in edit_form.fields.estado.choices %}
+                                    <option value="{{ value }}">{{ text }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="edit_fecha_adquisicion" class="form-label">Fecha de Adquisición (Opcional)</label>
+                            <input type="date" id="edit_fecha_adquisicion" name="fecha_adquisicion" class="form-control">
+                        </div>
+                    </div>
+                    
+                    <div class="modal-footer mt-4">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-danger">Guardar Cambios</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Eliminar Ítem de Inventario -->
+<div class="modal fade" id="deleteInventarioModal" tabindex="-1" aria-labelledby="deleteInventarioModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteInventarioModalLabel">Confirmar Eliminación</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Estás seguro de que quieres eliminar el ítem "<strong id="itemNameToDelete"></strong>"?</p>
+                <p class="text-danger small">Esta acción no se puede deshacer.</p>
+            </div>
+            <div class="modal-footer">
+                <form id="deleteInventarioForm" method="post">
+                    {% csrf_token %}
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-danger">Sí, eliminar</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Devolver a Bodega -->
+<div class="modal fade" id="unassignInventarioModal" tabindex="-1" aria-labelledby="unassignInventarioModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="unassignInventarioModalLabel">Confirmar Devolución</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Estás seguro de que quieres devolver a bodega el ítem "<strong id="itemNameToUnassign"></strong>"?</p>
+                <p class="text-muted small">El ítem quedará disponible en bodega para ser reasignado a otro usuario.</p>
+            </div>
+            <div class="modal-footer">
+                <form id="unassignInventarioForm" method="post">
+                    {% csrf_token %}
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-warning text-dark fw-bold">Sí, devolver a bodega</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    // Objeto para mapear usuarios a compañías
+    const usuariosPorCompania = {
+        {% for user in usuarios_activos %}
+            "{{ user.id }}": "{{ user.compania.id|default:'' }}",
+        {% endfor %}
+    };
+    const todasLasOpcionesDeUsuario = Array.from(document.querySelectorAll('#usuario_a_asignar option'));
+    const primerSelectItems = document.querySelector('.item-select');
+    const todasLasOpcionesDeItem = primerSelectItems ? Array.from(primerSelectItems.querySelectorAll('option')) : [];
+
+    // Si hay errores en el formulario, reabrir el modal al cargar la página.
+    // Inicializar todos los tooltips de Bootstrap
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"], [title]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+
+    {% if form.errors %}
+        var createInventarioModal = new bootstrap.Modal(document.getElementById('createInventarioModal'));
+        createInventarioModal.show();
+    {% endif %}
+
+    // Lógica para el modal de edición
+    var editModal = document.getElementById('editInventarioModal');
+    editModal.addEventListener('show.bs.modal', function (event) {
+        var button = event.relatedTarget;
+        var form = document.getElementById('editInventarioForm');
+        form.action = `/inventario/${button.dataset.itemId}/edit/`;
+        form.querySelector('#edit_nombre').value = button.dataset.itemNombre;
+        form.querySelector('#edit_compania').value = button.dataset.itemCompania;
+        form.querySelector('#edit_asignado_a').value = button.dataset.itemAsignado_a;
+        form.querySelector('#edit_ubicacion').value = button.dataset.itemUbicacion;
+        form.querySelector('#edit_estado').value = button.dataset.itemEstado;
+        form.querySelector('#edit_fecha_adquisicion').value = button.dataset.itemFecha_adquisicion;
+    });
+
+    // Lógica para el modal de eliminación
+    var deleteModal = document.getElementById('deleteInventarioModal');
+    deleteModal.addEventListener('show.bs.modal', function (event) {
+        var button = event.relatedTarget;
+        var form = document.getElementById('deleteInventarioForm');
+        form.action = `/inventario/${button.dataset.itemId}/delete/`;
+        document.getElementById('itemNameToDelete').textContent = button.dataset.itemNombre;
+    });
+
+    // Lógica para el modal de devolver a bodega
+    var unassignModal = document.getElementById('unassignInventarioModal');
+    if (unassignModal) {
+        unassignModal.addEventListener('show.bs.modal', function (event) {
+            var button = event.relatedTarget;
+            document.getElementById('unassignInventarioForm').action = `/inventario/${button.dataset.itemId}/unassign/`;
+            document.getElementById('itemNameToUnassign').textContent = button.dataset.itemNombre;
+        });
+    }
+
+    // Si hay errores en el formulario de asignación, mostramos un mensaje
+    {% if 'Debes seleccionar un usuario' in messages|join:", " %}
+        // Podrías implementar una lógica más robusta aquí si es necesario,
+        // como resaltar los campos del formulario de asignación.
+    {% endif %}
+
+    // Lógica para asignar múltiples equipos a la vez
+    const containerAsignacion = document.getElementById('items-asignacion-container');
+    const btnAddAsignacion = document.getElementById('add-item-btn');
+
+    if (containerAsignacion) {
+        function bindRowEvents(row) {
+            const itemSel = row.querySelector('.item-select');
+            const cantInput = row.querySelector('.cantidad-input');
+            const removeBtn = row.querySelector('.remove-row-btn');
+
+            if (itemSel && cantInput) {
+                itemSel.addEventListener('change', function() {
+                    const selectedOption = this.options[this.selectedIndex];
+                    const maxQuantity = selectedOption.getAttribute('data-max');
+                    if (maxQuantity) {
+                        cantInput.max = maxQuantity;
+                        cantInput.value = 1;
+                    }
+                });
+            }
+
+            if (removeBtn) {
+                removeBtn.addEventListener('click', function() {
+                    if (containerAsignacion.querySelectorAll('.item-asignacion-row').length > 1) {
+                        row.remove();
+                    }
+                });
+            }
+        }
+
+        const initialRow = containerAsignacion.querySelector('.item-asignacion-row');
+        bindRowEvents(initialRow);
+
+        if (btnAddAsignacion) {
+            btnAddAsignacion.addEventListener('click', function() {
+                const newRow = initialRow.cloneNode(true);
+                newRow.querySelector('.item-select').value = "";
+                newRow.querySelector('.cantidad-input').value = 1;
+                newRow.querySelector('.cantidad-input').removeAttribute('max');
+                newRow.querySelector('.remove-row-btn').style.display = 'block';
+                
+                containerAsignacion.appendChild(newRow);
+                bindRowEvents(newRow);
+                
+                const companiaActiva = companiaActivaInput.value;
+                actualizarSelectEspecifico(newRow.querySelector('.item-select'), companiaActiva);
+            });
+        }
+    }
+
+    // Lógica para el modal del Código QR
+    const qrCodeModal = document.getElementById('qrCodeModal');
+    if (qrCodeModal) {
+        qrCodeModal.addEventListener('show.bs.modal', function (event) {
+            const button = event.relatedTarget;
+            const itemName = button.dataset.itemName;
+            const itemUser = button.dataset.itemUser;
+            const itemLocation = button.dataset.itemLocation;
+            const qrUrl = button.dataset.qrUrl;
+            const itemId = button.dataset.itemId;
+
+            const modalBody = qrCodeModal.querySelector('#qrCodeModalBody');
+            
+            // Contenido del modal, similar a la página anterior
+            modalBody.innerHTML = `
+                <div id="printable-qr-area" class="text-center">
+                    <div style="background-color: #dc3545; color: white; padding: 1rem; text-align: center; border-top-left-radius: 0.25rem; border-top-right-radius: 0.25rem;">
+                        <h5 style="margin: 0; font-size: 1.2rem; font-weight: 600;">Cuerpo de Bomberos</h5>
+                    </div>
+                    <div style="padding: 1.5rem;">
+                        <img src="${qrUrl}" alt="Código QR para ${itemName}" class="img-fluid mb-3" style="max-width: 200px;">
+                        <div>
+                            <h5 style="font-size: 1.25rem; font-weight: bold; margin-bottom: 0.5rem;">${itemName}</h5>
+                            <p style="font-size: 1rem; color: #6c757d; margin-bottom: 0.25rem;" class="mb-0">
+                                <strong>Asignado a:</strong> ${itemUser}
+                            </p>
+                            <p style="font-size: 1rem; color: #6c757d; margin-bottom: 0.25rem;">
+                                <strong>Ubicación:</strong> ${itemLocation}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <div class="d-flex gap-2 mt-3">
+                    <a href="/inventario/qr/${itemId}/" target="_blank" class="btn btn-danger w-100">
+                        <i class="bi bi-printer-fill me-2"></i>Imprimir Etiqueta
+                    </button>
+                    <a href="${qrUrl}" download="qr-item-${itemId}.png" class="btn btn-outline-secondary w-100">
+                        <i class="bi bi-download me-2"></i>Descargar
+                    </a>
+                </div>
+            `;
+
+        });
+    }
+
+    // Lógica para el modal de edición de grupo
+    const editGroupModal = document.getElementById('editGroupModal');
+    if (editGroupModal) {
+        editGroupModal.addEventListener('show.bs.modal', function (event) {
+            const button = event.relatedTarget;
+            const nombre = button.dataset.groupNombre;
+            const ubicacion = button.dataset.groupUbicacion;
+            const estado = button.dataset.groupEstado;
+
+            // Rellenar los campos ocultos del formulario
+            editGroupModal.querySelector('#edit_group_nombre').value = nombre;
+            editGroupModal.querySelector('#edit_group_ubicacion_actual').value = ubicacion;
+            editGroupModal.querySelector('#edit_group_estado_actual').value = estado;
+
+            // Rellenar los textos informativos
+            editGroupModal.querySelector('#edit_group_nombre_text').textContent = nombre;
+            editGroupModal.querySelector('#edit_group_ubicacion_text').textContent = ubicacion;
+            editGroupModal.querySelector('#edit_group_estado_text').textContent = estado;
+        });
+    }
+
+    // Lógica para el modal de eliminación de grupo
+    const deleteGroupModal = document.getElementById('deleteGroupModal');
+    if (deleteGroupModal) {
+        deleteGroupModal.addEventListener('show.bs.modal', function (event) {
+            const button = event.relatedTarget;
+            const nombre = button.dataset.groupNombre;
+            const ubicacion = button.dataset.groupUbicacion;
+            const estado = button.dataset.groupEstado;
+
+            deleteGroupModal.querySelector('#delete_group_nombre').value = nombre;
+            deleteGroupModal.querySelector('#delete_group_ubicacion').value = ubicacion;
+            deleteGroupModal.querySelector('#delete_group_estado').value = estado;
+
+            deleteGroupModal.querySelector('#delete_group_nombre_text').textContent = nombre;
+            deleteGroupModal.querySelector('#delete_group_ubicacion_text').textContent = ubicacion;
+            deleteGroupModal.querySelector('#delete_group_estado_text').textContent = estado;
+        });
+    }
+
+    // Lógica para actualizar el campo oculto de la compañía activa al cambiar de pestaña
+    const accordionHeaders = document.querySelectorAll('.accordion-header');
+    const companiaActivaInput = document.getElementById('compania_activa_input');
+    const companiaAsignarInput = document.getElementById('compania_a_asignar');
+    const usuarioSelect = document.getElementById('usuario_a_asignar');
+
+    function actualizarUsuariosPorCompania(companiaId) {
+        if (!usuarioSelect) return;
+
+        // Guardar el valor seleccionado si existe
+        const valorSeleccionado = usuarioSelect.value;
+
+        // Limpiar opciones existentes (excepto la primera)
+        while (usuarioSelect.options.length > 1) {
+            usuarioSelect.remove(1);
+        }
+
+        // Filtrar y añadir las opciones correctas
+        todasLasOpcionesDeUsuario.forEach(option => {
+            if (option.value === "") return; // Omitir el placeholder
+            const userId = option.value;
+            if (usuariosPorCompania[userId] === companiaId) {
+                usuarioSelect.add(option.cloneNode(true));
+            }
+        });
+
+        // Restaurar la selección si el usuario todavía está en la lista
+        usuarioSelect.value = valorSeleccionado;
+    }
+
+    function actualizarSelectEspecifico(select, companiaId) {
+        if (!select) return;
+        while (select.options.length > 1) {
+            select.remove(1);
+        }
+        todasLasOpcionesDeItem.forEach(option => {
+            if (option.value === "") return;
+            if (companiaId && option.dataset.compania === companiaId) {
+                select.add(option.cloneNode(true));
+            }
+        });
+        select.value = "";
+    }
+
+    function actualizarItemsPorCompania(companiaId) {
+        // Al cambiar de compañía, reseteamos a una sola fila
+        if (containerAsignacion) {
+            const rows = containerAsignacion.querySelectorAll('.item-asignacion-row');
+            for (let i = 1; i < rows.length; i++) {
+                rows[i].remove();
+            }
+        }
+        const itemSelects = document.querySelectorAll('.item-select');
+        itemSelects.forEach(select => actualizarSelectEspecifico(select, companiaId));
+    }
+
+    accordionHeaders.forEach(header => {
+        header.querySelector('button').addEventListener('click', function() {
+            const companiaId = header.dataset.companiaId;
+            companiaActivaInput.value = companiaId;
+            
+            // Guardar la compañía activa en la memoria del navegador
+            localStorage.setItem('activeInventarioCompania', companiaId);
+            
+            // Al hacer clic en una compañía, actualizamos tanto los usuarios como los ítems.
+            actualizarUsuariosPorCompania(companiaId);
+            actualizarItemsPorCompania(companiaId);
+        });
+    });
+
+    // Nueva lógica: La compañía de asignación depende del usuario seleccionado
+    if (usuarioSelect && companiaAsignarInput) {
+        usuarioSelect.addEventListener('change', function() {
+            // El input oculto 'compania_a_asignar' se actualiza con la compañía del usuario.
+            // Esto es importante para que el backend sepa a qué compañía pertenece la asignación.
+            companiaAsignarInput.value = usuariosPorCompania[this.value] || '';
+        });
+    }
+
+    // Al cargar la página, recuperar la última compañía abierta o abrir la primera por defecto.
+    let savedCompaniaId = localStorage.getItem('activeInventarioCompania');
+
+    if (savedCompaniaId) {
+        const targetHeader = Array.from(accordionHeaders).find(h => h.dataset.companiaId === savedCompaniaId);
+        
+        if (targetHeader) {
+            const targetCollapse = document.getElementById('collapse-' + savedCompaniaId);
+            
+            // Si el acordeón que queremos abrir NO está abierto ya
+            if (targetCollapse && !targetCollapse.classList.contains('show')) {
+                // Usamos la API de Bootstrap para cerrar el que Django abrió por defecto
+                const accordionAbierto = document.querySelector('#accordionInventario .accordion-collapse.show');
+                if (accordionAbierto) {
+                    const collapseInstance = bootstrap.Collapse.getOrCreateInstance(accordionAbierto, { toggle: false });
+                    collapseInstance.hide();
+                }
+                
+                // Abrimos nuestro acordeón de forma segura
+                const targetInstance = bootstrap.Collapse.getOrCreateInstance(targetCollapse, { toggle: false });
+                targetInstance.show();
+            }
+            
+            companiaActivaInput.value = savedCompaniaId;
+            actualizarUsuariosPorCompania(savedCompaniaId);
+            actualizarItemsPorCompania(savedCompaniaId);
+            
+        } else if (accordionHeaders.length > 0) {
+            const primerId = accordionHeaders[0].dataset.companiaId;
+            companiaActivaInput.value = primerId;
+            actualizarUsuariosPorCompania(primerId);
+            actualizarItemsPorCompania(primerId);
+        }
+    } else if (accordionHeaders.length > 0) {
+        const primerId = accordionHeaders[0].dataset.companiaId;
+        companiaActivaInput.value = primerId;
+        actualizarUsuariosPorCompania(primerId);
+        actualizarItemsPorCompania(primerId);
+    }
+
+});
+</script>
+{% endblock %}

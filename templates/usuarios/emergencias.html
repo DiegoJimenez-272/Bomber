@@ -1,0 +1,372 @@
+{% extends 'base_con_condicion.html' %}
+
+{% block title %}Emergencias - {{ block.super }}{% endblock %}
+
+{% block content %}
+<!-- Header del contenido principal -->
+<header class="d-flex align-items-center justify-content-between pb-3 mb-4 border-bottom">
+    <h1 class="h2">Gestión de Emergencias</h1>
+    {% if request.user.is_superuser or request.user.rol.editar_emergencias %}
+    <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#createEmergenciaModal">
+        <i class="bi bi-plus-lg me-1"></i> Registrar Emergencia
+    </button>
+    {% endif %}
+</header>
+
+<!-- Contenido de Emergencias -->
+<main>
+    {% if messages %}
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {% endfor %}
+    {% endif %}
+
+    <!-- Formulario de Búsqueda y Filtros -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3 align-items-end">
+                <div class="col-lg-4">
+                    <label for="q" class="form-label">Buscar por dirección, unidades...</label>
+                    <input type="text" name="q" id="emSearchInput" class="form-control" value="{{ request.GET.q|default:'' }}">
+                </div>
+                <div class="col-lg-2">
+                    <label for="tipo" class="form-label">Tipo de Emergencia</label>
+                    <select name="tipo" id="emTypeFilter" class="form-select">
+                        <option value="">Todos</option>
+                        {% for value, text in form.fields.tipo.choices %}<option value="{{ value }}" {% if request.GET.tipo == value %}selected{% endif %}>{{ text }}</option>{% endfor %}
+                    </select>
+                </div>
+                <div class="col-lg-2">
+                    <label for="estado" class="form-label">Estado</label>
+                    <select name="estado" id="emStatusFilter" class="form-select">
+                        <option value="">Todos</option>
+                        {% for value, text in form.fields.estado.choices %}<option value="{{ value }}" {% if request.GET.estado == value %}selected{% endif %}>{{ text }}</option>{% endfor %}
+                    </select>
+                </div>
+                <div class="col-lg-2">
+                    <label for="usuario" class="form-label">Oficial a Cargo</label>
+                    <select name="usuario" id="emUserFilter" class="form-select">
+                        <option value="">Todos</option>
+                        {% for user in usuarios_con_emergencias %}<option value="{{ user.id }}" {% if request.GET.usuario == user.id|stringformat:"s" %}selected{% endif %}>{{ user.get_full_name }}</option>{% endfor %}
+                    </select>
+                </div>
+                <div class="col-lg-2">
+                    <label for="ordenar_por" class="form-label">Ordenar por</label>
+                    <select name="ordenar_por" id="ordenar_por" class="form-select" onchange="this.form.submit()">
+                        <option value="-fecha_hora_alarma" {% if request.GET.ordenar_por == '-fecha_hora_alarma' %}selected{% endif %}>Más nuevas</option>
+                        <option value="fecha_hora_alarma" {% if request.GET.ordenar_por == 'fecha_hora_alarma' %}selected{% endif %}>Más antiguas</option>
+                    </select>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <h5 class="card-title">Historial de Emergencias</h5>
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th scope="col">Tipo / Dirección</th>
+                            <th scope="col">Fecha y Hora Alarma</th>
+                            <th scope="col">Unidades</th>
+                            <th scope="col">Oficial a Cargo</th>
+                            <th scope="col">Estado</th>
+                            <th scope="col">Acciones</th>
+                        </tr>
+                    </thead>
+                <tbody id="emergenciasTableBody">
+                    <tr id="no-ems-found" style="display: none;"><td colspan="6" class="text-center text-muted py-4">No se encontraron emergencias con los filtros aplicados.</td></tr>
+                        {% for emergencia in emergencias %}
+                        <tr>
+                            <td>
+                                <strong>{{ emergencia.get_tipo_display }}</strong>
+                                <p class="text-muted small mb-0">{{ emergencia.direccion }}</p>
+                            </td>
+                            <td>{{ emergencia.fecha_hora_alarma|date:"d/m/Y H:i" }}</td>
+                            <td>{{ emergencia.unidades_despachadas }}</td>
+                            <td>{{ emergencia.oficial_a_cargo.get_full_name|default:"N/A" }}</td>
+                            <td>
+                                {% if emergencia.estado == 'Activa' %}
+                                    <span class="badge bg-danger">{{ emergencia.estado }}</span>
+                                {% elif emergencia.estado == 'Controlada' %}
+                                    <span class="badge bg-warning">{{ emergencia.estado }}</span>
+                                {% else %}
+                                    <span class="badge bg-success">{{ emergencia.estado }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if request.user.is_superuser or request.user.rol.editar_emergencias %}
+                                <div class="btn-group" role="group">
+                                    <button type="button" class="btn btn-sm btn-outline-primary"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#editEmergenciaModal"
+                                            data-emergencia-id="{{ emergencia.id }}"
+                                            data-emergencia-tipo="{{ emergencia.tipo }}"
+                                            data-emergencia-direccion="{{ emergencia.direccion }}"
+                                            data-emergencia-fecha_hora_alarma="{{ emergencia.fecha_hora_alarma|date:'Y-m-d\TH:i' }}"
+                                            data-emergencia-descripcion="{{ emergencia.descripcion }}"
+                                            data-emergencia-unidades_despachadas="{{ emergencia.unidades_despachadas }}"
+                                            data-emergencia-oficial_a_cargo="{{ emergencia.oficial_a_cargo.id }}"
+                                            data-emergencia-estado="{{ emergencia.estado }}">
+                                        <i class="bi bi-pencil-fill"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-danger"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#deleteEmergenciaModal"
+                                            data-emergencia-id="{{ emergencia.id }}"
+                                            data-emergencia-tipo="{{ emergencia.get_tipo_display }}">
+                                        <i class="bi bi-trash-fill"></i>
+                                    </button>
+                                </div>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center text-muted py-4">No hay emergencias registradas todavía.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</main>
+
+<!-- Modal Registrar Emergencia -->
+<div class="modal fade" id="createEmergenciaModal" tabindex="-1" aria-labelledby="createEmergenciaModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="createEmergenciaModalLabel">Registrar Nueva Emergencia</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="{{ form.tipo.id_for_label }}" class="form-label">Tipo de Emergencia</label>
+                            {{ form.tipo }}
+                            {% for error in form.tipo.errors %}
+                                <div class="invalid-feedback d-block">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="{{ form.direccion.id_for_label }}" class="form-label">Dirección</label>
+                            {{ form.direccion }}
+                            {% for error in form.direccion.errors %}
+                                <div class="invalid-feedback d-block">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="{{ form.fecha_hora_alarma.id_for_label }}" class="form-label">Fecha y Hora de Alarma</label>
+                            {{ form.fecha_hora_alarma }}
+                            {% for error in form.fecha_hora_alarma.errors %}
+                                <div class="invalid-feedback d-block">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                         <div class="col-md-6">
+                            <label for="{{ form.estado.id_for_label }}" class="form-label">Estado Actual</label>
+                            {{ form.estado }}
+                            {% for error in form.estado.errors %}
+                                <div class="invalid-feedback d-block">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="{{ form.unidades_despachadas.id_for_label }}" class="form-label">Unidades Despachadas</label>
+                            {{ form.unidades_despachadas }}
+                            {% for error in form.unidades_despachadas.errors %}
+                                <div class="invalid-feedback d-block">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="{{ form.oficial_a_cargo.id_for_label }}" class="form-label">Oficial a Cargo</label>
+                            {{ form.oficial_a_cargo }}
+                            {% for error in form.oficial_a_cargo.errors %}
+                                <div class="invalid-feedback d-block">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-12">
+                            <label for="{{ form.descripcion.id_for_label }}" class="form-label">Detalles del Incidente</label>
+                            {{ form.descripcion }}
+                            {% for error in form.descripcion.errors %}
+                                <div class="invalid-feedback d-block">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-danger">Registrar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Editar Emergencia -->
+<div class="modal fade" id="editEmergenciaModal" tabindex="-1" aria-labelledby="editEmergenciaModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editEmergenciaModalLabel">Editar Emergencia</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="editEmergenciaForm" method="post">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="edit_tipo" class="form-label">Tipo de Emergencia</label>
+                            <select id="edit_tipo" name="tipo" class="form-select">
+                                {% for choice in form.tipo.field.choices %}<option value="{{ choice.0 }}">{{ choice.1 }}</option>{% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="edit_direccion" class="form-label">Dirección</label>
+                            <input type="text" id="edit_direccion" name="direccion" class="form-control">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="edit_fecha_hora_alarma" class="form-label">Fecha y Hora de Alarma</label>
+                            <input type="datetime-local" id="edit_fecha_hora_alarma" name="fecha_hora_alarma" class="form-control">
+                        </div>
+                         <div class="col-md-6">
+                            <label for="edit_estado" class="form-label">Estado Actual</label>
+                            <select id="edit_estado" name="estado" class="form-select">
+                                {% for choice in form.estado.field.choices %}<option value="{{ choice.0 }}">{{ choice.1 }}</option>{% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="edit_unidades_despachadas" class="form-label">Unidades Despachadas</label>
+                            <input type="text" id="edit_unidades_despachadas" name="unidades_despachadas" class="form-control">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="edit_oficial_a_cargo" class="form-label">Oficial a Cargo</label>
+                            <select id="edit_oficial_a_cargo" name="oficial_a_cargo" class="form-select">
+                                {% for choice in form.oficial_a_cargo.field.choices %}<option value="{{ choice.0 }}">{{ choice.1 }}</option>{% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label for="edit_descripcion" class="form-label">Detalles del Incidente</label>
+                            <textarea id="edit_descripcion" name="descripcion" class="form-control" rows="4"></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-danger">Guardar Cambios</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Eliminar Emergencia -->
+<div class="modal fade" id="deleteEmergenciaModal" tabindex="-1" aria-labelledby="deleteEmergenciaModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteEmergenciaModalLabel">Confirmar Eliminación</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Estás seguro de que quieres eliminar la emergencia "<strong><span id="emergenciaTipoToDelete"></span></strong>"?</p>
+                <p class="text-danger small">Esta acción no se puede deshacer.</p>
+            </div>
+            <div class="modal-footer">
+                <form id="deleteEmergenciaForm" method="post">
+                    {% csrf_token %}
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-danger">Sí, eliminar</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ block.super }}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    {% if form.errors %}
+        var createEmergenciaModal = new bootstrap.Modal(document.getElementById('createEmergenciaModal'));
+        createEmergenciaModal.show();
+    {% endif %}
+
+    // Lógica para el modal de edición
+    var editModal = document.getElementById('editEmergenciaModal');
+    editModal.addEventListener('show.bs.modal', function (event) {
+        var button = event.relatedTarget;
+        var form = document.getElementById('editEmergenciaForm');
+        form.action = `/emergencias/${button.dataset.emergenciaId}/edit/`;
+        form.querySelector('#edit_tipo').value = button.dataset.emergenciaTipo;
+        form.querySelector('#edit_direccion').value = button.dataset.emergenciaDireccion;
+        form.querySelector('#edit_fecha_hora_alarma').value = button.dataset.emergenciaFecha_hora_alarma;
+        form.querySelector('#edit_descripcion').value = button.dataset.emergenciaDescripcion;
+        form.querySelector('#edit_unidades_despachadas').value = button.dataset.emergenciaUnidades_despachadas;
+        form.querySelector('#edit_oficial_a_cargo').value = button.dataset.emergenciaOficial_a_cargo;
+        form.querySelector('#edit_estado').value = button.dataset.emergenciaEstado;
+    });
+
+    // Lógica para el modal de eliminación
+    var deleteModal = document.getElementById('deleteEmergenciaModal');
+    deleteModal.addEventListener('show.bs.modal', function (event) {
+        var button = event.relatedTarget;
+        var form = document.getElementById('deleteEmergenciaForm');
+        form.action = `/emergencias/${button.dataset.emergenciaId}/delete/`;
+        document.getElementById('emergenciaTipoToDelete').textContent = button.dataset.emergenciaTipo;
+    });
+
+    // --- Lógica de Filtrado en Tiempo Real para Emergencias ---
+    const emSearchInput = document.getElementById('emSearchInput');
+    const emTypeFilter = document.getElementById('emTypeFilter');
+    const emStatusFilter = document.getElementById('emStatusFilter');
+    const emUserFilter = document.getElementById('emUserFilter');
+    const emsTableBody = document.getElementById('emergenciasTableBody');
+    const noEmsRow = document.getElementById('no-ems-found');
+
+    function filterEms() {
+        if (!emsTableBody) return;
+        const searchText = emSearchInput.value.toLowerCase();
+        const selectedType = emTypeFilter.value.toLowerCase(); 
+        const selectedStatus = emStatusFilter.value.toLowerCase();
+        const isUserSelected = emUserFilter.value !== "";
+        const selectedUserText = emUserFilter.options[emUserFilter.selectedIndex].text.toLowerCase();
+
+        const rows = emsTableBody.querySelectorAll('tr:not(#no-ems-found)');
+        let visibleRows = 0;
+
+        rows.forEach(row => {
+            if (row.children.length === 1 && row.textContent.includes('No hay emergencias registradas todavía')) return;
+
+            const textContent = row.textContent.toLowerCase();
+            const statusCell = row.cells[4] ? row.cells[4].textContent.trim().toLowerCase() : "";
+            const userCell = row.cells[3] ? row.cells[3].textContent.toLowerCase() : "";
+            const editBtn = row.querySelector('button[data-emergencia-tipo]');
+            let typeKey = editBtn ? editBtn.getAttribute('data-emergencia-tipo').toLowerCase() : "";
+
+            const matchesSearch = searchText === "" || textContent.includes(searchText);
+            const matchesType = selectedType === "" || typeKey === selectedType;
+            const matchesStatus = selectedStatus === "" || statusCell === selectedStatus;
+            const matchesUser = !isUserSelected || userCell.includes(selectedUserText) || selectedUserText === "todos";
+
+            if (matchesSearch && matchesType && matchesStatus && matchesUser) { row.style.display = ""; visibleRows++; } 
+            else { row.style.display = "none"; }
+        });
+        if (noEmsRow) noEmsRow.style.display = visibleRows === 0 && rows.length > 0 ? "" : "none";
+    }
+
+    if (emSearchInput) emSearchInput.addEventListener('keyup', filterEms);
+    if (emTypeFilter) emTypeFilter.addEventListener('change', filterEms);
+    if (emStatusFilter) emStatusFilter.addEventListener('change', filterEms);
+    if (emUserFilter) emUserFilter.addEventListener('change', filterEms);
+});
+</script>
+{% endblock %}

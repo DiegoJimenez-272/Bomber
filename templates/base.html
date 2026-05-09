@@ -1,0 +1,534 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Sistema Bomberos{% endblock %}</title>
+    <!-- Favicon (Evitar error 404) -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚒</text></svg>">
+    <!-- Google Fonts: Poppins -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Bootstrap 5.3.3 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <link rel="stylesheet" href="{% static 'usuarios/theme.css' %}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <!-- Nuestro CSS compilado -->
+    <style>
+        :root {
+            --bs-primary: #dc3545;
+            --bs-primary-rgb: 220, 53, 69;
+            --bs-danger: #c82333;
+            
+            /* Light Mode Defaults */
+            --bs-body-font-family: 'Poppins', sans-serif;
+            --bs-body-bg: #f8f9fa;
+            --sidebar-bg: #ffffff;
+            --text-muted-light: #6c757d;
+            --text-color: #212529;
+            --card-bg: #ffffff;
+            --card-border: #dee2e6;
+            --card-header-bg: #f8f9fa;
+            --table-header-bg: #f8f9fa;
+            --table-row-bg: #ffffff;
+            --form-control-bg: #ffffff;
+            --form-control-border: #dee2e6;
+        }
+        body {
+            font-family: var(--bs-body-font-family);
+            background-color: var(--bs-body-bg);
+        }
+        .sidebar-toggler {
+            display: none; /* Oculto por defecto en pantallas grandes */
+            border: none;
+            background: transparent;
+            font-size: 1.5rem;
+        }
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            width: 260px;
+            z-index: 100;
+            background-color: var(--sidebar-bg); /* Use variable */
+            border-right: 1px solid #dee2e6;
+            transition: transform 0.3s ease-in-out;
+        }
+        .main-content {
+            margin-left: 260px;
+            transition: margin-left 0.3s ease-in-out;
+            width: calc(100% - 260px);
+        }
+        .sidebar-header {
+            padding: 1.5rem 1.5rem;
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: var(--text-color); /* Use variable */
+        }
+        .sidebar .nav-link {
+            color: var(--text-muted-light);
+            font-weight: 500;
+            padding: 12px 25px;
+            font-size: 0.95rem;
+            border-left: 3px solid transparent;
+            transition: all 0.2s ease-in-out;
+        }
+        .sidebar .nav-link:hover {
+            color: var(--bs-primary);
+            background-color: rgba(var(--bs-primary-rgb), 0.08);
+        }
+        .sidebar .nav-link.active {
+            color: var(--bs-primary);
+            font-weight: 600;
+            border-left-color: var(--bs-primary);
+            background-color: rgba(var(--bs-primary-rgb), 0.1);
+        }
+        .sidebar .nav-link .bi {
+            margin-right: 10px;
+        }
+        .sidebar .nav-link.active .bi {
+            color: var(--bs-primary);
+        }
+        .sidebar-footer {
+            border-top: 1px solid #dee2e6;
+        }
+        .page-content {
+            padding: 1.5rem;
+        }
+        .card {
+            background-color: var(--card-bg); /* Use variable */
+            border-color: var(--card-border); /* Use variable */
+        }
+        .dropdown-item:hover {
+            background-color: rgba(var(--bs-primary-rgb), 0.15);
+            color: var(--bs-primary);
+        }
+        .project-card .project-actions {
+            opacity: 0;
+            transition: opacity 0.2s ease-in-out;
+        }
+        .project-card:hover .project-actions {
+            opacity: 1;
+        }
+        .border-dashed {
+            border-style: dashed !important;
+        }
+        /* Estilos para la cabecera del perfil */
+        .profile-header-bg {
+            height: 150px;
+            background-color: var(--text-color); /* Use variable */
+            background-image: linear-gradient(45deg, rgba(255,255,255,.05) 25%, transparent 25%, transparent 50%, rgba(255,255,255,.05) 50%, rgba(255,255,255,.05) 75%, transparent 75%, transparent);
+            background-size: 40px 40px;
+        }
+        /* Estilos para el nuevo sistema de notificaciones flotantes (Toasts) */
+        .toast-container-modern {
+            z-index: 1080;
+            margin-top: 70px;
+        }
+        .modern-toast {
+            backdrop-filter: blur(10px);
+            color: #ffffff;
+            border: none;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        /* Colores por tipo de notificación */
+        .modern-toast-danger { background: linear-gradient(135deg, #dc3545 0%, #a71d2a 100%); box-shadow: 0 15px 35px rgba(220, 53, 69, 0.3); }
+        .modern-toast-success { background: linear-gradient(135deg, #198754 0%, #146c43 100%); box-shadow: 0 15px 35px rgba(25, 135, 84, 0.3); }
+        .modern-toast-info { background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%); box-shadow: 0 15px 35px rgba(13, 110, 253, 0.3); }
+        .modern-toast-warning { background: linear-gradient(135deg, #fd7e14 0%, #d36400 100%); box-shadow: 0 15px 35px rgba(253, 126, 20, 0.3); }
+        
+        body.dark-mode .modern-toast-danger { background: linear-gradient(135deg, #8c2a32 0%, #4a1a1f 100%); box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5); }
+        body.dark-mode .modern-toast-success { background: linear-gradient(135deg, #0f5132 0%, #0a3622 100%); box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5); }
+        body.dark-mode .modern-toast-info { background: linear-gradient(135deg, #084298 0%, #052c65 100%); box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5); }
+        body.dark-mode .modern-toast-warning { background: linear-gradient(135deg, #994c00 0%, #663300 100%); box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5); }
+        .modern-toast-progress {
+            height: 4px;
+            background: rgba(255,255,255,0.3);
+            width: 100%;
+            position: absolute;
+            bottom: 0;
+            left: 0;
+        }
+        .modern-toast-progress-bar {
+            height: 100%;
+            background: #ffffff;
+            width: 100%;
+            animation: toastProgress 5s linear forwards;
+        }
+        @keyframes toastProgress {
+            from { width: 100%; }
+            to { width: 0%; }
+        }
+
+        /* Posicionar Toasts en la parte inferior centrada en dispositivos móviles */
+        @media (max-width: 767.98px) {
+            .toast-container-modern {
+                top: auto !important;
+                bottom: 0 !important;
+                margin-top: 0;
+                margin-bottom: 15px;
+                left: 50% !important;
+                right: auto !important;
+                transform: translateX(-50%);
+                width: calc(100% - 2rem);
+            }
+        }
+
+        /* Ocultar los cuadros de alerta estáticos antiguos para usar Toasts flotantes */
+        main .alert-dismissible[role="alert"], 
+        .page-content .alert-dismissible[role="alert"] {
+            display: none !important;
+        }
+        @media (max-width: 991.98px) {
+            .sidebar-toggler {
+                display: block;
+            }
+            .sidebar {
+                transform: translateX(-100%);
+            }
+            .sidebar.visible {
+                transform: translateX(0);
+                box-shadow: 0 0.5rem 1rem rgba(0,0,0,.15);
+            }
+            .main-content {
+                margin-left: 0;
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="d-flex">
+        <!-- Sidebar -->
+        <div class="sidebar d-flex flex-column flex-shrink-0">
+            <a href="{% url 'dashboard' %}" class="sidebar-header text-decoration-none d-flex align-items-center justify-content-between w-100">
+                <div class="d-flex align-items-center">
+                    <i class="bi bi-fire text-danger me-2" style="font-size: 1.5rem;"></i>
+                    <span class="fw-bold" style="line-height: 1.2; font-size: 1.1rem;">
+                        Gestión<br>Bomberos
+                    </span>
+                </div>
+                <div>
+                    {% if request.user.is_authenticated and request.user.compania %}
+                        {% if request.user.compania.logo %}
+                            <img src="{{ request.user.compania.logo.url }}" alt="Logo" style="max-height: 65px; width: auto; object-fit: contain;">
+                        {% else %}
+                            <span style="font-size: 2.5rem;" title="Bomberos">🚒</span>
+                        {% endif %}
+                    {% endif %}
+                </div>
+            </a>
+            <ul class="nav nav-pills flex-column mb-auto mt-2">
+                <li class="nav-item"><a href="{% url 'dashboard' %}" class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}"><i class="bi bi-grid-1x2-fill"></i>Inicio</a></li>
+                
+                {% if request.user.is_superuser or request.user.rol.ver_resumen_general %}
+                <li class="nav-item"><a href="{% url 'dashboard_summary' %}" class="nav-link {% if request.resolver_match.url_name == 'dashboard_summary' %}active{% endif %}"><i class="bi bi-bar-chart-line-fill"></i>Resumen General</a></li>
+                {% endif %}
+                
+                {% if request.user.is_superuser or request.user.rol.ver_documentacion %}
+                <li class="nav-item"><a href="{% url 'documentos' %}" class="nav-link {% if request.resolver_match.url_name == 'documentos' %}active{% endif %}"><i class="bi bi-file-earmark-text-fill"></i>Documentos</a></li>
+                {% endif %}
+                
+                {% if request.user.is_superuser or request.user.rol.ver_escanear_qr %}
+                <li class="nav-item"><a href="{% url 'scan_qr_page' %}" class="nav-link {% if request.resolver_match.url_name == 'scan_qr_page' %}active{% endif %}"><i class="bi bi-qr-code-scan"></i>Escanear QR</a></li>
+                {% endif %}
+                
+                {% if request.user.is_superuser or request.user.rol.ver_inventario %}
+                <li class="nav-item"><a href="{% url 'inventario' %}" class="nav-link {% if request.resolver_match.url_name == 'inventario' %}active{% endif %}"><i class="bi bi-box-seam-fill"></i>Inventario</a></li>
+                {% endif %}
+                
+                {% if request.user.is_superuser or request.user.rol.ver_salidas_terreno %}
+                <li class="nav-item"><a href="{% url 'salidas_terreno' %}" class="nav-link {% if request.resolver_match.url_name == 'salidas_terreno' %}active{% endif %}"><i class="bi bi-truck-front-fill"></i>Salidas a Terreno</a></li>
+                {% endif %}
+                
+                {% if request.user.is_superuser or request.user.rol.ver_emergencias %}
+                <li class="nav-item"><a href="{% url 'emergencias' %}" class="nav-link {% if request.resolver_match.url_name == 'emergencias' %}active{% endif %}"><i class="bi bi-exclamation-octagon-fill"></i>Emergencias</a></li>
+                {% endif %}
+                
+                {% if request.user.is_superuser or request.user.rol.ver_capacitaciones %}
+                <li class="nav-item"><a href="{% url 'capacitaciones' %}" class="nav-link {% if request.resolver_match.url_name == 'capacitaciones' %}active{% endif %}"><i class="bi bi-mortarboard-fill"></i>Cursos</a></li>
+                {% endif %}
+                
+                {% if request.user.is_superuser or request.user.rol.ver_mantenimientos %}
+                <li class="nav-item"><a href="{% url 'mantenimiento' %}" class="nav-link {% if request.resolver_match.url_name == 'mantenimiento' %}active{% endif %}"><i class="bi bi-wrench-adjustable-circle-fill"></i>Mantenimiento</a></li>
+                {% endif %}
+                
+                {% if request.user.is_superuser or request.user.rol.ver_proyectos %}
+                <li class="nav-item"><a href="{% url 'proyectos' %}" class="nav-link {% if request.resolver_match.url_name == 'proyectos' %}active{% endif %}"><i class="bi bi-graph-up-arrow"></i>Proyectos</a></li>
+                {% endif %}
+
+                {% if request.user.is_superuser or request.user.rol.ver_proyectos %}
+                <li class="nav-item"><a href="{% url 'caja_chica' %}" class="nav-link {% if request.resolver_match.url_name == 'caja_chica' %}active{% endif %}"><i class="bi bi-wallet-fill"></i>Caja Chica</a></li>
+                {% endif %}
+                
+                {% if request.user.is_superuser %}
+                <li class="nav-item"><a href="{% url 'administracion' %}" class="nav-link {% if request.resolver_match.url_name == 'administracion' %}active{% endif %}"><i class="bi bi-gear-fill"></i>Administración</a></li>
+                {% endif %}
+            </ul>
+            <div class="sidebar-footer mt-auto border-top pt-2"> <!-- Pushes content to the bottom and adds a top border -->
+                <button id="theme-toggle" class="nav-link w-100 text-start">
+                    <i class="bi bi-moon-fill me-2"></i>
+                    <span>Modo Oscuro</span>
+                </button>
+                <a href="{% url 'logout' %}" class="nav-link text-danger-emphasis">
+                    <i class="bi bi-box-arrow-left"></i>
+                    Cerrar Sesión
+                </a>
+            </div>
+
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content flex-grow-1">
+            <!-- Top Navigation -->
+            <header class="bg-white border-bottom d-flex align-items-center justify-content-between p-3">
+                <div class="d-flex align-items-center">
+                    <button class="sidebar-toggler me-3" type="button" id="sidebarToggle">
+                        <i class="bi bi-list"></i>
+                    </button>
+                </div>
+                <div class="d-flex align-items-center gap-3">
+                    
+                    <!-- Campana de Notificaciones -->
+                    <div class="dropdown">
+                        <button class="btn btn-light position-relative rounded-circle p-2 border" type="button" id="userNotificationsBell" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-bell-fill fs-5 text-secondary"></i>
+                            <span class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-light rounded-circle d-none" id="notif-badge">
+                                <span class="visually-hidden">Nuevas notificaciones</span>
+                            </span>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2" aria-labelledby="userNotificationsBell" style="min-width: 320px; max-height: 400px; overflow-y: auto;" id="notif-list">
+                            <li><h6 class="dropdown-header">Tus Notificaciones</h6></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><div class="dropdown-item text-center small text-muted py-3"><div class="spinner-border spinner-border-sm" role="status"></div> Cargando...</div></li>
+                        </ul>
+                    </div>
+
+                    <div class="dropdown">
+                        <a href="#" class="d-flex align-items-center text-decoration-none dropdown-toggle text-dark" id="dropdownUser" data-bs-toggle="dropdown" aria-expanded="false">
+                            {% if user.foto_perfil %}
+                                <img src="{{ user.foto_perfil.url }}" alt="Foto de perfil" class="rounded-circle me-2" style="width: 40px; height: 40px; object-fit: cover;">
+                            {% else %}
+                                <div class="rounded-circle bg-danger text-white d-flex align-items-center justify-content-center me-2" style="width: 40px; height: 40px;">
+                                    <strong class="text-uppercase">{{ user.nombre.0 }}{{ user.apellido.0 }}</strong>
+                                </div>
+                            {% endif %}
+                            <div>
+                                <div class="fw-bold">{{ user.get_full_name }}</div>
+                                <div class="text-muted small">{{ user.rol.nombre|default:"Miembro" }}</div>
+                            </div>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end text-small shadow" aria-labelledby="dropdownUser">
+                            <li><a class="dropdown-item" href="{% url 'perfil' %}">Mi Perfil</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item text-danger-emphasis" href="{% url 'logout' %}">Cerrar Sesión</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </header>
+            <!-- Page Content -->
+            <div class="page-content">
+                {% block content %}{% endblock %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Contenedor de Notificaciones Modernas -->
+    <div id="toast-container" class="toast-container toast-container-modern position-fixed top-0 end-0 p-3"></div>
+
+    <!-- Convertir Mensajes estáticos del sistema a Notificaciones Flotantes -->
+    {% if messages %}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(() => {
+                {% for message in messages %}
+                    if(window.showModernToast) window.showModernToast('sys_' + Math.random().toString(36).substr(2, 9), "{{ message|escapejs }}", null, "{{ message.tags }}");
+                {% endfor %}
+            }, 300);
+        });
+    </script>
+    {% endif %}
+
+    <!-- Bootstrap 5.3.3 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Librería para escanear QR -->
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+
+    {% block scripts %}
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const sidebar = document.querySelector('.sidebar');
+            const sidebarToggler = document.getElementById('sidebarToggle');
+
+            if (sidebarToggler) {
+                sidebarToggler.addEventListener('click', function () {
+                    sidebar.classList.toggle('visible');
+                });
+            }
+
+            const themeToggleBtn = document.getElementById('theme-toggle');
+            const body = document.body;
+            const currentTheme = localStorage.getItem('theme');
+
+            // Apply saved theme on load
+            if (currentTheme === 'dark') {
+                body.classList.add('dark-mode');
+                if (themeToggleBtn) {
+                    themeToggleBtn.innerHTML = '<i class="bi bi-sun-fill me-2"></i><span>Modo Claro</span>';
+                }
+            } else {
+                if (themeToggleBtn) {
+                    themeToggleBtn.innerHTML = '<i class="bi bi-moon-fill me-2"></i><span>Modo Oscuro</span>';
+                }
+            }
+
+            // Theme toggle functionality
+            if (themeToggleBtn) {
+                themeToggleBtn.addEventListener('click', function () {
+                    body.classList.toggle('dark-mode');
+                    const newTheme = body.classList.contains('dark-mode') ? 'dark' : 'light';
+                    localStorage.setItem('theme', newTheme);
+                    themeToggleBtn.innerHTML = newTheme === 'dark' ? '<i class="bi bi-sun-fill me-2"></i><span>Modo Claro</span>' : '<i class="bi bi-moon-fill me-2"></i><span>Modo Oscuro</span>';
+                });
+            }
+
+            // Lógica de Notificaciones
+            const notifBell = document.getElementById('userNotificationsBell');
+            const notifBadge = document.getElementById('notif-badge');
+            const notifList = document.getElementById('notif-list');
+            const notifiedIds = JSON.parse(sessionStorage.getItem('notified_ids') || '[]');
+
+            // Función para reproducir un sonido suave ("ding") sin requerir archivos externos
+            function playNotificationSound() {
+                try {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    if (!AudioContext) return;
+                    const audioCtx = new AudioContext();
+                    const oscillator = audioCtx.createOscillator();
+                    const gainNode = audioCtx.createGain();
+                    
+                    oscillator.type = 'sine'; // Tono puro como una campanita
+                    oscillator.frequency.setValueAtTime(1046.50, audioCtx.currentTime); // Frecuencia de Nota C6
+                    
+                    gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+                    gainNode.gain.linearRampToValueAtTime(0.2, audioCtx.currentTime + 0.02); // Ataque rápido (Volumen moderado)
+                    gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.8); // Fade out suave y prolongado
+                    
+                    oscillator.connect(gainNode);
+                    gainNode.connect(audioCtx.destination);
+                    
+                    oscillator.start(audioCtx.currentTime);
+                    oscillator.stop(audioCtx.currentTime + 0.8);
+                } catch(e) {
+                    console.warn("El navegador bloqueó el sonido temporalmente hasta interactuar con la página.");
+                }
+            }
+
+            window.showModernToast = function(id, mensaje, link, type = 'info') {
+                if (notifiedIds.includes(id)) return;
+                
+                const toastContainer = document.getElementById('toast-container');
+                const toastId = 'toast-' + id;
+                const hrefAction = link ? `onclick="window.location.href='${link}'" style="cursor: pointer;"` : '';
+
+                // Determinar clases y colores según el tipo
+                let typeClass = 'modern-toast-info'; let iconClass = 'bi-info-circle-fill'; let iconColor = 'text-info';
+                if (type && type.includes('success')) { typeClass = 'modern-toast-success'; iconClass = 'bi-check-circle-fill'; iconColor = 'text-success'; }
+                else if (type && (type.includes('error') || type.includes('danger'))) { typeClass = 'modern-toast-danger'; iconClass = 'bi-x-circle-fill'; iconColor = 'text-danger'; }
+                else if (type && type.includes('warning')) { typeClass = 'modern-toast-warning'; iconClass = 'bi-exclamation-triangle-fill'; iconColor = 'text-warning'; }
+                else if (type === 'bell') { typeClass = 'modern-toast-danger'; iconClass = 'bi-bell-fill'; iconColor = 'text-danger'; }
+
+                const toastHtml = `
+                    <div id="${toastId}" class="toast modern-toast ${typeClass} mb-3" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="5000">
+                        <div class="toast-body p-3 position-relative" ${hrefAction}>
+                            <div class="d-flex align-items-center mb-1">
+                                <div class="bg-white ${iconColor} rounded-circle d-flex justify-content-center align-items-center me-2" style="width: 24px; height: 24px;">
+                                    <i class="bi ${iconClass}" style="font-size: 0.8rem;"></i>
+                                </div>
+                                <strong class="me-auto text-white">Nueva Notificación</strong>
+                                <button type="button" class="btn-close btn-close-white ms-2" data-bs-dismiss="toast" aria-label="Close"></button>
+                            </div>
+                            <div class="ms-4 ps-1 text-white opacity-75 small">
+                                ${mensaje}
+                            </div>
+                            <div class="modern-toast-progress">
+                                <div class="modern-toast-progress-bar"></div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                toastContainer.insertAdjacentHTML('beforeend', toastHtml);
+                const toastEl = document.getElementById(toastId);
+                const toast = new bootstrap.Toast(toastEl);
+                toast.show();
+                
+                // Reproducir el sonido al mostrar la notificación
+                playNotificationSound();
+
+                toastEl.addEventListener('hidden.bs.toast', () => toastEl.remove());
+                
+                notifiedIds.push(id);
+                sessionStorage.setItem('notified_ids', JSON.stringify(notifiedIds));
+            }
+
+            function cargarNotificaciones() {
+                if (!notifBell) return;
+                
+                fetch("{% url 'api_notificaciones' %}")
+                        .then(response => response.json())
+                        .then(data => {
+                            let html = '<li><h6 class="dropdown-header">Tus Notificaciones</h6></li><li><hr class="dropdown-divider"></li>';
+                            if (data.notificaciones.length === 0) {
+                                html += '<li><div class="dropdown-item text-center small text-muted py-3">No tienes notificaciones</div></li>';
+                            } else {
+                                data.notificaciones.forEach(n => {
+                                    const bgClass = n.leida ? '' : 'bg-danger-subtle';
+                                    const iconClass = n.leida ? 'text-secondary' : 'text-danger';
+                                    html += `
+                                    <li>
+                                        <a class="dropdown-item d-flex align-items-start gap-3 py-2 ${bgClass}" href="/notificaciones/leer/${n.id}/">
+                                            <i class="bi bi-envelope-paper-fill mt-1 ${iconClass}"></i>
+                                            <div class="text-wrap" style="width: 250px; line-height: 1.3;">
+                                                <span class="small d-block mb-1 text-wrap" style="white-space: normal;">${n.mensaje}</span>
+                                                <small class="text-muted" style="font-size: 0.75rem;">${n.fecha}</small>
+                                            </div>
+                                        </a>
+                                    </li>`;
+                                    
+                                    if (!n.leida) {
+                                        window.showModernToast(n.id, n.mensaje, `/notificaciones/leer/${n.id}/`, 'bell');
+                                    }
+                                });
+                            }
+                            // Botón permanente para lanzar notificación de prueba
+                            html += `<li><hr class="dropdown-divider"></li><li><button type="button" class="dropdown-item text-center small text-primary fw-bold py-2" onclick="window.showModernToast('test_' + Math.random(), '¡Guardado con éxito! Prueba haciendo algo mal para ver el color rojo.', '#', 'success')"><i class="bi bi-magic me-2"></i>Lanzar Notificación de Prueba</button></li>`;
+                            notifList.innerHTML = html;
+                        
+                        if (data.no_leidas > 0) {
+                            notifBadge.classList.remove('d-none');
+                        } else {
+                            notifBadge.classList.add('d-none');
+                        }
+                        })
+                        .catch(err => { notifList.innerHTML = '<li><div class="dropdown-item text-center small text-danger py-3">Error al cargar</div></li>'; });
+            }
+            
+            if (notifBell) {
+                cargarNotificaciones(); // Cargar inmediatamente al entrar a cualquier página
+                setInterval(cargarNotificaciones, 30000); // Revisar si hay notificaciones nuevas cada 30 segundos
+                
+                notifBell.addEventListener('show.bs.dropdown', function () {
+                    cargarNotificaciones(); // Recargar al abrir el menú
+                });
+            }
+        });
+    </script>
+    {% endblock %}
+</body>
+</html>

@@ -1,0 +1,1097 @@
+{% extends 'base_con_condicion.html' %}
+
+{% block title %}Administración - {{ block.super }}{% endblock %}
+
+{% block content %}
+<style>
+    /* Diseño de bloques para el Panel de Administración */
+    .admin-nav-blocks {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 1.25rem;
+        padding-left: 0;
+    }
+    .admin-nav-blocks .nav-item {
+        list-style: none;
+    }
+    .admin-nav-blocks .nav-link {
+        position: relative;
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 1.5rem 1rem;
+        color: var(--text-muted-light);
+        background-color: var(--card-bg);
+        border: 2px solid transparent;
+        border-radius: 16px;
+        font-weight: 800;
+        font-size: 1.05rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.05);
+        transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        overflow: hidden;
+    }
+    .admin-nav-blocks .nav-link i {
+        font-size: 2.8rem;
+        margin-bottom: 0.75rem;
+        color: var(--text-muted-light);
+        transition: color 0.3s ease, transform 0.3s ease;
+    }
+    .admin-nav-blocks .nav-link:hover:not(.active) {
+        transform: translateY(-5px) scale(1.02);
+        box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
+        border-color: rgba(220, 53, 69, 0.4);
+        color: #dc3545;
+    }
+    .admin-nav-blocks .nav-link:hover:not(.active) i {
+        color: #dc3545;
+        transform: scale(1.1);
+    }
+    .admin-nav-blocks .nav-link.active {
+        background: linear-gradient(135deg, #dc3545 0%, #901622 100%);
+        color: #ffffff !important;
+        border-color: transparent;
+        box-shadow: 0 12px 24px rgba(220, 53, 69, 0.4);
+        transform: translateY(-5px);
+    }
+    .admin-nav-blocks .nav-link.active i {
+        color: #ffffff;
+        transform: scale(1.1);
+    }
+    .admin-nav-blocks .badge {
+        position: absolute;
+        top: 15px;
+        right: 15px;
+        font-size: 0.85rem;
+        padding: 0.5em 0.7em;
+        border: 2px solid var(--card-bg);
+    }
+    body.dark-mode .admin-nav-blocks .nav-link {
+        background-color: #2c3034;
+        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+    }
+    body.dark-mode .admin-nav-blocks .nav-link:hover:not(.active) {
+        border-color: rgba(220, 53, 69, 0.5);
+        box-shadow: 0 12px 24px rgba(0, 0, 0, 0.4);
+        color: #ff6b6b;
+    }
+    body.dark-mode .admin-nav-blocks .nav-link:hover:not(.active) i {
+        color: #ff6b6b;
+    }
+    body.dark-mode .admin-nav-blocks .badge {
+        border-color: #2c3034;
+    }
+    .admin-card {
+        border: none;
+        border-radius: 1rem;
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+        overflow: hidden; /* Permite que las tablas lleguen a los bordes redondeados */
+    }
+    .admin-card-header {
+        background-color: var(--card-bg);
+        border-bottom: 1px solid var(--card-border);
+        padding: 1.25rem 1.5rem;
+        font-weight: 700;
+    }
+    .empty-state-icon {
+        font-size: 3rem;
+        color: var(--text-muted-light);
+        opacity: 0.5;
+    }
+</style>
+
+<!-- Header del contenido principal -->
+<header class="d-flex align-items-center justify-content-between pb-3 mb-4 border-bottom">
+    <div>
+        <h1 class="h2 mb-0"><i class="bi bi-gear-fill text-danger me-2"></i>Panel de Administración</h1>
+        <p class="text-muted small mb-0 mt-1">Configuración global del sistema, usuarios, roles y compañías.</p>
+    </div>
+</header>
+
+<!-- Contenido de Administración -->
+<main>
+    {% if messages %}
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {% endfor %}
+    {% endif %}
+
+    <ul class="nav admin-nav-blocks mb-5" id="adminTab" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="requests-tab" data-bs-toggle="tab" data-bs-target="#requests" type="button" role="tab" aria-controls="requests" aria-selected="true">
+                <i class="bi bi-person-lines-fill"></i>
+                <span>Solicitudes</span>
+                {% if pending_users.count > 0 %}
+                <span class="badge bg-danger rounded-pill shadow-sm">{{ pending_users.count }}</span>
+                {% endif %}
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="users-tab" data-bs-toggle="tab" data-bs-target="#users" type="button" role="tab" aria-controls="users" aria-selected="false">
+                <i class="bi bi-people-fill"></i>
+                <span>Usuarios</span>
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="roles-tab" data-bs-toggle="tab" data-bs-target="#roles" type="button" role="tab" aria-controls="roles" aria-selected="false">
+                <i class="bi bi-shield-lock-fill"></i>
+                <span>Roles</span>
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="companias-tab" data-bs-toggle="tab" data-bs-target="#companias" type="button" role="tab" aria-controls="companias" aria-selected="false">
+                <i class="bi bi-building-fill"></i>
+                <span>Compañías</span>
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content" id="adminTabContent">
+        <!-- Pestaña de Solicitudes de Registro -->
+        <div class="tab-pane fade show active" id="requests" role="tabpanel" aria-labelledby="requests-tab">
+            <div class="card shadow-sm mt-3">
+                <div class="card-header">
+                    <span>Usuarios pendientes de aprobación</span>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Nombre</th>
+                                    <th>Email</th>
+                                    <th>RUT</th>
+                                    <th>Clave Radial</th>
+                                    <th>Compañía</th>
+                                    <th>Fecha de Solicitud</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for user in pending_users %}
+                                <tr>
+                                    <td>{{ user.get_full_name }}</td>
+                                    <td>{{ user.email }}</td>
+                                    <td>{{ user.rut|default:"-" }}</td>
+                                    <td>{{ user.clave_radial|default:"-" }}</td>
+                                    <td>{{ user.compania.nombre|default:"-" }}</td>
+                                    <td>{{ user.date_joined|date:"d/m/Y" }}</td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            <form action="{% url 'user_approve' user.id %}" method="post" class="d-inline">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn btn-sm btn-outline-success" title="Aprobar">
+                                                    <i class="bi bi-check-lg"></i>
+                                                </button>
+                                            </form>
+                                            <button class="btn btn-sm btn-outline-danger delete-user-btn" 
+                                                    data-bs-toggle="modal" 
+                                                    data-bs-target="#deleteUserModal" 
+                                                    data-user-id="{{ user.id }}" 
+                                                    data-user-name="{{ user.get_full_name }}" title="Rechazar">
+                                                <i class="bi bi-x-lg"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="7" class="text-center text-muted py-4">No hay nuevas solicitudes de registro.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pestaña de Usuarios Activos -->
+        <div class="tab-pane fade" id="users" role="tabpanel" aria-labelledby="users-tab">
+            <div class="card shadow-sm mt-3">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div class="d-flex flex-grow-1 gap-2 align-items-center">
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-search"></i></span>
+                            <input class="form-control" type="search" id="userSearchInput" placeholder="Escribe para filtrar por nombre, email, etc...">
+                        </div>
+                        <select id="roleFilter" class="form-select" style="max-width: 200px;">
+                            <option value="">Filtrar por Rol</option>
+                            {% for rol in roles %}
+                            <option value="{{ rol.nombre }}">{{ rol.nombre }}</option>
+                            {% endfor %}
+                        </select>
+                        <select id="companyFilter" class="form-select" style="max-width: 200px;">
+                            <option value="">Filtrar por Compañía</option>
+                            {% for compania in companias %}
+                            <option value="{{ compania.nombre }}">{{ compania.nombre }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="ms-3">
+                        <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#createUserModal">
+                            <i class="bi bi-plus-lg me-1"></i> Nuevo Usuario
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Nombre</th>
+                                    <th>Email</th>
+                                    <th>Clave Radial</th>
+                                    <th>Rol</th>
+                                    <th>Compañía</th>
+                                    <th>Estado</th>
+                                    <th>Admin</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="activeUsersTableBody">
+                                {% for user in active_users %}
+                                <tr>
+                                    <td>{{ user.get_full_name }}</td>
+                                    <td>{{ user.email }}</td>
+                                     <td>{{ user.clave_radial|default:"-" }}</td>
+                                    <td>{{ user.rol.nombre|default:"-" }}</td>
+                                    <td>{{ user.compania.nombre|default:"-" }}</td>
+                                    <td>
+                                        {% if user.is_active %}
+                                            <span class="badge bg-success">Activo</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Inactivo</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if user.is_superuser %}
+                                            <span class="badge bg-danger">Sí</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            <button class="btn btn-sm btn-outline-primary edit-user-btn" 
+                                                    data-bs-toggle="modal" 
+                                                    data-bs-target="#editUserModal"
+                                                    data-user-id="{{ user.id }}"
+                                                    data-user-nombre="{{ user.nombre }}"
+                                                    data-user-apellido="{{ user.apellido }}"
+                                                    data-user-email="{{ user.email }}"
+                                                    data-user-rut="{{ user.rut|default:'' }}"
+                                                    data-user-clave_radial="{{ user.clave_radial|default:'' }}"
+                                                    data-user-rol="{{ user.rol.id|default:'' }}"
+                                                    data-user-compania="{{ user.compania.id|default:'' }}"
+                                                    data-user-is_active="{{ user.is_active|yesno:'true,false' }}"
+                                                    data-user-is_superuser="{{ user.is_superuser|yesno:'true,false' }}">
+                                                <i class="bi bi-pencil-fill"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-danger delete-user-btn" 
+                                                    data-bs-toggle="modal" 
+                                                    data-bs-target="#deleteUserModal"
+                                                    data-user-id="{{ user.id }}"
+                                                    data-user-name="{{ user.get_full_name }}">
+                                                <i class="bi bi-trash-fill"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <!-- Este TR se mostrará si no hay usuarios, o si el filtro no encuentra resultados -->
+                                <tr id="no-users-found-row" style="display: none;"><td colspan="8" class="text-center text-muted py-4">No se encontraron usuarios con los filtros aplicados.</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pestaña de Roles -->
+        <div class="tab-pane fade" id="roles" role="tabpanel" aria-labelledby="roles-tab">
+            <div class="card shadow-sm mt-3">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span>Listado de Roles</span>
+                    <button class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#createRolModal">
+                        <i class="bi bi-plus-lg me-1"></i> Nuevo Rol
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Nombre del Rol</th>
+                                    <th>Descripción</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for rol in roles %}
+                                <tr>
+                                    <td>{{ rol.nombre }}</td>
+                                    <td>{{ rol.descripcion }}</td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editRolModal-{{ rol.id }}">
+                                                <i class="bi bi-pencil-fill"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteRolModal-{{ rol.id }}">
+                                                <i class="bi bi-trash-fill"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pestaña de Compañías -->
+        <div class="tab-pane fade" id="companias" role="tabpanel" aria-labelledby="companias-tab">
+            <div class="card shadow-sm mt-3">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span>Listado de Compañías</span>
+                    <button class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#createCompaniaModal">
+                        <i class="bi bi-plus-lg me-1"></i> Nueva Compañía
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Logo</th>
+                                    <th>Nombre de la Compañía</th>
+                                    <th>Ubicación</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for compania in companias %}
+                                <tr>
+                                    <td>
+                                        {% if compania.logo %}
+                                            <img src="{{ compania.logo.url }}" alt="Logo {{ compania.nombre }}" style="height: 35px; width: 35px; object-fit: contain; border-radius: 4px; background-color: white; padding: 2px;">
+                                        {% else %}
+                                            <div class="bg-secondary text-white d-inline-flex justify-content-center align-items-center rounded" style="width: 35px; height: 35px;" title="Sin logo">
+                                                <i class="bi bi-building"></i>
+                                            </div>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ compania.nombre }}</td>
+                                    <td>{{ compania.ubicacion }}</td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editCompaniaModal-{{ compania.id }}">
+                                                <i class="bi bi-pencil-fill"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteCompaniaModal-{{ compania.id }}">
+                                                <i class="bi bi-trash-fill"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<!-- Modal Crear Usuario -->
+<div class="modal fade" id="createUserModal" tabindex="-1" aria-labelledby="createUserModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="createUserModalLabel">Crear Nuevo Usuario</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{% url 'user_create' %}" method="post">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3"><label class="form-label">Nombre</label>{{ user_creation_form.nombre }}</div>
+                        <div class="col-md-6 mb-3"><label class="form-label">Apellido</label>{{ user_creation_form.apellido }}</div>
+                    </div>
+                    <div class="mb-3"><label class="form-label">Email</label>{{ user_creation_form.email }}</div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3"><label class="form-label">RUT</label>{{ user_creation_form.rut }}</div>
+                        <div class="col-md-6 mb-3"><label class="form-label">Clave Radial</label>{{ user_creation_form.clave_radial }}</div>
+                    </div>
+                    <div class="mb-3"><label class="form-label">Contraseña</label>{{ user_creation_form.password }}</div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3"><label class="form-label">Rol</label>{{ user_creation_form.rol }}</div>
+                        <div class="col-md-6 mb-3"><label class="form-label">Compañía</label>{{ user_creation_form.compania }}</div>
+                    </div>
+                    <div class="form-check form-switch mb-2">{{ user_creation_form.is_active }} <label class="form-check-label">Usuario Activo</label></div>
+                    <div class="form-check form-switch">{{ user_creation_form.is_superuser }} <label class="form-check-label">Superusuario</label></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-danger">Crear Usuario</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modales genéricos para Edición y Eliminación de Usuarios -->
+<!-- Modal Editar Usuario (Genérico) -->
+<div class="modal fade" id="editUserModal" tabindex="-1" aria-labelledby="editUserModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editUserModalLabel">Editar Usuario</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="editUserForm" method="post">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3"><label class="form-label">Nombre</label>{{ user_change_form.nombre }}</div>
+                        <div class="col-md-6 mb-3"><label class="form-label">Apellido</label>{{ user_change_form.apellido }}</div>
+                    </div>
+                    <div class="mb-3"><label class="form-label">Email</label>{{ user_change_form.email }}</div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3"><label class="form-label">RUT</label>{{ user_change_form.rut }}</div>
+                        <div class="col-md-6 mb-3"><label class="form-label">Clave Radial</label>{{ user_change_form.clave_radial }}</div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3"><label class="form-label">Rol</label>{{ user_change_form.rol }}</div>
+                        <div class="col-md-6 mb-3"><label class="form-label">Compañía</label>{{ user_change_form.compania }}</div>
+                    </div>
+                    <div class="form-check form-switch mb-2">{{ user_change_form.is_active }} <label class="form-check-label" for="{{ user_change_form.is_active.id_for_label }}">Usuario Activo</label></div>
+                    <div class="form-check form-switch">{{ user_change_form.is_superuser }} <label class="form-check-label" for="{{ user_change_form.is_superuser.id_for_label }}">Superusuario (Administrador)</label></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-danger">Guardar Cambios</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Eliminar Usuario (Genérico) -->
+<div class="modal fade" id="deleteUserModal" tabindex="-1" aria-labelledby="deleteUserModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteUserModalLabel">Confirmar Eliminación</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Estás seguro de que quieres eliminar al usuario "<strong id="userNameToDelete"></strong>"?</p>
+                <p class="text-danger small">Esta acción no se puede deshacer.</p>
+            </div>
+            <div class="modal-footer">
+                <form id="deleteUserForm" method="post">
+                    {% csrf_token %}
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-danger">Sí, eliminar</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Crear Rol -->
+<div class="modal fade" id="createRolModal" tabindex="-1" aria-labelledby="createRolModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header"><h5 class="modal-title" id="createRolModalLabel">Crear Nuevo Rol</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+            <form action="{% url 'rol_create' %}" method="post" id="createRolForm">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Nombre del Rol</label>
+                        {{ rol_form.nombre }}
+                        <datalist id="roles-sugeridos">
+                            <option value="Bombero"></option>
+                            <option value="Teniente"></option>
+                            <option value="Capitán"></option>
+                            <option value="Comandante"></option>
+                            <option value="Maquinista"></option>
+                            <option value="Secretario"></option>
+                            <option value="Tesorero"></option>
+                        </datalist>
+                    </div>
+                    <div class="mb-3"><label class="form-label">Descripción</label>{{ rol_form.descripcion }}</div>
+                    
+                    <hr class="my-4 text-muted">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="mb-0 fw-bold">Permisos de Acceso a Módulos</h6>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="toggleAllPermisos('createRolForm')" title="Seleccionar / Desmarcar todo">
+                            <i class="bi bi-check-all fs-5" style="line-height: 1;"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="border rounded bg-body-tertiary shadow-sm overflow-hidden">
+                        <!-- Encabezados de la Matriz -->
+                        <div class="row g-0 py-2 border-bottom fw-bold text-center small text-muted">
+                            <div class="col-6 text-start px-3">MÓDULO</div>
+                            <div class="col-3">VER</div>
+                            <div class="col-3">EDITAR</div>
+                        </div>
+
+                        <div class="row g-0 py-2 border-bottom align-items-center permission-row">
+                            <div class="col-6 px-3">
+                                <i class="bi bi-bar-chart-line-fill text-secondary me-2"></i> <strong>Resumen General</strong>
+                            </div>
+                            <div class="col-3 d-flex justify-content-center">
+                                <div class="form-check form-switch mb-0 fs-5 view-toggle" title="Permite acceder a la vista de Resumen">{{ rol_form.ver_resumen_general }}</div>
+                            </div>
+                            <div class="col-3 d-flex justify-content-center"></div>
+                        </div>
+                        <div class="row g-0 py-2 border-bottom align-items-center permission-row">
+                            <div class="col-6 px-3">
+                                <i class="bi bi-file-earmark-text-fill text-secondary me-2"></i> <strong>Documentación</strong>
+                            </div>
+                            <div class="col-3 d-flex justify-content-center">
+                                <div class="form-check form-switch mb-0 fs-5 view-toggle" title="Permite acceder al módulo">{{ rol_form.ver_documentacion }}</div>
+                            </div>
+                            <div class="col-3 d-flex justify-content-center">
+                                <div class="form-check form-switch mb-0 fs-5 edit-toggle" title="Permite subir o eliminar documentos">{{ rol_form.editar_documentacion }}</div>
+                            </div>
+                        </div>
+                        <div class="row g-0 py-2 border-bottom align-items-center permission-row">
+                            <div class="col-6 px-3">
+                                <i class="bi bi-qr-code-scan text-secondary me-2"></i> <strong>Escanear QR</strong>
+                            </div>
+                            <div class="col-3 d-flex justify-content-center">
+                                <div class="form-check form-switch mb-0 fs-5 view-toggle" title="Permite usar la herramienta de Escáner QR">{{ rol_form.ver_escanear_qr }}</div>
+                            </div>
+                            <div class="col-3 d-flex justify-content-center"></div>
+                        </div>
+                        <div class="row g-0 py-2 border-bottom align-items-center permission-row">
+                            <div class="col-6 px-3">
+                                <i class="bi bi-box-seam-fill text-secondary me-2"></i> <strong>Inventario</strong>
+                            </div>
+                            <div class="col-3 d-flex justify-content-center">
+                                <div class="form-check form-switch mb-0 fs-5 view-toggle">{{ rol_form.ver_inventario }}</div>
+                            </div>
+                            <div class="col-3 d-flex justify-content-center">
+                                <div class="form-check form-switch mb-0 fs-5 edit-toggle" title="Permite agregar, editar y asignar equipos">{{ rol_form.editar_inventario }}</div>
+                            </div>
+                        </div>
+                        <div class="row g-0 py-2 border-bottom align-items-center permission-row">
+                            <div class="col-6 px-3">
+                                <i class="bi bi-truck-front-fill text-secondary me-2"></i> <strong>Salidas a terreno</strong>
+                            </div>
+                            <div class="col-3 d-flex justify-content-center">
+                                <div class="form-check form-switch mb-0 fs-5 view-toggle">{{ rol_form.ver_salidas_terreno }}</div>
+                            </div>
+                            <div class="col-3 d-flex justify-content-center">
+                                <div class="form-check form-switch mb-0 fs-5 edit-toggle" title="Permite registrar o editar salidas">{{ rol_form.editar_salidas_terreno }}</div>
+                            </div>
+                        </div>
+                        <div class="row g-0 py-2 border-bottom align-items-center permission-row">
+                            <div class="col-6 px-3">
+                                <i class="bi bi-exclamation-octagon-fill text-secondary me-2"></i> <strong>Emergencias</strong>
+                            </div>
+                            <div class="col-3 d-flex justify-content-center">
+                                <div class="form-check form-switch mb-0 fs-5 view-toggle">{{ rol_form.ver_emergencias }}</div>
+                            </div>
+                            <div class="col-3 d-flex justify-content-center">
+                                <div class="form-check form-switch mb-0 fs-5 edit-toggle" title="Permite registrar y modificar emergencias">{{ rol_form.editar_emergencias }}</div>
+                            </div>
+                        </div>
+                        <div class="row g-0 py-2 border-bottom align-items-center permission-row">
+                            <div class="col-6 px-3">
+                                <i class="bi bi-mortarboard-fill text-secondary me-2"></i> <strong>Cursos</strong>
+                            </div>
+                            <div class="col-3 d-flex justify-content-center">
+                                <div class="form-check form-switch mb-0 fs-5 view-toggle">{{ rol_form.ver_capacitaciones }}</div>
+                            </div>
+                            <div class="col-3 d-flex justify-content-center">
+                                <div class="form-check form-switch mb-0 fs-5 edit-toggle" title="Permite crear, editar o eliminar cursos">{{ rol_form.editar_capacitaciones }}</div>
+                            </div>
+                        </div>
+                        <div class="row g-0 py-2 border-bottom align-items-center permission-row">
+                            <div class="col-6 px-3">
+                                <i class="bi bi-wrench-adjustable-circle-fill text-secondary me-2"></i> <strong>Mantenimientos</strong>
+                            </div>
+                            <div class="col-3 d-flex justify-content-center">
+                                <div class="form-check form-switch mb-0 fs-5 view-toggle">{{ rol_form.ver_mantenimientos }}</div>
+                            </div>
+                            <div class="col-3 d-flex justify-content-center">
+                                <div class="form-check form-switch mb-0 fs-5 edit-toggle" title="Permite programar y editar mantenimientos">{{ rol_form.editar_mantenimientos }}</div>
+                            </div>
+                        </div>
+                        <div class="row g-0 py-2 border-bottom align-items-center permission-row">
+                            <div class="col-6 px-3">
+                                <i class="bi bi-wallet-fill text-secondary me-2"></i> <strong>Caja Chica</strong>
+                            </div>
+                            <div class="col-3 d-flex justify-content-center">
+                                <div class="form-check form-switch mb-0 fs-5 view-toggle">{{ rol_form.ver_caja_chica }}</div>
+                            </div>
+                            <div class="col-3 d-flex justify-content-center">
+                                <div class="form-check form-switch mb-0 fs-5 edit-toggle" title="Permite registrar o editar movimientos">{{ rol_form.editar_caja_chica }}</div>
+                            </div>
+                        </div>
+                        <div class="row g-0 py-2 align-items-center permission-row">
+                            <div class="col-6 px-3">
+                                <i class="bi bi-graph-up-arrow text-secondary me-2"></i> <strong>Proyectos</strong>
+                            </div>
+                            <div class="col-3 d-flex justify-content-center">
+                                <div class="form-check form-switch mb-0 fs-5 view-toggle">{{ rol_form.ver_proyectos }}</div>
+                            </div>
+                            <div class="col-3 d-flex justify-content-center">
+                                <div class="form-check form-switch mb-0 fs-5 edit-toggle" title="Permite registrar o modificar presupuestos de proyectos">{{ rol_form.editar_proyectos }}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button><button type="submit" class="btn btn-danger">Crear Rol</button></div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modales para Roles -->
+{% for rol in roles %}
+    <!-- Modal Editar Rol -->
+    <div class="modal fade" id="editRolModal-{{ rol.id }}" tabindex="-1" aria-labelledby="editRolModalLabel-{{ rol.id }}" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header"><h5 class="modal-title" id="editRolModalLabel-{{ rol.id }}">Editar Rol</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+                <form action="{% url 'rol_edit' rol.id %}" method="post" id="editRolForm-{{ rol.id }}">
+                    {% csrf_token %}
+                    <div class="modal-body">
+                        <div class="mb-3"><label class="form-label">Nombre del Rol</label><input type="text" name="nombre" value="{{ rol.nombre }}" class="form-control" required list="roles-sugeridos"></div>
+                        <div class="mb-3"><label class="form-label">Descripción</label><textarea name="descripcion" class="form-control" rows="3">{{ rol.descripcion }}</textarea></div>
+                        
+                        <hr class="my-4 text-muted">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="mb-0 fw-bold">Permisos de Acceso a Módulos</h6>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="toggleAllPermisos('editRolForm-{{ rol.id }}')" title="Seleccionar / Desmarcar todo">
+                                <i class="bi bi-check-all fs-5" style="line-height: 1;"></i>
+                            </button>
+                        </div>
+                        
+                    <div class="border rounded bg-body-tertiary shadow-sm overflow-hidden">
+                        <div class="row g-0 py-2 border-bottom fw-bold text-center small text-muted">
+                            <div class="col-6 text-start px-3">MÓDULO</div>
+                            <div class="col-3">VER</div>
+                            <div class="col-3">EDITAR</div>
+                        </div>
+
+                        <div class="row g-0 py-2 border-bottom align-items-center permission-row">
+                            <div class="col-6 px-3">
+                                <i class="bi bi-bar-chart-line-fill text-secondary me-2"></i> <strong>Resumen General</strong>
+                            </div>
+                            <div class="col-3 d-flex justify-content-center">
+                                <div class="form-check form-switch mb-0 fs-5 view-toggle"><input type="checkbox" class="form-check-input mt-0" name="ver_resumen_general" {% if rol.ver_resumen_general %}checked{% endif %}></div>
+                            </div>
+                            <div class="col-3 d-flex justify-content-center"></div>
+                        </div>
+                        <div class="row g-0 py-2 border-bottom align-items-center permission-row">
+                            <div class="col-6 px-3">
+                                <i class="bi bi-file-earmark-text-fill text-secondary me-2"></i> <strong>Documentación</strong>
+                            </div>
+                            <div class="col-3 d-flex justify-content-center">
+                                <div class="form-check form-switch mb-0 fs-5 view-toggle"><input type="checkbox" class="form-check-input mt-0" name="ver_documentacion" {% if rol.ver_documentacion %}checked{% endif %}></div>
+                            </div>
+                            <div class="col-3 d-flex justify-content-center">
+                                <div class="form-check form-switch mb-0 fs-5 edit-toggle"><input type="checkbox" class="form-check-input mt-0" name="editar_documentacion" {% if rol.editar_documentacion %}checked{% endif %}></div>
+                            </div>
+                        </div>
+                        <div class="row g-0 py-2 border-bottom align-items-center permission-row">
+                            <div class="col-6 px-3">
+                                <i class="bi bi-qr-code-scan text-secondary me-2"></i> <strong>Escanear QR</strong>
+                            </div>
+                            <div class="col-3 d-flex justify-content-center">
+                                <div class="form-check form-switch mb-0 fs-5 view-toggle"><input type="checkbox" class="form-check-input mt-0" name="ver_escanear_qr" {% if rol.ver_escanear_qr %}checked{% endif %}></div>
+                            </div>
+                            <div class="col-3 d-flex justify-content-center"></div>
+                        </div>
+                        <div class="row g-0 py-2 border-bottom align-items-center permission-row">
+                            <div class="col-6 px-3">
+                                <i class="bi bi-box-seam-fill text-secondary me-2"></i> <strong>Inventario</strong>
+                            </div>
+                            <div class="col-3 d-flex justify-content-center">
+                                <div class="form-check form-switch mb-0 fs-5 view-toggle"><input type="checkbox" class="form-check-input mt-0" name="ver_inventario" {% if rol.ver_inventario %}checked{% endif %}></div>
+                            </div>
+                            <div class="col-3 d-flex justify-content-center">
+                                <div class="form-check form-switch mb-0 fs-5 edit-toggle"><input type="checkbox" class="form-check-input mt-0" name="editar_inventario" {% if rol.editar_inventario %}checked{% endif %}></div>
+                            </div>
+                        </div>
+                        <div class="row g-0 py-2 border-bottom align-items-center permission-row">
+                            <div class="col-6 px-3">
+                                <i class="bi bi-truck-front-fill text-secondary me-2"></i> <strong>Salidas a terreno</strong>
+                            </div>
+                            <div class="col-3 d-flex justify-content-center">
+                                <div class="form-check form-switch mb-0 fs-5 view-toggle"><input type="checkbox" class="form-check-input mt-0" name="ver_salidas_terreno" {% if rol.ver_salidas_terreno %}checked{% endif %}></div>
+                            </div>
+                            <div class="col-3 d-flex justify-content-center">
+                                <div class="form-check form-switch mb-0 fs-5 edit-toggle"><input type="checkbox" class="form-check-input mt-0" name="editar_salidas_terreno" {% if rol.editar_salidas_terreno %}checked{% endif %}></div>
+                            </div>
+                        </div>
+                        <div class="row g-0 py-2 border-bottom align-items-center permission-row">
+                            <div class="col-6 px-3">
+                                <i class="bi bi-exclamation-octagon-fill text-secondary me-2"></i> <strong>Emergencias</strong>
+                            </div>
+                            <div class="col-3 d-flex justify-content-center">
+                                <div class="form-check form-switch mb-0 fs-5 view-toggle"><input type="checkbox" class="form-check-input mt-0" name="ver_emergencias" {% if rol.ver_emergencias %}checked{% endif %}></div>
+                            </div>
+                            <div class="col-3 d-flex justify-content-center">
+                                <div class="form-check form-switch mb-0 fs-5 edit-toggle"><input type="checkbox" class="form-check-input mt-0" name="editar_emergencias" {% if rol.editar_emergencias %}checked{% endif %}></div>
+                            </div>
+                        </div>
+                        <div class="row g-0 py-2 border-bottom align-items-center permission-row">
+                            <div class="col-6 px-3">
+                                <i class="bi bi-mortarboard-fill text-secondary me-2"></i> <strong>Cursos</strong>
+                            </div>
+                            <div class="col-3 d-flex justify-content-center">
+                                <div class="form-check form-switch mb-0 fs-5 view-toggle"><input type="checkbox" class="form-check-input mt-0" name="ver_capacitaciones" {% if rol.ver_capacitaciones %}checked{% endif %}></div>
+                            </div>
+                            <div class="col-3 d-flex justify-content-center">
+                                <div class="form-check form-switch mb-0 fs-5 edit-toggle"><input type="checkbox" class="form-check-input mt-0" name="editar_capacitaciones" {% if rol.editar_capacitaciones %}checked{% endif %}></div>
+                            </div>
+                        </div>
+                        <div class="row g-0 py-2 border-bottom align-items-center permission-row">
+                            <div class="col-6 px-3">
+                                <i class="bi bi-wrench-adjustable-circle-fill text-secondary me-2"></i> <strong>Mantenimientos</strong>
+                            </div>
+                            <div class="col-3 d-flex justify-content-center">
+                                <div class="form-check form-switch mb-0 fs-5 view-toggle"><input type="checkbox" class="form-check-input mt-0" name="ver_mantenimientos" {% if rol.ver_mantenimientos %}checked{% endif %}></div>
+                            </div>
+                            <div class="col-3 d-flex justify-content-center">
+                                <div class="form-check form-switch mb-0 fs-5 edit-toggle"><input type="checkbox" class="form-check-input mt-0" name="editar_mantenimientos" {% if rol.editar_mantenimientos %}checked{% endif %}></div>
+                            </div>
+                        </div>
+                        <div class="row g-0 py-2 border-bottom align-items-center permission-row">
+                            <div class="col-6 px-3">
+                                <i class="bi bi-wallet-fill text-secondary me-2"></i> <strong>Caja Chica</strong>
+                            </div>
+                            <div class="col-3 d-flex justify-content-center">
+                                <div class="form-check form-switch mb-0 fs-5 view-toggle"><input type="checkbox" class="form-check-input mt-0" name="ver_caja_chica" {% if rol.ver_caja_chica %}checked{% endif %}></div>
+                            </div>
+                            <div class="col-3 d-flex justify-content-center">
+                                <div class="form-check form-switch mb-0 fs-5 edit-toggle"><input type="checkbox" class="form-check-input mt-0" name="editar_caja_chica" {% if rol.editar_caja_chica %}checked{% endif %}></div>
+                            </div>
+                        </div>
+                        <div class="row g-0 py-2 align-items-center permission-row">
+                            <div class="col-6 px-3">
+                                <i class="bi bi-graph-up-arrow text-secondary me-2"></i> <strong>Proyectos</strong>
+                            </div>
+                            <div class="col-3 d-flex justify-content-center">
+                                <div class="form-check form-switch mb-0 fs-5 view-toggle"><input type="checkbox" class="form-check-input mt-0" name="ver_proyectos" {% if rol.ver_proyectos %}checked{% endif %}></div>
+                            </div>
+                            <div class="col-3 d-flex justify-content-center">
+                                <div class="form-check form-switch mb-0 fs-5 edit-toggle"><input type="checkbox" class="form-check-input mt-0" name="editar_proyectos" {% if rol.editar_proyectos %}checked{% endif %}></div>
+                            </div>
+                        </div>
+                    </div>
+                    </div>
+                    <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button><button type="submit" class="btn btn-danger">Guardar Cambios</button></div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <!-- Modal Eliminar Rol -->
+    <div class="modal fade" id="deleteRolModal-{{ rol.id }}" tabindex="-1" aria-labelledby="deleteRolModalLabel-{{ rol.id }}" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header"><h5 class="modal-title" id="deleteRolModalLabel-{{ rol.id }}">Confirmar Eliminación</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+                <div class="modal-body">
+                    <p>¿Estás seguro de que quieres eliminar el rol "<strong>{{ rol.nombre }}</strong>"?</p>
+                    <p class="text-danger small">Esta acción no se puede deshacer.</p>
+                </div>
+                <div class="modal-footer">
+                    <form action="{% url 'rol_delete' rol.id %}" method="post">
+                        {% csrf_token %}
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button><button type="submit" class="btn btn-danger">Sí, eliminar</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endfor %}
+
+<!-- Modal Crear Compañía -->
+<div class="modal fade" id="createCompaniaModal" tabindex="-1" aria-labelledby="createCompaniaModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header"><h5 class="modal-title" id="createCompaniaModalLabel">Crear Nueva Compañía</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+            <form action="{% url 'compania_create' %}" method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3"><label class="form-label">Nombre de la Compañía</label>{{ compania_form.nombre }}</div>
+                    <div class="mb-3"><label class="form-label">Ubicación</label>{{ compania_form.ubicacion }}</div>
+                    <div class="mb-3"><label class="form-label">Logo de la Compañía</label>{{ compania_form.logo }}</div>
+                </div>
+                <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button><button type="submit" class="btn btn-danger">Crear Compañía</button></div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modales para Compañías -->
+{% for compania in companias %}
+    <!-- Modal Editar Compañía -->
+    <div class="modal fade" id="editCompaniaModal-{{ compania.id }}" tabindex="-1" aria-labelledby="editCompaniaModalLabel-{{ compania.id }}" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header"><h5 class="modal-title" id="editCompaniaModalLabel-{{ compania.id }}">Editar Compañía</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+                <form action="{% url 'compania_edit' compania.id %}" method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <div class="modal-body">
+                        <div class="mb-3"><label class="form-label">Nombre de la Compañía</label><input type="text" name="nombre" value="{{ compania.nombre }}" class="form-control" required></div>
+                        <div class="mb-3"><label class="form-label">Ubicación</label><input type="text" name="ubicacion" value="{{ compania.ubicacion }}" class="form-control" required></div>
+                        <div class="mb-3"><label class="form-label">Actualizar Logo (Opcional)</label><input type="file" name="logo" class="form-control" accept="image/*"></div>
+                        {% if compania.logo %}<div class="mb-2 text-center"><img src="{{ compania.logo.url }}" alt="Logo {{ compania.nombre }}" class="img-thumbnail" style="max-height: 100px;"></div>{% endif %}
+                    </div>
+                    <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button><button type="submit" class="btn btn-danger">Guardar Cambios</button></div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <!-- Modal Eliminar Compañía -->
+    <div class="modal fade" id="deleteCompaniaModal-{{ compania.id }}" tabindex="-1" aria-labelledby="deleteCompaniaModalLabel-{{ compania.id }}" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header"><h5 class="modal-title" id="deleteCompaniaModalLabel-{{ compania.id }}">Confirmar Eliminación</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+                <div class="modal-body">
+                    <p>¿Estás seguro de que quieres eliminar la compañía "<strong>{{ compania.nombre }}</strong>"?</p>
+                    <p class="text-danger small">Esta acción no se puede deshacer.</p>
+                </div>
+                <div class="modal-footer">
+                    <form action="{% url 'compania_delete' compania.id %}" method="post">
+                        {% csrf_token %}
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button><button type="submit" class="btn btn-danger">Sí, eliminar</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endfor %}
+{% endblock %}
+
+{% block scripts %}
+{{ block.super }}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    // Permite que las pestañas recuerden su estado al recargar la página o al volver
+    var triggerTabList = [].slice.call(document.querySelectorAll('#adminTab button'));
+    triggerTabList.forEach(function (triggerEl) {
+        var tabTrigger = new bootstrap.Tab(triggerEl);
+
+        triggerEl.addEventListener('click', function (event) {
+            event.preventDefault();
+            tabTrigger.show();
+            
+            // Guardar la pestaña activa en la memoria del navegador
+            const target = triggerEl.getAttribute('data-bs-target');
+            localStorage.setItem('activeAdminTab', target);
+
+            const url = new URL(window.location);
+            url.searchParams.set('tab', target.substring(1));
+            window.history.pushState({}, '', url);
+        });
+    });
+
+    // Leer la pestaña activa desde la URL o desde la memoria local
+    const urlParams = new URLSearchParams(window.location.search);
+    const activeTabParam = urlParams.get('tab');
+    let activeTab = '#requests'; // Pestaña por defecto
+
+    if (activeTabParam) {
+        activeTab = '#' + activeTabParam;
+        localStorage.setItem('activeAdminTab', activeTab);
+    } else if (localStorage.getItem('activeAdminTab')) {
+        activeTab = localStorage.getItem('activeAdminTab');
+    }
+
+    const activeTabEl = document.querySelector(`button[data-bs-target="${activeTab}"]`);
+    if (activeTabEl) {
+        new bootstrap.Tab(activeTabEl).show();
+    } else {
+        new bootstrap.Tab(document.querySelector('#adminTab button')).show(); // Mostrar la primera si el parámetro es inválido
+    }
+
+    // --- Lógica para Modales Genéricos de Usuario ---
+    const editUserModal = document.getElementById('editUserModal');
+    if (editUserModal) {
+        editUserModal.addEventListener('show.bs.modal', function (event) {
+            const button = event.relatedTarget;
+            // Si el modal se activó mediante JS (p. ej., por un error de validación),
+            // `button` será nulo. En ese caso, no repoblamos el formulario,
+            // ya que Django lo renderizó con los datos y errores.
+            if (!button) return;
+
+            const form = document.getElementById('editUserForm');
+            const userId = button.dataset.userId;
+            
+            // Actualizar la acción del formulario
+            form.action = `/administracion/user/${userId}/edit/`;
+
+            // Poblar el formulario con los datos del usuario
+            form.querySelector('#id_nombre').value = button.dataset.userNombre;
+            form.querySelector('#id_apellido').value = button.dataset.userApellido;
+            form.querySelector('#id_email').value = button.dataset.userEmail;
+            form.querySelector('#id_rut').value = button.dataset.userRut;
+            form.querySelector('#id_clave_radial').value = button.dataset.userClave_radial;
+            form.querySelector('#id_rol').value = button.dataset.userRol;
+            form.querySelector('#id_compania').value = button.dataset.userCompania;
+            form.querySelector('#id_is_active').checked = button.dataset.userIs_active === 'true';
+            form.querySelector('#id_is_superuser').checked = button.dataset.userIs_superuser === 'true';
+
+            // Actualizar el título del modal
+            const modalTitle = editUserModal.querySelector('.modal-title');
+            modalTitle.textContent = `Editar Usuario: ${button.dataset.userNombre} ${button.dataset.userApellido}`;
+        });
+    }
+
+    const deleteUserModal = document.getElementById('deleteUserModal');
+    if (deleteUserModal) {
+        deleteUserModal.addEventListener('show.bs.modal', function (event) {
+            const button = event.relatedTarget;
+            const form = document.getElementById('deleteUserForm');
+            const userId = button.dataset.userId;
+            const userName = button.dataset.userName;
+
+            // Actualizar la acción del formulario
+            form.action = `/administracion/user/${userId}/delete/`;
+
+            // Actualizar el nombre en el texto de confirmación
+            const nameSpan = document.getElementById('userNameToDelete');
+            nameSpan.textContent = userName;
+        });
+    }
+
+    // Si hubo un error al editar un usuario, la vista vuelve a renderizar esta página
+    // con el ID del usuario. Usamos ese ID para reabrir el modal de edición correcto.
+    {% if edit_form_user_id %}
+        const editModalInstance = new bootstrap.Modal(document.getElementById('editUserModal'));
+        const editForm = document.getElementById('editUserForm');
+        
+        // El formulario ya fue renderizado por Django con los datos del error.
+        // Solo necesitamos establecer la URL de acción correcta y el título.
+        editForm.action = `/administracion/user/{{ edit_form_user_id }}/edit/`;
+        
+        const modalTitle = document.querySelector('#editUserModal .modal-title');
+        const nombre = editForm.querySelector('#id_nombre').value;
+        const apellido = editForm.querySelector('#id_apellido').value;
+        modalTitle.textContent = `Editar Usuario: ${nombre} ${apellido}`;
+
+        // Asegurarse de que la pestaña "Usuarios Activos" esté visible
+        const usersTab = document.getElementById('users-tab');
+        if (usersTab) {
+            new bootstrap.Tab(usersTab).show();
+            localStorage.setItem('activeAdminTab', '#users');
+        }
+
+        editModalInstance.show();
+    {% endif %}
+
+    // Si hubo un error en el formulario de creación de usuario, reabrimos el modal
+    {% if user_creation_form.errors %}
+        new bootstrap.Modal(document.getElementById('createUserModal')).show();
+        new bootstrap.Tab(document.querySelector('#users-tab')).show();
+        localStorage.setItem('activeAdminTab', '#users');
+    {% endif %}
+
+    // Si hubo un error en el formulario de creación de rol/compañía, reabrimos el modal correspondiente
+    {% if rol_form.errors %}
+        new bootstrap.Modal(document.getElementById('createRolModal')).show();
+        new bootstrap.Tab(document.querySelector('#roles-tab')).show();
+        localStorage.setItem('activeAdminTab', '#roles');
+    {% endif %}
+    {% if compania_form.errors %}
+        new bootstrap.Modal(document.getElementById('createCompaniaModal')).show();
+        new bootstrap.Tab(document.querySelector('#companias-tab')).show();
+        localStorage.setItem('activeAdminTab', '#companias');
+    {% endif %}
+
+    // --- Lógica de Filtrado en Tiempo Real para Usuarios Activos ---
+    const searchInput = document.getElementById('userSearchInput');
+    const roleFilter = document.getElementById('roleFilter');
+    const companyFilter = document.getElementById('companyFilter');
+    const tableBody = document.getElementById('activeUsersTableBody');
+    const rows = tableBody.getElementsByTagName('tr');
+    const noResultsRow = document.getElementById('no-users-found-row');
+
+    function filterUsers() {
+        const searchText = searchInput.value.toLowerCase();
+        const selectedRole = roleFilter.value;
+        const selectedCompany = companyFilter.value;
+        let visibleRows = 0;
+
+        for (let i = 0; i < rows.length; i++) {
+            const row = rows[i];
+            if (row.id === 'no-users-found-row') continue; // Ignorar la fila de "no encontrados"
+
+            const nameCell = row.cells[0].textContent.toLowerCase();
+            const emailCell = row.cells[1].textContent.toLowerCase();
+            const claveRadialCell = row.cells[2].textContent.toLowerCase();
+            const roleCell = row.cells[3].textContent;
+            const companyCell = row.cells[4].textContent;
+
+            const matchesSearch = nameCell.includes(searchText) || emailCell.includes(searchText) || claveRadialCell.includes(searchText);
+            const matchesRole = selectedRole === "" || roleCell === selectedRole;
+            const matchesCompany = selectedCompany === "" || companyCell === selectedCompany;
+
+            if (matchesSearch && matchesRole && matchesCompany) {
+                row.style.display = "";
+                visibleRows++;
+            } else {
+                row.style.display = "none";
+            }
+        }
+
+        // Mostrar u ocultar el mensaje de "no se encontraron resultados"
+        if (noResultsRow) {
+            noResultsRow.style.display = visibleRows === 0 ? "" : "none";
+        }
+    }
+
+    // Añadir los listeners a los inputs de filtro
+    searchInput.addEventListener('keyup', filterUsers);
+    roleFilter.addEventListener('change', filterUsers);
+    companyFilter.addEventListener('change', filterUsers);
+
+    // --- Lógica para seleccionar/desmarcar todos los permisos ---
+    window.toggleAllPermisos = function(formId) {
+        const form = document.getElementById(formId);
+        if (!form) return;
+        const checkboxes = form.querySelectorAll('input[type="checkbox"].form-check-input');
+        let checkedCount = 0;
+        checkboxes.forEach(cb => { if (cb.checked) checkedCount++; });
+        
+        const turnOn = checkedCount < (checkboxes.length / 2); // Si hay menos de la mitad, activamos todos. Si no, apagamos todos.
+        checkboxes.forEach(cb => { cb.checked = turnOn; });
+    };
+
+    // --- Lógica de Interacción para Permisos Ver/Editar ---
+    document.querySelectorAll('.permission-row').forEach(row => {
+        const viewCheckbox = row.querySelector('.view-toggle input[type="checkbox"]');
+        const editCheckbox = row.querySelector('.edit-toggle input[type="checkbox"]');
+
+        if (viewCheckbox && editCheckbox) {
+            editCheckbox.addEventListener('change', function() {
+                if (this.checked) viewCheckbox.checked = true;
+            });
+            
+            viewCheckbox.addEventListener('change', function() {
+                if (!this.checked) editCheckbox.checked = false;
+            });
+        }
+    });
+
+});
+</script>
+{% endblock %}

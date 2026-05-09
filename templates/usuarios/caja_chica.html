@@ -1,0 +1,369 @@
+{% extends 'base_con_condicion.html' %}
+
+{% block title %}Caja Chica - {{ block.super }}{% endblock %}
+
+{% block content %}
+<!-- Header del contenido principal -->
+<header class="d-flex align-items-center justify-content-between pb-3 mb-4 border-bottom">
+    <h1 class="h2 mb-0">Control de Caja Chica</h1>
+    {% if request.user.is_superuser or request.user.rol.editar_caja_chica %}
+    <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#createMovimientoModal">
+        <i class="bi bi-plus-lg me-1"></i> Nuevo Movimiento
+    </button>
+    {% endif %}
+</header>
+
+<!-- Contenido de Caja Chica -->
+<main>
+    {% if messages %}
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {% endfor %}
+    {% endif %}
+
+    <!-- Tarjeta de Saldo Actual y Filtro -->
+    <div class="row align-items-center mb-4 g-3">
+        <div class="col-md-6">
+            {% if request.user.is_superuser %}
+            <form method="get" class="d-flex align-items-center gap-2">
+                <label for="compania" class="form-label mb-0 fw-bold">Filtrar por:</label>
+                <select name="compania" id="compania" class="form-select w-auto" onchange="this.form.submit()">
+                    <option value="todas" {% if filtro_compania == 'todas' %}selected{% endif %}>Todas las Cajas (General + Compañía)</option>
+                    <option value="general" {% if filtro_compania == 'general' %}selected{% endif %}>Caja General</option>
+                    {% if companias %}
+                        {% for c in companias %}
+                            <option value="{{ c.id }}" {% if filtro_compania == c.id|stringformat:"s" %}selected{% endif %}>{{ c.nombre }}</option>
+                        {% endfor %}
+                    {% endif %}
+                </select>
+            </form>
+            {% else %}
+            <h5 class="mb-0 text-muted">
+                {% if request.user.compania %}<i class="bi bi-building-fill me-2"></i>{{ request.user.compania.nombre }}
+                {% else %}Sin Compañía{% endif %}
+            </h5>
+            {% endif %}
+        </div>
+        <div class="col-md-6 text-md-end">
+            <div class="card shadow-sm d-inline-block text-center px-4 py-2 border-0 bg-light">
+                <h6 class="card-title force-black-text mb-1 text-uppercase small">Saldo Actual: {{ nombre_caja }}</h6>
+                <p class="card-text fs-3 fw-bold mb-0 {% if saldo_actual < 0 %}text-danger{% else %}text-success{% endif %}">
+                    ${{ saldo_actual|floatformat:2 }}
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Formulario de Búsqueda y Filtros en Tiempo Real -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <div class="row g-3 align-items-center">
+                <div class="col-lg-8">
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-search"></i></span>
+                        <input class="form-control" type="search" id="cajaSearchInput" placeholder="Buscar por descripción, responsable, monto o fecha...">
+                    </div>
+                </div>
+                <div class="col-lg-4">
+                    <select id="cajaTypeFilter" class="form-select">
+                        <option value="">Todos los Tipos</option>
+                        <option value="ingreso">Ingreso</option>
+                        <option value="egreso">Egreso</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabla de Movimientos -->
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <h5 class="card-title">Historial de Movimientos</h5>
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th scope="col">Fecha</th>
+                            <th scope="col">Tipo</th>
+                            <th scope="col">Descripción</th>
+                            <th scope="col">Monto</th>
+                            <th scope="col">Responsable</th>
+                            {% if request.user.is_superuser %}
+                            <th scope="col">Caja</th>
+                            {% endif %}
+                            <th scope="col">Documento</th>
+                            <th scope="col">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="cajaTableBody">
+                        <tr id="no-caja-found" style="display: none;"><td colspan="{% if request.user.is_superuser %}8{% else %}7{% endif %}" class="text-center text-muted py-4">No se encontraron movimientos con los filtros aplicados.</td></tr>
+                        {% for mov in movimientos %}
+                        <tr>
+                            <td>{{ mov.fecha|date:"d/m/Y H:i" }}</td>
+                            <td>
+                                {% if mov.tipo == 'Ingreso' %}
+                                    <span class="badge bg-success">{{ mov.tipo }}</span>
+                                {% else %}
+                                    <span class="badge bg-danger">{{ mov.tipo }}</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ mov.descripcion }}</td>
+                            <td class="fw-bold {% if mov.tipo == 'Ingreso' %}text-success{% else %}text-danger{% endif %}">
+                                {% if mov.tipo == 'Ingreso' %}+{% else %}-{% endif %} ${{ mov.monto|floatformat:2 }}
+                            </td>
+                            <td>{{ mov.responsable.get_full_name|default:"N/A" }}</td>
+                            {% if request.user.is_superuser %}
+                            <td><span class="badge bg-secondary">{{ mov.compania.nombre|default:"General" }}</span></td>
+                            {% endif %}
+                            <td>
+                                {% if mov.documento_adjunto %}
+                                    <a href="{{ mov.documento_adjunto.url }}" target="_blank" class="btn btn-sm btn-outline-secondary">
+                                        <i class="bi bi-paperclip"></i> Ver
+                                    </a>
+                                {% else %}
+                                    <span class="text-muted small">No adjunto</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if request.user.is_superuser or request.user.rol.editar_caja_chica %}
+                                <div class="btn-group" role="group">
+                                    <button type="button" class="btn btn-sm btn-outline-primary"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#editMovimientoModal"
+                                            data-mov-id="{{ mov.id }}"
+                                            data-mov-tipo="{{ mov.tipo }}"
+                                            data-mov-monto="{{ mov.monto|floatformat:'-2' }}"
+                                            data-mov-descripcion="{{ mov.descripcion }}"
+                                            data-mov-compania="{{ mov.compania.id|default:'' }}">
+                                        <i class="bi bi-pencil-fill"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-danger"
+                                            data-bs-toggle="modal" data-bs-target="#deleteMovimientoModal"
+                                            data-mov-id="{{ mov.id }}" data-mov-descripcion="{{ mov.descripcion }}">
+                                        <i class="bi bi-trash-fill"></i>
+                                    </button>
+                                </div>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="{% if request.user.is_superuser %}8{% else %}7{% endif %}" class="text-center text-muted py-4">No hay movimientos registrados.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</main>
+
+<!-- Modal Crear Movimiento -->
+<div class="modal fade" id="createMovimientoModal" tabindex="-1" aria-labelledby="createMovimientoModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="createMovimientoModalLabel">Registrar Movimiento</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="modal-body">
+                    {% if form.non_field_errors %}
+                    <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+                    {% endif %}
+
+                    <div class="mb-3">
+                        <label for="{{ form.tipo.id_for_label }}" class="form-label">Tipo de Movimiento</label>
+                        {{ form.tipo }}
+                        {% for error in form.tipo.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                    </div>
+                    <div class="mb-3">
+                        <label for="{{ form.monto.id_for_label }}" class="form-label">Monto</label>
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            {{ form.monto }}
+                        </div>
+                        {% for error in form.monto.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                    </div>
+                    <div class="mb-3">
+                        <label for="{{ form.descripcion.id_for_label }}" class="form-label">Descripción</label>
+                        {{ form.descripcion }}
+                        {% for error in form.descripcion.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                    </div>
+                    <div class="mb-3">
+                        <label for="{{ form.documento_adjunto.id_for_label }}" class="form-label">Adjuntar Documento (Opcional)</label>
+                        {{ form.documento_adjunto }}
+                        <div class="form-text">Puedes adjuntar una boleta, factura o cotización.</div>
+                        {% for error in form.documento_adjunto.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                    </div>
+                    {% if form.compania %}
+                    <div class="mb-3">
+                        <label for="{{ form.compania.id_for_label }}" class="form-label">Asignar a Caja (Solo Admin)</label>
+                        {{ form.compania }}
+                        <div class="form-text">Dejar en blanco para guardar como movimiento en la Caja General.</div>
+                        {% for error in form.compania.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-danger">Guardar Movimiento</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Editar Movimiento -->
+<div class="modal fade" id="editMovimientoModal" tabindex="-1" aria-labelledby="editMovimientoModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editMovimientoModalLabel">Editar Movimiento</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="editMovimientoForm" method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="edit_tipo" class="form-label">Tipo de Movimiento</label>
+                        <select id="edit_tipo" name="tipo" class="form-select">
+                            {% for choice in form.tipo.field.choices %}
+                                <option value="{{ choice.0 }}">{{ choice.1 }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_monto" class="form-label">Monto</label>
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            <input type="number" id="edit_monto" name="monto" class="form-control" step="0.01">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_descripcion" class="form-label">Descripción</label>
+                        <input type="text" id="edit_descripcion" name="descripcion" class="form-control">
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_documento_adjunto" class="form-label">Cambiar/Añadir Documento (Opcional)</label>
+                        <input type="file" id="edit_documento_adjunto" name="documento_adjunto" class="form-control">
+                        <div class="form-text">Si no seleccionas un archivo nuevo, se mantendrá el actual (si existe).</div>
+                    </div>
+                    {% if form.compania %}
+                    <div class="mb-3">
+                        <label for="edit_compania" class="form-label">Asignar a Caja (Solo Admin)</label>
+                        <select id="edit_compania" name="compania" class="form-select">
+                            <option value="">Caja General</option>
+                            {% for c in form.compania.field.queryset %}
+                                <option value="{{ c.id }}">{{ c.nombre }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-danger">Guardar Cambios</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Eliminar Movimiento -->
+<div class="modal fade" id="deleteMovimientoModal" tabindex="-1" aria-labelledby="deleteMovimientoModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteMovimientoModalLabel">Confirmar Eliminación</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Estás seguro de que quieres eliminar el movimiento "<strong><span id="movDescripcionToDelete"></span></strong>"?</p>
+                <p class="text-danger small">Esta acción no se puede deshacer.</p>
+            </div>
+            <div class="modal-footer">
+                <form id="deleteMovimientoForm" method="post">
+                    {% csrf_token %}
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-danger">Sí, eliminar</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ block.super }}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    // Si hay errores en el formulario, reabrir el modal al cargar la página.
+    {% if form.errors %}
+        var createMovimientoModal = new bootstrap.Modal(document.getElementById('createMovimientoModal'));
+        createMovimientoModal.show();
+    {% endif %}
+
+    // Lógica para el modal de edición
+    var editModal = document.getElementById('editMovimientoModal');
+    editModal.addEventListener('show.bs.modal', function (event) {
+        var button = event.relatedTarget;
+        var form = document.getElementById('editMovimientoForm');
+        form.action = `/caja-chica/${button.dataset.movId}/edit/`;
+        form.querySelector('#edit_tipo').value = button.dataset.movTipo;
+        form.querySelector('#edit_monto').value = button.dataset.movMonto;
+        form.querySelector('#edit_descripcion').value = button.dataset.movDescripcion;
+        
+        var companiaSelect = form.querySelector('#edit_compania');
+        if (companiaSelect) {
+            companiaSelect.value = button.dataset.movCompania;
+        }
+    });
+
+    // Lógica para el modal de eliminación
+    var deleteModal = document.getElementById('deleteMovimientoModal');
+    deleteModal.addEventListener('show.bs.modal', function (event) {
+        var button = event.relatedTarget;
+        document.getElementById('deleteMovimientoForm').action = `/caja-chica/${button.dataset.movId}/delete/`;
+        document.getElementById('movDescripcionToDelete').textContent = button.dataset.movDescripcion;
+    });
+
+    // --- Lógica de Filtrado en Tiempo Real para Caja Chica ---
+    const cajaSearchInput = document.getElementById('cajaSearchInput');
+    const cajaTypeFilter = document.getElementById('cajaTypeFilter');
+    const cajaTableBody = document.getElementById('cajaTableBody');
+    const noCajaRow = document.getElementById('no-caja-found');
+
+    function filterCaja() {
+        if (!cajaTableBody) return;
+        const searchText = cajaSearchInput.value.toLowerCase();
+        const selectedType = cajaTypeFilter.value.toLowerCase();
+
+        const rows = cajaTableBody.querySelectorAll('tr:not(#no-caja-found)');
+        let visibleRows = 0;
+
+        rows.forEach(row => {
+            if (row.children.length === 1 && row.textContent.includes('No hay movimientos registrados')) return;
+
+            const textContent = row.textContent.toLowerCase();
+            const typeCell = row.cells[1] ? row.cells[1].textContent.trim().toLowerCase() : "";
+
+            const matchesSearch = searchText === "" || textContent.includes(searchText);
+            const matchesType = selectedType === "" || typeCell === selectedType;
+
+            if (matchesSearch && matchesType) { row.style.display = ""; visibleRows++; } 
+            else { row.style.display = "none"; }
+        });
+
+        if (noCajaRow) noCajaRow.style.display = visibleRows === 0 && rows.length > 0 ? "" : "none";
+    }
+
+    if (cajaSearchInput) cajaSearchInput.addEventListener('keyup', filterCaja);
+    if (cajaTypeFilter) cajaTypeFilter.addEventListener('change', filterCaja);
+});
+</script>
+{% endblock %}

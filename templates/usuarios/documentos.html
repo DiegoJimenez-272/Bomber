@@ -1,0 +1,394 @@
+{% extends 'base_con_condicion.html' %}
+
+{% block title %}Documentos - {{ block.super }}{% endblock %}
+
+{% block content %}
+<!-- Header del contenido principal -->
+<header class="d-flex align-items-center justify-content-between pb-3 mb-4 border-bottom">
+    <div>
+        <h1 class="h2 mb-0">Gestión de Documentos</h1>
+        {% if not request.user.is_superuser %}
+        <p class="text-muted mb-0 mt-1">
+            {% if request.user.compania %}<i class="bi bi-building-fill me-2"></i>{{ request.user.compania.nombre }}
+            {% else %}Sin Compañía{% endif %}
+        </p>
+        {% endif %}
+    </div>
+    {% if request.user.is_superuser or request.user.rol.editar_documentacion %}
+        <div class="d-flex gap-2">
+            <button class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#writeDocumentModal">
+                <i class="bi bi-pencil-square me-1"></i> Redactar Documento
+            </button>
+            <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#uploadDocumentModal">
+                <i class="bi bi-upload me-1"></i> Subir Documento
+            </button>
+        </div>
+    {% endif %}
+</header>
+
+<!-- Contenido de Documentos -->
+<main>
+    {% if messages %}
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {% endfor %}
+    {% endif %}
+
+    <!-- Formulario de Búsqueda y Filtros -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3 align-items-end">
+                <div class="col-lg-6">
+                    <label for="q" class="form-label">Buscar por nombre o descripción</label>
+                    <input type="text" name="q" id="docSearchInput" class="form-control" value="{{ request.GET.q|default:'' }}">
+                </div>
+                <div class="col-lg-2">
+                    <label for="tipo_archivo" class="form-label">Tipo de archivo</label>
+                    <select name="tipo_archivo" id="docTypeFilter" class="form-select">
+                        <option value="">Todos</option>
+                        <option value="pdf" {% if request.GET.tipo_archivo == 'pdf' %}selected{% endif %}>PDF</option>
+                        <option value="word" {% if request.GET.tipo_archivo == 'word' %}selected{% endif %}>Word</option>
+                        <option value="excel" {% if request.GET.tipo_archivo == 'excel' %}selected{% endif %}>Excel</option>
+                        <option value="imagen" {% if request.GET.tipo_archivo == 'imagen' %}selected{% endif %}>Imagen</option>
+                    </select>
+                </div>
+                <div class="col-lg-2">
+                    <label for="usuario" class="form-label">Subido por</label>
+                    <select name="usuario" id="docUserFilter" class="form-select">
+                        <option value="">Todos</option>
+                        {% for user in usuarios_con_docs %}<option value="{{ user.id }}" {% if request.GET.usuario == user.id|stringformat:"s" %}selected{% endif %}>{{ user.get_full_name }}</option>{% endfor %}
+                    </select>
+                </div>
+                <div class="col-lg-2">
+                    <label for="ordenar_por" class="form-label">Ordenar por</label>
+                    <select name="ordenar_por" id="ordenar_por" class="form-select" onchange="this.form.submit()">
+                        <option value="-subido_en" {% if request.GET.ordenar_por == '-subido_en' %}selected{% endif %}>Más nuevos</option>
+                        <option value="subido_en" {% if request.GET.ordenar_por == 'subido_en' %}selected{% endif %}>Más antiguos</option>
+                        <option value="nombre" {% if request.GET.ordenar_por == 'nombre' %}selected{% endif %}>Nombre (A-Z)</option>
+                        <option value="-nombre" {% if request.GET.ordenar_por == '-nombre' %}selected{% endif %}>Nombre (Z-A)</option>
+                    </select>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <h5 class="card-title">Documentos Recientes</h5>
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th scope="col">Nombre</th>
+                        <th scope="col">Subido por</th>
+                        {% if request.user.is_superuser %}
+                        <th scope="col">Compañía</th>
+                        {% endif %}
+                        <th scope="col">Fecha de subida</th>
+                        <th scope="col">Tamaño</th>
+                        <th scope="col">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="documentosTableBody">
+                    <tr id="no-docs-found" style="display: none;"><td colspan="6" class="text-center text-muted py-4">No se encontraron documentos con los filtros aplicados.</td></tr>
+                    {% for doc in documentos %}
+                    <tr>
+                        {% if doc.archivo_existe %}
+                            <td>
+                                {% with doc.archivo.name|lower as filename %}
+                                    {% if ".pdf" in filename %}<i class="bi bi-file-earmark-pdf-fill text-danger me-2"></i>
+                                    {% elif ".doc" in filename or ".docx" in filename %}<i class="bi bi-file-earmark-word-fill text-primary me-2"></i>
+                                    {% elif ".xls" in filename or ".xlsx" in filename %}<i class="bi bi-file-earmark-excel-fill text-success me-2"></i>
+                                    {% elif ".jpg" in filename or ".jpeg" in filename or ".png" in filename %}<i class="bi bi-file-earmark-image-fill text-info me-2"></i>
+                                    {% else %}<i class="bi bi-file-earmark-text me-2"></i>
+                                    {% endif %}
+                                {% endwith %}
+                                <strong>{{ doc.nombre }}</strong>
+                                <p class="text-muted small mb-0">{{ doc.descripcion|truncatewords:15 }}</p>
+                            </td>
+                            <td>{{ doc.subido_por.get_full_name|default:"N/A" }}</td>
+                            {% if request.user.is_superuser %}
+                            <td>{{ doc.compania.nombre|default:"General" }}</td>
+                            {% endif %}
+                            <td>{{ doc.subido_en|date:"d/m/Y H:i" }}</td>
+                            <td>{{ doc.tamano_seguro|filesizeformat }}</td>
+                            <td>
+                                <div class="btn-group" role="group">
+                                    <button type="button" class="btn btn-sm btn-outline-primary view-doc-btn"
+                                            data-bs-toggle="modal" 
+                                            data-bs-target="#fileViewerModal"
+                                            data-file-url="{{ doc.archivo.url }}"
+                                            data-file-name="{{ doc.nombre }}"
+                                            data-file-info="{{ doc.tamano_seguro|filesizeformat }} - Subido el {{ doc.subido_en|date:'d/m/Y' }}" title="Ver">
+                                        <i class="bi bi-eye-fill"></i>
+                                    </button>
+                                    <a href="{{ doc.archivo.url }}" download class="btn btn-sm btn-outline-secondary" title="Descargar">
+                                        <i class="bi bi-download"></i>
+                                    </a>
+                                    {% if request.user.is_superuser or request.user.rol.editar_documentacion %}
+                                        <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteDocumentModal" data-doc-url="{% url 'documento_delete' doc.id %}" data-doc-name="{{ doc.nombre }}" title="Eliminar">
+                                            <i class="bi bi-trash-fill"></i>
+                                        </button>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        {% else %}
+                            <td colspan="{% if request.user.is_superuser %}5{% else %}4{% endif %}">
+                                <i class="bi bi-exclamation-triangle-fill text-warning me-2"></i>
+                                <strong>{{ doc.nombre }}</strong>
+                                <p class="text-danger small mb-0">Archivo no encontrado en el disco. Puede que haya sido eliminado.</p>
+                            </td>
+                            <td>
+                                {% if request.user.is_superuser or request.user.rol.editar_documentacion %}
+                                <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteDocumentModal" data-doc-url="{% url 'documento_delete' doc.id %}" data-doc-name="{{ doc.nombre }}" title="Eliminar registro de la base de datos">
+                                    <i class="bi bi-trash-fill"></i> Eliminar Registro
+                                </button>
+                                {% endif %}
+                            </td>
+                        {% endif %}
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="{% if request.user.is_superuser %}6{% else %}5{% endif %}" class="text-center text-muted py-4">No hay documentos subidos todavía.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</main>
+
+<!-- Modal Subir Documento -->
+<div class="modal fade" id="uploadDocumentModal" tabindex="-1" aria-labelledby="uploadDocumentModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="uploadDocumentModalLabel">Subir Nuevo Documento</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="{{ form.nombre.id_for_label }}" class="form-label">Nombre del Documento</label>
+                        {{ form.nombre }}
+                    </div>
+                    <div class="mb-3">
+                        <label for="{{ form.descripcion.id_for_label }}" class="form-label">Descripción (Opcional)</label>
+                        {{ form.descripcion }}
+                    </div>
+                    <div class="mb-3">
+                        <label for="{{ form.archivo.id_for_label }}" class="form-label">Archivo</label>
+                        {{ form.archivo }}
+                    </div>
+                    {% if form.compania %}
+                    <div class="mb-3">
+                        <label for="{{ form.compania.id_for_label }}" class="form-label">Asignar a Compañía (Solo Admin)</label>
+                        {{ form.compania }}
+                        <div class="form-text">Dejar en blanco para guardar como documento general visible para todos.</div>
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-danger">Subir</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Redactar Documento -->
+<div class="modal fade" id="writeDocumentModal" tabindex="-1" aria-labelledby="writeDocumentModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="writeDocumentModalLabel">Redactar Nuevo Documento</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="crear_texto">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="nombre_texto" class="form-label">Título del Documento *</label>
+                        <input type="text" class="form-control" id="nombre_texto" name="nombre_texto" required placeholder="Ej: Minuta de reunión">
+                    </div>
+                    <div class="mb-3">
+                        <label for="descripcion_texto" class="form-label">Descripción (Opcional)</label>
+                        <textarea class="form-control" id="descripcion_texto" name="descripcion_texto" rows="2" placeholder="Resumen del documento..."></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="contenido_texto" class="form-label">Contenido *</label>
+                        <textarea class="form-control" id="contenido_texto" name="contenido_texto" rows="12" required placeholder="Redacta aquí el contenido del documento. El sistema generará y guardará un archivo PDF automáticamente con este texto."></textarea>
+                    </div>
+                    {% if request.user.is_superuser %}
+                    <div class="mb-3">
+                        <label for="compania_texto" class="form-label">Asignar a Compañía (Solo Admin)</label>
+                        <select class="form-select" id="compania_texto" name="compania">
+                            <option value="">Documento General (Visible por todos)</option>
+                            {% for choice in form.compania.field.choices %}
+                                {% if choice.0 %}<option value="{{ choice.0 }}">{{ choice.1 }}</option>{% endif %}
+                            {% endfor %}
+                        </select>
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-danger"><i class="bi bi-file-earmark-pdf-fill me-1"></i>Generar y Guardar PDF</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ block.super }}
+<!-- Modal Visor de Archivos -->
+<div class="modal fade" id="fileViewerModal" tabindex="-1" aria-labelledby="fileViewerModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h5 class="modal-title" id="fileViewerModalLabel"></h5>
+                    <p class="text-muted small mb-0" id="fileViewerModalInfo"></p>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0" style="height: 75vh;" id="fileViewerBody">
+                <!-- El contenido se inyectará aquí con JavaScript -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Eliminar Documento -->
+<div class="modal fade" id="deleteDocumentModal" tabindex="-1" aria-labelledby="deleteDocumentModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteDocumentModalLabel">Confirmar Eliminación</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Estás seguro de que quieres eliminar el documento "<strong id="docNameToDelete"></strong>"?</p>
+                <p class="text-danger small">Esta acción no se puede deshacer.</p>
+            </div>
+            <div class="modal-footer">
+                <form id="deleteForm" method="post">
+                    {% csrf_token %}
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-danger">Sí, eliminar</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const fileViewerModal = document.getElementById('fileViewerModal');
+    fileViewerModal.addEventListener('show.bs.modal', function (event) {
+        // Botón que activó el modal
+        const button = event.relatedTarget;
+
+        // Extraer información de los atributos data-*
+        const fileUrl = button.getAttribute('data-file-url');
+        const fileName = button.getAttribute('data-file-name');
+        const fileInfo = button.getAttribute('data-file-info');
+
+        // Actualizar el contenido del modal
+        const modalTitle = fileViewerModal.querySelector('#fileViewerModalLabel');
+        const modalInfo = fileViewerModal.querySelector('#fileViewerModalInfo');
+        const modalBody = fileViewerModal.querySelector('#fileViewerBody');
+
+        modalTitle.textContent = fileName;
+        modalInfo.textContent = fileInfo;
+
+        // Determinar el tipo de archivo para la previsualización
+        const fileExtension = fileUrl.split('.').pop().toLowerCase();
+        
+        if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(fileExtension)) {
+            modalBody.innerHTML = `
+                <div class="d-flex justify-content-center align-items-center h-100 bg-light">
+                    <img src="${fileUrl}" class="img-fluid" style="max-height: 100%;" alt="Vista previa de ${fileName}">
+                </div>`;
+        } else if (fileExtension === 'pdf') {
+            modalBody.innerHTML = `<iframe src="${fileUrl}" width="100%" height="100%" title="Visor de PDF"></iframe>`;
+        } else {
+            modalBody.innerHTML = `
+                <div class="d-flex flex-column justify-content-center align-items-center h-100 text-center">
+                    <i class="bi bi-file-earmark-excel-fill display-1 text-muted"></i>
+                    <h5 class="mt-3">Vista previa no disponible</h5>
+                    <p class="text-muted">No se puede previsualizar este tipo de archivo.<br>Puedes descargarlo para verlo.</p>
+                    <a href="${fileUrl}" download class="btn btn-primary mt-2">
+                        <i class="bi bi-download me-2"></i>Descargar Archivo
+                    </a>
+                </div>`;
+        }
+    });
+
+    const deleteDocumentModal = document.getElementById('deleteDocumentModal');
+    deleteDocumentModal.addEventListener('show.bs.modal', function (event) {
+        const button = event.relatedTarget;
+        const docUrl = button.getAttribute('data-doc-url');
+        const docName = button.getAttribute('data-doc-name');
+
+        const deleteForm = deleteDocumentModal.querySelector('#deleteForm');
+        const docNameSpan = deleteDocumentModal.querySelector('#docNameToDelete');
+        deleteForm.action = docUrl;
+        docNameSpan.textContent = docName;
+    });
+
+    // --- Lógica de Filtrado en Tiempo Real para Documentos ---
+    const docSearchInput = document.getElementById('docSearchInput');
+    const docTypeFilter = document.getElementById('docTypeFilter');
+    const docUserFilter = document.getElementById('docUserFilter');
+    const docsTableBody = document.getElementById('documentosTableBody');
+    const noDocsRow = document.getElementById('no-docs-found');
+
+    function filterDocs() {
+        if (!docsTableBody) return;
+        const searchText = docSearchInput.value.toLowerCase();
+        const selectedType = docTypeFilter.value; 
+        const isUserSelected = docUserFilter.value !== "";
+        const selectedUserText = docUserFilter.options[docUserFilter.selectedIndex].text.toLowerCase();
+
+        const rows = docsTableBody.querySelectorAll('tr:not(#no-docs-found)');
+        let visibleRows = 0;
+
+        rows.forEach(row => {
+            if (row.children.length === 1 && row.textContent.includes('No hay documentos subidos todavía')) return;
+
+            const textContent = row.textContent.toLowerCase();
+            const userCell = row.cells[1] ? row.cells[1].textContent.toLowerCase() : "";
+            const firstCell = row.cells[0];
+            let fileType = "";
+            if (firstCell) {
+                if (firstCell.querySelector('.bi-file-earmark-pdf-fill')) fileType = "pdf";
+                else if (firstCell.querySelector('.bi-file-earmark-word-fill')) fileType = "word";
+                else if (firstCell.querySelector('.bi-file-earmark-excel-fill')) fileType = "excel";
+                else if (firstCell.querySelector('.bi-file-earmark-image-fill')) fileType = "imagen";
+            }
+
+            const matchesSearch = searchText === "" || textContent.includes(searchText);
+            const matchesType = selectedType === "" || fileType === selectedType;
+            const matchesUser = !isUserSelected || userCell.includes(selectedUserText) || selectedUserText === "todos";
+
+            if (matchesSearch && matchesType && matchesUser) { row.style.display = ""; visibleRows++; } 
+            else { row.style.display = "none"; }
+        });
+
+        if (noDocsRow) noDocsRow.style.display = visibleRows === 0 && rows.length > 0 ? "" : "none";
+    }
+
+    if (docSearchInput) docSearchInput.addEventListener('keyup', filterDocs);
+    if (docTypeFilter) docTypeFilter.addEventListener('change', filterDocs);
+    if (docUserFilter) docUserFilter.addEventListener('change', filterDocs);
+});
+</script>
+{% endblock %}

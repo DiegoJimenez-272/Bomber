@@ -1,0 +1,75 @@
+<div class="card project-card mb-3">
+    <div class="card-body p-4">
+        <div class="d-flex justify-content-between align-items-start">
+            <!-- Contenido principal de la tarjeta -->
+            <div class="flex-grow-1">
+                <div class="d-flex align-items-center mb-2">
+                    <span class="badge bg-{{ status_class }}-subtle text-{{ status_class }}-emphasis me-2">{{ status }}</span>
+                    <h5 class="card-title mb-0">{{ proyecto.nombre }}</h5>
+                </div>
+                <p class="card-text text-muted small mb-3">{{ proyecto.descripcion }}</p>
+                
+                <div class="row g-3 small text-muted">
+                    <div class="col-auto"><i class="bi bi-person-fill me-1"></i>{{ proyecto.responsable.get_full_name|default:"No asignado" }}</div>
+                    <div class="col-auto"><i class="bi bi-tag-fill me-1"></i>{{ proyecto.tipo }}</div>
+                    {% if proyecto.presupuesto %}
+                    <div class="col-auto"><i class="bi bi-cash-stack me-1"></i>${{ proyecto.presupuesto|floatformat:0 }}</div>
+                    {% endif %}
+                </div>
+            </div>
+            <!-- Acciones y Prioridad -->
+            <div class="flex-shrink-0 ms-4 text-end">
+                {% if request.user.is_superuser or request.user.rol.editar_proyectos %}
+                <div class="project-actions">
+                    <button class="btn btn-sm btn-outline-primary"
+                            data-bs-toggle="modal"
+                            data-bs-target="#editProjectModal"
+                            data-proyecto-id="{{ proyecto.id }}"
+                            data-proyecto-nombre="{{ proyecto.nombre }}"
+                            data-proyecto-descripcion="{{ proyecto.descripcion }}"
+                            data-proyecto-fecha_inicio="{{ proyecto.fecha_inicio|date:'Y-m-d' }}"
+                            data-proyecto-fecha_fin="{{ proyecto.fecha_fin|date:'Y-m-d' }}"
+                            data-proyecto-presupuesto="{{ proyecto.presupuesto|default_if_none:'' }}"
+                            data-proyecto-responsable="{{ proyecto.responsable.id|default_if_none:'' }}"
+                            data-proyecto-tipo="{{ proyecto.tipo }}"
+                            data-proyecto-prioridad="{{ proyecto.prioridad }}">
+                        <i class="bi bi-pencil-fill"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger"
+                            data-bs-toggle="modal"
+                            data-bs-target="#deleteProjectModal"
+                            data-proyecto-id="{{ proyecto.id }}"
+                            data-proyecto-nombre="{{ proyecto.nombre }}">
+                        <i class="bi bi-trash-fill"></i>
+                    </button>
+                </div>
+                {% endif %}
+                <div class="mt-3">
+                    <label class="form-label small text-muted mb-1">Prioridad</label>
+                    <div class="progress" role="progressbar" aria-label="Prioridad del proyecto" aria-valuenow="{{ proyecto.prioridad }}" aria-valuemin="0" aria-valuemax="100" style="height: 8px;">
+                        <div class="progress-bar {% if proyecto.prioridad > 75 %}bg-danger{% elif proyecto.prioridad > 50 %}bg-warning{% else %}bg-success{% endif %}" style="width: {{ proyecto.prioridad }}%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% if proyecto.archivos.all %}
+        <div class="border-top pt-3 mt-3">
+            <h6 class="small fw-bold text-muted mb-2">ARCHIVOS ADJUNTOS</h6>
+            <ul class="list-group list-group-flush">
+                {% for archivo in proyecto.archivos.all %}
+                <li class="list-group-item d-flex justify-content-between align-items-center px-0 py-2">
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-file-earmark-text-fill fs-4 text-secondary me-3"></i>
+                        <div>
+                            <div class="fw-bold small">{{ archivo.archivo.name|cut:"proyectos_archivos/" }}</div>
+                            <div class="small text-muted">{{ archivo.archivo.size|filesizeformat }} - {{ archivo.subido_en|date:"d/m/Y" }}</div>
+                        </div>
+                    </div>
+                    <a href="{{ archivo.archivo.url }}" target="_blank" class="btn btn-sm btn-outline-secondary"><i class="bi bi-eye-fill"></i></a>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+    </div>
+</div>

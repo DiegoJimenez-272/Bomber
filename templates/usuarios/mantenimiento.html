@@ -1,0 +1,484 @@
+{% extends 'base_con_condicion.html' %}
+
+{% block title %}Mantenimiento Vehicular - {{ block.super }}{% endblock %}
+
+{% block content %}
+<!-- Header del contenido principal -->
+<header class="d-flex align-items-center justify-content-between pb-3 mb-4 border-bottom">
+    <div class="flex-grow-1">
+        <h1 class="h2 mb-0">Historial de Mantenimiento</h1>
+        <p class="text-muted small mb-0">Gestiona y registra todos los mantenimientos de la flota.</p>
+    </div>
+    {% if request.user.is_superuser or request.user.rol.editar_mantenimientos %}
+    <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#createMantenimientoModal">
+        <i class="bi bi-plus-lg me-1"></i> Nuevo Mantenimiento
+    </button>
+    {% endif %}
+</header>
+
+<!-- Contenido de Mantenimiento -->
+<main>
+    {% if messages %}
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {% endfor %}
+    {% endif %}
+
+    <!-- Formulario de Búsqueda y Filtros -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3 align-items-end">
+                <div class="col-lg-4">
+                    <label for="q" class="form-label">Buscar por vehículo o descripción</label>
+                    <input type="text" name="q" id="mantSearchInput" class="form-control" value="{{ request.GET.q|default:'' }}">
+                </div>
+                <div class="col-lg-2">
+                    <label for="tipo" class="form-label">Tipo</label>
+                    <select name="tipo" id="mantTypeFilter" class="form-select">
+                        <option value="">Todos</option>
+                        {% for value, text in form.fields.tipo.choices %}<option value="{{ value }}" {% if request.GET.tipo == value %}selected{% endif %}>{{ text }}</option>{% endfor %}
+                    </select>
+                </div>
+                <div class="col-lg-2">
+                    <label for="estado" class="form-label">Estado</label>
+                    <select name="estado" id="mantStatusFilter" class="form-select">
+                        <option value="">Todos</option>
+                        <option value="Pendiente" {% if request.GET.estado == 'Pendiente' %}selected{% endif %}>Pendiente</option>
+                        <option value="En Progreso" {% if request.GET.estado == 'En Progreso' %}selected{% endif %}>En Progreso</option>
+                        <option value="Finalizado" {% if request.GET.estado == 'Finalizado' %}selected{% endif %}>Finalizado</option>
+                    </select>
+                </div>
+                <div class="col-lg-2">
+                    <label for="usuario" class="form-label">Responsable</label>
+                    <select name="usuario" id="mantUserFilter" class="form-select">
+                        <option value="">Todos</option>
+                        {% for user in usuarios_con_mantenimientos %}<option value="{{ user.id }}" {% if request.GET.usuario == user.id|stringformat:"s" %}selected{% endif %}>{{ user.get_full_name }}</option>{% endfor %}
+                    </select>
+                </div>
+                <div class="col-lg-2">
+                    <label for="ordenar_por" class="form-label">Ordenar por</label>
+                    <select name="ordenar_por" id="ordenar_por" class="form-select" onchange="this.form.submit()">
+                        <option value="-fecha" {% if request.GET.ordenar_por == '-fecha' %}selected{% endif %}>Más nuevos</option>
+                        <option value="fecha" {% if request.GET.ordenar_por == 'fecha' %}selected{% endif %}>Más antiguos</option>
+                        <option value="vehiculo" {% if request.GET.ordenar_por == 'vehiculo' %}selected{% endif %}>Vehículo (A-Z)</option>
+                    </select>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th scope="col">Vehículo</th>
+                            <th scope="col">Fecha Inicio</th>
+                            <th scope="col">Fecha Resolución</th>
+                            <th scope="col">Descripción</th>
+                            <th scope="col">Costo</th>
+                            <th scope="col">Responsable</th>
+                            <th scope="col">Estado</th>
+                            <th scope="col">Documentos</th>
+                            <th scope="col">Acciones</th>
+                        </tr>
+                    </thead>
+                <tbody id="mantenimientosTableBody">
+                    <tr id="no-mants-found" style="display: none;"><td colspan="9" class="text-center text-muted py-4">No se encontraron mantenimientos con los filtros aplicados.</td></tr>
+                        {% for mant in mantenimientos %}
+                        <tr>
+                            <td><strong>{{ mant.vehiculo }}</strong></td>
+                            <td>{{ mant.fecha|date:"d/m/Y" }}</td>
+                            <td>{{ mant.fecha_resolucion|date:"d/m/Y"|default:"-" }}</td>
+                            <td>{{ mant.descripcion|truncatewords:10 }}</td>
+                            <td>${{ mant.costo|floatformat:0 }}</td>
+                            <td>{{ mant.responsable.get_full_name|default:"N/A" }}</td>
+                            <td>
+                                {% if mant.estado == 'Finalizado' %}
+                                    <span class="badge bg-success">{{ mant.estado }}</span>
+                                {% elif mant.estado == 'En Progreso' %}
+                                    <span class="badge bg-warning text-dark">{{ mant.estado }}</span>
+                                {% else %}
+                                    <span class="badge bg-danger">{{ mant.estado }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if mant.archivos.all %}
+                                <div class="dropdown">
+                                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="bi bi-paperclip"></i> {{ mant.archivos.count }}
+                                    </button>
+                                    <ul class="dropdown-menu shadow-sm">
+                                        {% for archivo in mant.archivos.all %}
+                                            <li><a class="dropdown-item small" href="{{ archivo.archivo.url }}" target="_blank"><i class="bi bi-file-earmark-text me-1"></i>{{ archivo.archivo.name|cut:"mantenimientos_archivos/" }}</a></li>
+                                        {% endfor %}
+                                    </ul>
+                                </div>
+                                {% else %}
+                                <span class="text-muted small">No adjuntos</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if request.user.is_superuser or request.user.rol.editar_mantenimientos %}
+                                <div class="btn-group" role="group">
+                                    <button type="button" class="btn btn-sm btn-outline-primary"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#editMantenimientoModal"
+                                            data-mant-id="{{ mant.id }}"
+                                            data-mant-fecha="{{ mant.fecha|date:'Y-m-d' }}"
+                                            data-mant-fecha_resolucion="{{ mant.fecha_resolucion|date:'Y-m-d' }}"
+                                            data-mant-vehiculo="{{ mant.vehiculo }}"
+                                            data-mant-costo="{{ mant.costo|default_if_none:'' }}"
+                                            data-mant-responsable="{{ mant.responsable.id|default_if_none:'' }}"
+                                            data-mant-tipo="{{ mant.tipo }}"
+                                            data-mant-descripcion="{{ mant.descripcion }}">
+                                        <i class="bi bi-pencil-fill"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-danger"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#deleteMantenimientoModal"
+                                            data-mant-id="{{ mant.id }}"
+                                            data-mant-vehiculo="{{ mant.vehiculo }}">
+                                        <i class="bi bi-trash-fill"></i>
+                                    </button>
+                                </div>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="9" class="text-center text-muted py-4">No hay mantenimientos registrados todavía.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</main>
+
+<!-- Modal Crear Mantenimiento -->
+<div class="modal fade" id="createMantenimientoModal" tabindex="-1" aria-labelledby="createMantenimientoModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="createMantenimientoModalLabel">Registrar Nuevo Mantenimiento</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    {% if form.non_field_errors or archivo_form.non_field_errors %}
+                    <div class="alert alert-danger">
+                        {{ form.non_field_errors }}
+                        {{ archivo_form.non_field_errors }}
+                    </div>
+                    {% endif %}
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="{{ form.fecha.id_for_label }}" class="form-label">Fecha de Mantenimiento</label>
+                            {{ form.fecha }}
+                            {% for error in form.fecha.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="{{ form.fecha_resolucion.id_for_label }}" class="form-label">Fecha de Resolución (Opcional)</label>
+                            {{ form.fecha_resolucion }}
+                            {% for error in form.fecha_resolucion.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="{{ form.vehiculo.id_for_label }}" class="form-label">Vehículo</label>
+                            {{ form.vehiculo }}
+                            {% for error in form.vehiculo.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="{{ form.costo.id_for_label }}" class="form-label">Costo (CLP)</label>
+                            {{ form.costo }}
+                            {% for error in form.costo.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="{{ form.responsable.id_for_label }}" class="form-label">Responsable</label>
+                            {{ form.responsable }}
+                            {% for error in form.responsable.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="{{ form.caja_descuento.id_for_label }}" class="form-label">Cuenta de Origen / Caja</label>
+                            {{ form.caja_descuento }}
+                            {% for error in form.caja_descuento.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label d-block">Tipo</label>
+                            <div class="d-flex gap-4">
+                                {% for radio in form.tipo %}
+                                <div class="form-check">
+                                    {{ radio.tag }}
+                                    <label class="form-check-label" for="{{ radio.id_for_label }}">{{ radio.choice_label }}</label>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            {% for error in form.tipo.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                        </div>
+                        <div class="col-12">
+                            <label for="{{ form.descripcion.id_for_label }}" class="form-label">Descripción detallada</label>
+                            {{ form.descripcion }}
+                            {% for error in form.descripcion.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                        </div>
+                        <div class="col-12">
+                            <label for="{{ archivo_form.archivos.id_for_label }}" class="form-label">Documentos adjuntos</label>
+                            <div class="border-2 border-dashed rounded-3 p-4 text-center bg-light">
+                                <i class="bi bi-upload fs-1 text-muted"></i>
+                                <p class="text-muted mt-2">Arrastra archivos aquí o haz clic para seleccionar</p>
+                                {{ archivo_form.archivos }}
+                            </div>
+                            {% for error in archivo_form.archivos.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                        </div>
+                    </div>
+                    
+                    <div class="modal-footer mt-4">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Guardar Mantenimiento</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<!-- Modal Editar Mantenimiento -->
+<div class="modal fade" id="editMantenimientoModal" tabindex="-1" aria-labelledby="editMantenimientoModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editMantenimientoModalLabel">Editar Mantenimiento</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="editMantenimientoForm" method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-md-6 mb-3">
+                            <label for="edit_fecha" class="form-label">Fecha de Mantenimiento</label>
+                            <input type="date" id="edit_fecha" name="fecha" class="form-control">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="edit_fecha_resolucion" class="form-label">Fecha de Resolución (Opcional)</label>
+                            <input type="date" id="edit_fecha_resolucion" name="fecha_resolucion" class="form-control">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="edit_vehiculo" class="form-label">Vehículo</label>
+                            <input type="text" id="edit_vehiculo" name="vehiculo" class="form-control">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="edit_costo" class="form-label">Costo (CLP)</label>
+                            <input type="number" id="edit_costo" name="costo" class="form-control" step="0.01">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="edit_responsable" class="form-label">Responsable</label>
+                            <select id="edit_responsable" name="responsable" class="form-select">
+                                {% for choice in form.responsable.field.choices %}
+                                    <option value="{{ choice.0 }}">{{ choice.1 }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="edit_caja_descuento" class="form-label">Cuenta de Origen</label>
+                            <select name="caja_descuento" id="edit_caja_descuento" class="form-select">
+                                {% for val, text in form.fields.caja_descuento.choices %}
+                                    <option value="{{ val }}">{{ text }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-12 mb-3">
+                            <label class="form-label d-block">Tipo</label>
+                            <div class="d-flex gap-4" id="edit_tipo_container">
+                                {% for radio in form.tipo %}
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="tipo" id="edit_tipo_{{ forloop.counter }}" value="{{ radio.data.value }}">
+                                    <label class="form-check-label" for="edit_tipo_{{ forloop.counter }}">{{ radio.choice_label }}</label>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <div class="col-12 mb-3">
+                            <label for="edit_descripcion" class="form-label">Descripción detallada</label>
+                            <textarea id="edit_descripcion" name="descripcion" class="form-control" rows="3"></textarea>
+                        </div>
+                        <div class="col-12 mb-3">
+                            <label for="edit_archivos" class="form-label">Añadir Documentos</label>
+                            <input type="file" id="edit_archivos" name="archivos" class="form-control" multiple>
+                            <div class="form-text">Puedes seleccionar múltiples archivos para añadir al mantenimiento.</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-danger"><i class="bi bi-check-circle-fill me-2"></i>Guardar Cambios</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Eliminar Mantenimiento -->
+<div class="modal fade" id="deleteMantenimientoModal" tabindex="-1" aria-labelledby="deleteMantenimientoModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteMantenimientoModalLabel">Confirmar Eliminación</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Estás seguro de que quieres eliminar el mantenimiento del vehículo "<strong><span id="mantVehiculoToDelete"></span></strong>"?</p>
+                <p class="text-danger small">Esta acción no se puede deshacer.</p>
+            </div>
+            <div class="modal-footer">
+                <form id="deleteMantenimientoForm" method="post">
+                    {% csrf_token %}
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-danger">Sí, eliminar</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{ block.super }}
+<style>
+    /* Estilo para el área de arrastrar y soltar archivos */
+    #createMantenimientoModal .border-dashed {
+        border-style: dashed !important;
+        position: relative;
+    }
+    #createMantenimientoModal #file-upload {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        opacity: 0;
+        cursor: pointer;
+    }
+</style>
+
+<script>
+
+document.addEventListener('DOMContentLoaded', function () {
+    // Si hay errores en el formulario, reabrir el modal al cargar la página.
+    {% if form.errors or archivo_form.errors %}
+        var createMantenimientoModal = new bootstrap.Modal(document.getElementById('createMantenimientoModal'));
+        createMantenimientoModal.show();
+    {% endif %}
+
+    // Opcional: Mostrar nombres de archivos seleccionados
+    const fileInput = document.getElementById('file-upload');
+    if (fileInput) {
+        fileInput.addEventListener('change', function(e) {
+            const container = e.target.parentElement;
+            let fileNames = Array.from(e.target.files).map(f => f.name).join(', ');
+            if (!fileNames) {
+                fileNames = 'Arrastra archivos aquí o haz clic para seleccionar';
+            }
+            container.querySelector('p').textContent = fileNames;
+        });
+    }
+
+    // Poner el costo en 0 si se selecciona "Sin costo / No aplica"
+    const cajaDescuentoSelect = document.getElementById('{{ form.caja_descuento.id_for_label }}');
+    const costoInput = document.getElementById('{{ form.costo.id_for_label }}');
+    if (cajaDescuentoSelect && costoInput) {
+        cajaDescuentoSelect.addEventListener('change', function() {
+            if (this.value === 'sin_costo') {
+                costoInput.value = '0.00';
+            }
+        });
+    }
+
+    // Lógica para el modal de edición
+    var editModal = document.getElementById('editMantenimientoModal');
+    editModal.addEventListener('show.bs.modal', function (event) {
+        var button = event.relatedTarget;
+        var form = document.getElementById('editMantenimientoForm');
+        form.action = `/mantenimiento/${button.dataset.mantId}/edit/`;
+        form.querySelector('#edit_fecha').value = button.dataset.mantFecha;
+        form.querySelector('#edit_fecha_resolucion').value = button.dataset.mantFecha_resolucion;
+        form.querySelector('#edit_vehiculo').value = button.dataset.mantVehiculo;
+        
+        var costoStr = button.dataset.mantCosto;
+        if (costoStr && costoStr !== 'None') {
+            form.querySelector('#edit_costo').value = costoStr.replace(',', '.');
+        } else {
+            form.querySelector('#edit_costo').value = '';
+        }
+        
+        form.querySelector('#edit_responsable').value = button.dataset.mantResponsable;
+        form.querySelector('#edit_descripcion').value = button.dataset.mantDescripcion;
+        
+        // Marcar el radio button correcto
+        var tipo = button.dataset.mantTipo;
+        var radioTipo = form.querySelector(`input[name="tipo"][value="${tipo}"]`);
+        if (radioTipo) radioTipo.checked = true;
+        
+        // Limpiar input file
+        form.querySelector('#edit_archivos').value = '';
+    });
+
+    // Lógica para el modal de eliminación
+    var deleteModal = document.getElementById('deleteMantenimientoModal');
+    deleteModal.addEventListener('show.bs.modal', function (event) {
+        var button = event.relatedTarget;
+        document.getElementById('deleteMantenimientoForm').action = `/mantenimiento/${button.dataset.mantId}/delete/`;
+        document.getElementById('mantVehiculoToDelete').textContent = button.dataset.mantVehiculo;
+    });
+
+    // --- Lógica de Filtrado en Tiempo Real para Mantenimiento ---
+    const mantSearchInput = document.getElementById('mantSearchInput');
+    const mantTypeFilter = document.getElementById('mantTypeFilter');
+    const mantStatusFilter = document.getElementById('mantStatusFilter');
+    const mantUserFilter = document.getElementById('mantUserFilter');
+    const mantsTableBody = document.getElementById('mantenimientosTableBody');
+    const noMantsRow = document.getElementById('no-mants-found');
+
+    function filterMants() {
+        if (!mantsTableBody) return;
+        const searchText = mantSearchInput.value.toLowerCase();
+        const selectedType = mantTypeFilter.value.toLowerCase();
+        const selectedStatus = mantStatusFilter.value.toLowerCase();
+        const isUserSelected = mantUserFilter.value !== "";
+        const selectedUserText = mantUserFilter.options[mantUserFilter.selectedIndex].text.toLowerCase();
+
+        const rows = mantsTableBody.querySelectorAll('tr:not(#no-mants-found)');
+        let visibleRows = 0;
+
+        rows.forEach(row => {
+            if (row.children.length === 1 && row.textContent.includes('No hay mantenimientos registrados todavía')) return;
+            
+            const textContent = row.textContent.toLowerCase();
+            const statusCell = row.cells[6] ? row.cells[6].textContent.trim().toLowerCase() : "";
+            const userCell = row.cells[5] ? row.cells[5].textContent.toLowerCase() : "";
+            const editBtn = row.querySelector('button[data-mant-tipo]');
+            let type = editBtn ? editBtn.getAttribute('data-mant-tipo').toLowerCase() : "";
+
+            const matchesSearch = searchText === "" || textContent.includes(searchText);
+            const matchesType = selectedType === "" || type === selectedType;
+            const matchesStatus = selectedStatus === "" || statusCell === selectedStatus;
+            const matchesUser = !isUserSelected || userCell.includes(selectedUserText) || selectedUserText === "todos";
+
+            if (matchesSearch && matchesType && matchesStatus && matchesUser) { row.style.display = ""; visibleRows++; }
+            else { row.style.display = "none"; }
+        });
+        if (noMantsRow) noMantsRow.style.display = visibleRows === 0 && rows.length > 0 ? "" : "none";
+    }
+
+    if (mantSearchInput) mantSearchInput.addEventListener('keyup', filterMants);
+    if (mantTypeFilter) mantTypeFilter.addEventListener('change', filterMants);
+    if (mantStatusFilter) mantStatusFilter.addEventListener('change', filterMants);
+    if (mantUserFilter) mantUserFilter.addEventListener('change', filterMants);
+});
+</script>
+{% endblock %}

@@ -1,0 +1,199 @@
+{% extends 'base_auth.html' %}
+
+{% block title %}Registro - Sistema Bomberos{% endblock %}
+
+{% block content %}
+<div class="logo-container">
+    <div class="logo-text">
+        Sistema de Gestión de<br>Bomberos
+    </div>
+</div>
+
+<h1 class="auth-title">Crear una Cuenta</h1>
+<p class="subtitle">Únete a nuestro sistema completando tus datos</p>
+
+{% if messages %}
+    {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    {% endfor %}
+{% endif %}
+{% if form.non_field_errors %}
+    <div class="alert alert-danger" role="alert">
+        {% for error in form.non_field_errors %}{{ error }}{% endfor %}
+    </div>
+{% endif %}
+
+<form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    
+    <div class="row g-3 mb-3">
+        <div class="col-md-6">
+            <label for="{{ form.nombre.id_for_label }}" class="form-label">Nombre</label>
+            {{ form.nombre }}
+            {% for error in form.nombre.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+        </div>
+        <div class="col-md-6">
+            <label for="{{ form.apellido.id_for_label }}" class="form-label">Apellido</label>
+            {{ form.apellido }}
+            {% for error in form.apellido.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+        </div>
+    </div>
+
+    <div class="mb-3">
+        <label for="{{ form.email.id_for_label }}" class="form-label">Correo Electrónico</label>
+        {{ form.email }}
+        {% for error in form.email.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+    </div>
+
+    <div class="row g-3 mb-3">
+        <div class="col-md-6">
+            <label for="{{ form.rut.id_for_label }}" class="form-label">RUT</label>
+            {{ form.rut }}
+            {% for error in form.rut.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+        </div>
+        <div class="col-md-6">
+            <label for="{{ form.clave_radial.id_for_label }}" class="form-label">Clave Radial (Opcional)</label>
+            {{ form.clave_radial }}
+            {% for error in form.clave_radial.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+        </div>
+    </div>
+
+    <div class="mb-3">
+        <label for="{{ form.compania.id_for_label }}" class="form-label">Compañía (Opcional)</label>
+        {{ form.compania }}
+        {% for error in form.compania.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+    </div>
+
+    <div class="mb-3">
+        <label for="{{ form.foto_perfil.id_for_label }}" class="form-label">Foto de Perfil (Opcional)</label>
+        {{ form.foto_perfil }}
+        {% for error in form.foto_perfil.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+    </div>
+
+    <div class="row g-3 mb-3">
+        <div class="col-md-6">
+            <label for="{{ form.password1.id_for_label }}" class="form-label">Contraseña</label>
+            <div class="input-group">
+                {{ form.password1 }}
+                <button class="btn btn-outline-secondary toggle-password" type="button" data-target="{{ form.password1.id_for_label }}">
+                    <i class="bi bi-eye"></i>
+                </button>
+            </div>
+            {% for error in form.password1.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+            <!-- Medidor de complejidad -->
+            <div id="password-strength-container" style="display: none;">
+                <div class="password-strength-meter">
+                    <div id="password-strength-bar" class="strength-bar"></div>
+                </div>
+                <p id="password-strength-text" class="strength-text"></p>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <label for="{{ form.password2.id_for_label }}" class="form-label">Confirmar Contraseña</label>
+            <div class="input-group">
+                {{ form.password2 }}
+                <button class="btn btn-outline-secondary toggle-password" type="button" data-target="{{ form.password2.id_for_label }}">
+                    <i class="bi bi-eye"></i>
+                </button>
+            </div>
+            {% for error in form.password2.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+        </div>
+    </div>
+    <div class="form-text small mb-3">{{ form.password1.help_text|safe }}</div>
+
+    <button type="submit" class="auth-button mt-3">Registrarse</button>
+</form>
+
+<div class="mt-4 text-center">
+    <p class="mb-0 text-muted">¿Ya tienes una cuenta? <a href="{% url 'login' %}" style="color: #dc3545; text-decoration: none;">Inicia sesión aquí</a></p>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ block.super }}
+<script>
+// Script para añadir clases de Bootstrap a los campos del formulario de Django
+document.addEventListener('DOMContentLoaded', function () {
+    const form = document.querySelector('.auth-section form');
+    form.querySelectorAll('input, select').forEach(function(el) {
+        if (el.tagName === 'SELECT') {
+            el.classList.add('form-select');
+        } else {
+            el.classList.add('form-control');
+        }
+        if (el.type === 'file') {
+            el.classList.add('form-control-sm');
+        }
+    });
+
+    // Lógica para el medidor de contraseña
+    const passwordInput = document.getElementById('{{ form.password1.id_for_label }}');
+    const strengthContainer = document.getElementById('password-strength-container');
+    const strengthBar = document.getElementById('password-strength-bar');
+    const strengthText = document.getElementById('password-strength-text');
+
+    const strengthLevels = {
+        0: { text: '', class: '' },
+        1: { text: 'Muy débil', class: 'strength-1' },
+        2: { text: 'Débil', class: 'strength-2' },
+        3: { text: 'Media', class: 'strength-3' },
+        4: { text: 'Fuerte', class: 'strength-4' },
+        5: { text: 'Muy fuerte', class: 'strength-5' }
+    };
+
+    passwordInput.addEventListener('input', function() {
+        const password = passwordInput.value;
+        let score = 0;
+
+        if (password.length > 0) {
+            strengthContainer.style.display = 'block';
+            score = 1;
+            if (password.length >= 8) score++;
+            if (/[A-Z]/.test(password)) score++;
+            if (/[0-9]/.test(password)) score++;
+            if (/[^A-Za-z0-9]/.test(password)) score++;
+            if (password.length < 8 && score > 1) {
+                score = 1; // Si no cumple el largo mínimo, no puede ser más que "muy débil"
+            }
+        } else {
+            strengthContainer.style.display = 'none';
+        }
+        
+        updateStrengthUI(score);
+    });
+
+    function updateStrengthUI(score) {
+        const level = strengthLevels[score];
+        strengthContainer.className = '';
+        if (level.class) {
+            strengthContainer.classList.add(level.class);
+        }
+        const barWidth = score * 20;
+        strengthBar.style.width = barWidth + '%';
+        strengthText.textContent = level.text;
+        strengthText.className = 'strength-text ' + (level.class || '');
+    }
+
+    // Script para mostrar/ocultar contraseña
+    document.querySelectorAll('.toggle-password').forEach(button => {
+        button.addEventListener('click', function () {
+            const inputId = this.getAttribute('data-target');
+            const input = document.getElementById(inputId);
+            const icon = this.querySelector('i');
+
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.replace('bi-eye', 'bi-eye-slash');
+            } else {
+                input.type = 'password';
+                icon.classList.replace('bi-eye-slash', 'bi-eye');
+            }
+        });
+    });
+
+});
+</script>
+{% endblock %}

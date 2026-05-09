@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+
+{% block sidebar_logo %}
+    {% comment %}
+    Este bloque sobreescribe el logo original de base.html.
+    Mostramos el logo solo si el usuario tiene una compañía asignada.
+    {% endcomment %}
+    {% if request.user.compania %}
+        <div class="sidebar-header">
+            <a href="{% url 'dashboard' %}" class="d-flex align-items-center text-white text-decoration-none">
+                <span class="fs-4">🚒 Sistema de Gestión</span>
+            </a>
+        </div>
+    {% else %}
+        <!-- No se muestra el logo si no hay compañía -->
+    {% endif %}
+{% endblock %}

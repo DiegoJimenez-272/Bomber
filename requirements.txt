@@ -1,0 +1,4 @@
+django
+reportlab
+pillow
+qrcode

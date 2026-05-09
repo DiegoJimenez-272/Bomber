@@ -1,0 +1,76 @@
+{% extends 'base_auth.html' %}
+
+{% block title %}Iniciar Sesión - Sistema Bomberos{% endblock %}
+
+{% block content %}
+<div class="logo-container">
+    <div class="logo-text">
+        Sistema de Gestión de<br>Bomberos
+    </div>
+</div>
+
+<h1 class="auth-title">Iniciar Sesión</h1>
+<p class="subtitle">Ingrese sus credenciales para acceder al sistema</p>
+
+{% if messages %}
+    {% for message in messages %}
+        <div class="alert alert-danger alert-dismissible fade show" role="alert" style="color: #fff; background-color: #dc3545; border-color: #c82333;">
+            {{ message }}
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    {% endfor %}
+{% endif %}
+
+<form method="post">
+    {% csrf_token %}
+    <div class="mb-3">
+        <label for="{{ form.username.id_for_label }}" class="form-label">Correo Electrónico</label>
+        {{ form.username }}
+    </div>
+    
+    <div class="mb-4">
+        <label for="{{ form.password.id_for_label }}" class="form-label">Contraseña</label>
+        <div class="input-group">
+            {{ form.password }} 
+            <button class="btn btn-outline-secondary toggle-password" type="button" data-target="{{ form.password.id_for_label }}">
+                <i class="bi bi-eye"></i>
+            </button>
+        </div>
+    </div>
+
+    <button type="submit" class="auth-button">Ingresar al Sistema</button>
+</form>
+
+<div class="mt-4 text-center">
+    <p class="mb-0 text-muted">¿No tienes una cuenta? <a href="{% url 'registro' %}" style="color: #dc3545; text-decoration: none;">Regístrate aquí</a></p>
+</div>
+
+<div style="border-top: 1px solid #495057; margin-top: 30px; padding-top: 30px; text-align: center; color: #6c757d; font-size: 12px;">
+    Sistema de Gestión de Bomberos v1.0<br>
+    © 2025 Cuerpo de Bomberos
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ block.super }}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    // Script para mostrar/ocultar contraseña
+    document.querySelectorAll('.toggle-password').forEach(button => {
+        button.addEventListener('click', function () {
+            const inputId = this.getAttribute('data-target');
+            const input = document.getElementById(inputId);
+            const icon = this.querySelector('i');
+
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.replace('bi-eye', 'bi-eye-slash');
+            } else {
+                input.type = 'password';
+                icon.classList.replace('bi-eye-slash', 'bi-eye');
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,614 @@
+{% extends 'base_con_condicion.html' %}
+
+{% block title %}Proyectos - {{ block.super }}{% endblock %}
+
+{% block content %}
+<!-- Header del contenido principal -->
+<header class="d-flex align-items-center justify-content-between pb-3 mb-4 border-bottom">
+    <h1 class="h2 mb-0">Proyectos</h1>
+    {% if request.user.is_superuser or request.user.rol.editar_proyectos %}
+    <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#createProjectModal">
+        <i class="bi bi-plus-lg me-1"></i> Nuevo Proyecto
+    </button>
+    {% endif %}
+</header>
+
+<!-- Contenido de Proyectos -->
+<main>
+    {% if messages %}
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {% endfor %}
+    {% endif %}
+
+    <!-- Formulario de Búsqueda y Filtros -->
+    <div class="card shadow-sm mb-4" id="project-filter-container" {% if not proyectos %}style="display: none;"{% endif %}>
+        <div class="card-body">
+            <div class="row g-3 align-items-center">
+                <div class="col-lg-6">
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-search"></i></span>
+                        <input class="form-control" type="search" id="projectSearchInput" placeholder="Buscar por nombre, descripción, responsable...">
+                    </div>
+                </div>
+                <div class="col-lg-3">
+                    <select id="typeFilter" class="form-select">
+                        <option value="">Todos los Tipos</option>
+                        {% for choice in proyecto_form.tipo.field.choices %}
+                            <option value="{{ choice.0 }}">{{ choice.1 }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-lg-3">
+                    <select id="statusFilter" class="form-select">
+                        <option value="">Todos los Estados</option>
+                        <option value="Planificado">Planificado</option>
+                        <option value="En Progreso">En Progreso</option>
+                        <option value="Finalizado">Finalizado</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if not proyectos %}
+    <div id="no-proyectos-placeholder" class="card text-center p-5 border-dashed">
+        <div class="card-body">
+            <i class="bi bi-graph-up-arrow display-1 text-muted"></i>
+            <h5 class="card-title mt-3">No hay proyectos registrados</h5>
+            <p class="card-text text-muted">Crea un nuevo proyecto para comenzar a gestionarlo.</p>
+            {% if request.user.is_superuser or request.user.rol.editar_proyectos %}
+            <button class="btn btn-danger mt-2" data-bs-toggle="modal" data-bs-target="#createProjectModal">
+                Crear mi primer proyecto
+            </button>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    <div id="no-proyectos-found" class="text-center text-muted py-4" style="display: none;">
+        No se encontraron proyectos con los filtros aplicados.
+    </div>
+
+    <div id="proyectos-list">
+        <!-- Bucle para listar los proyectos desde la base de datos -->
+        {% for proyecto in proyectos %} 
+            {% comment %} Lógica para determinar el estado del proyecto {% endcomment %}
+            {% if proyecto.fecha_fin and proyecto.fecha_fin <= today %}
+                {% include 'usuarios/proyecto_card.html' with status="Finalizado" status_class="success" %}
+            {% elif proyecto.fecha_inicio and proyecto.fecha_inicio <= today %}
+                {% include 'usuarios/proyecto_card.html' with status="En Progreso" status_class="primary" %}
+            {% else %}
+                {% include 'usuarios/proyecto_card.html' with status="Planificado" status_class="secondary" %}
+            {% endif %}
+        {% endfor %}
+    </div>
+</main>
+
+<!-- Template para la tarjeta de proyecto (usado por AJAX) -->
+<template id="projectCardTemplate">
+    <div class="card project-card mb-3">
+        <div class="card-body p-4">
+            <div class="d-flex justify-content-between align-items-start">
+                <!-- Contenido principal de la tarjeta -->
+                <div class="flex-grow-1">
+                    <div class="d-flex align-items-center mb-2">
+                        <span class="badge me-2" id="template-status-badge"></span>
+                        <h5 class="card-title mb-0" id="template-nombre"></h5>
+                    </div>
+                    <p class="card-text text-muted small mb-3" id="template-descripcion"></p>
+                    
+                    <div class="row g-3 small text-muted">
+                        <div class="col-auto"><i class="bi bi-person-fill me-1"></i><span id="template-responsable"></span></div>
+                        <div class="col-auto"><i class="bi bi-tag-fill me-1"></i><span id="template-tipo"></span></div>
+                        <div class="col-auto" id="template-presupuesto-container"><i class="bi bi-cash-stack me-1"></i>$<span id="template-presupuesto"></span></div>
+                    </div>
+                </div>
+                <!-- Acciones y Prioridad -->
+                <div class="flex-shrink-0 ms-4 text-end">
+                    <div class="project-actions">
+                        <button class="btn btn-sm btn-outline-primary edit-btn"><i class="bi bi-pencil-fill"></i></button>
+                        <button class="btn btn-sm btn-outline-danger delete-btn"><i class="bi bi-trash-fill"></i></button>
+                    </div>
+                    <div class="mt-3">
+                        <label class="form-label small text-muted mb-1">Prioridad</label>
+                        <div class="progress" role="progressbar" style="height: 8px;">
+                            <div class="progress-bar" id="template-prioridad-bar" style="width: 0%;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Sección de archivos (se puede añadir dinámicamente si es necesario) -->
+            <div id="template-archivos-container" class="border-top pt-3 mt-3 d-none">
+                <h6 class="small fw-bold text-muted mb-2">ARCHIVOS ADJUNTOS</h6>
+                <ul class="list-group list-group-flush" id="template-archivos-list">
+                    <!-- Los archivos se añadirían aquí -->
+                </ul>
+            </div>
+        </div>
+    </div>
+</template>
+
+<!-- Modal Crear Proyecto -->
+<div class="modal fade" id="createProjectModal" tabindex="-1" aria-labelledby="createProjectModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h5 class="modal-title" id="createProjectModalLabel">Crear Nuevo Proyecto</h5>
+                    <p class="text-muted small mb-0">Complete el formulario para registrar un nuevo proyecto.</p>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="createProjectForm" method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+
+                    {% if proyecto_form.non_field_errors or archivo_form.non_field_errors %}
+                    <div class="alert alert-danger">
+                        Por favor, corrige los errores generales a continuación.
+                        {{ proyecto_form.non_field_errors }}
+                        {{ archivo_form.non_field_errors }}
+                    </div>
+                    {% endif %}
+
+                    <!-- Contenedor para errores de AJAX -->
+                    <div id="create-form-errors" class="alert alert-danger d-none"></div>
+
+                    <div class="mb-3">
+                        <label for="{{ proyecto_form.nombre.id_for_label }}" class="form-label">Nombre del Proyecto</label>
+                        {{ proyecto_form.nombre }}
+                        {% for error in proyecto_form.nombre.errors %}
+                            <div class="invalid-feedback d-block">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                    <div class="mb-3">
+                        <label for="{{ proyecto_form.descripcion.id_for_label }}" class="form-label">Descripción</label>
+                        {{ proyecto_form.descripcion }}
+                        {% for error in proyecto_form.descripcion.errors %}
+                            <div class="invalid-feedback d-block">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label for="{{ proyecto_form.fecha_inicio.id_for_label }}" class="form-label">Fecha de Inicio</label>
+                            {{ proyecto_form.fecha_inicio }}
+                            {% for error in proyecto_form.fecha_inicio.errors %}
+                                <div class="invalid-feedback d-block">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="{{ proyecto_form.fecha_fin.id_for_label }}" class="form-label">Fecha de Finalización</label>
+                            {{ proyecto_form.fecha_fin }}
+                            {% for error in proyecto_form.fecha_fin.errors %}
+                                <div class="invalid-feedback d-block">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label for="{{ proyecto_form.presupuesto.id_for_label }}" class="form-label">Presupuesto (CLP)</label>
+                            {{ proyecto_form.presupuesto }}
+                            {% for error in proyecto_form.presupuesto.errors %}
+                                <div class="invalid-feedback d-block">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="{{ proyecto_form.responsable.id_for_label }}" class="form-label">Responsable</label>
+                            {{ proyecto_form.responsable }}
+                            {% for error in proyecto_form.responsable.errors %}
+                                <div class="invalid-feedback d-block">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label d-block">Tipo de Proyecto</label>
+                        {% for radio in proyecto_form.tipo %}
+                            <div class="form-check form-check-inline">
+                                {{ radio.tag }}
+                                <label class="form-check-label" for="{{ radio.id_for_label }}">{{ radio.choice_label }}</label>
+                            </div>
+                        {% endfor %}
+                        {% for error in proyecto_form.tipo.errors %}
+                            <div class="invalid-feedback d-block">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                    <div class="mb-3">
+                        <label for="{{ proyecto_form.prioridad.id_for_label }}" class="form-label">Prioridad: <span id="priorityValue">50</span>%</label>
+                        <input type="range" class="form-range" min="0" max="100" id="{{ proyecto_form.prioridad.id_for_label }}" name="{{ proyecto_form.prioridad.name }}" value="{{ proyecto_form.prioridad.value|default:50 }}" oninput="document.getElementById('priorityValue').innerText = this.value;">
+                        {% for error in proyecto_form.prioridad.errors %}
+                            <div class="invalid-feedback d-block">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                    <div class="mb-3">
+                        <label for="{{ archivo_form.archivos.id_for_label }}" class="form-label">Documentos Adjuntos</label>
+                        {{ archivo_form.archivos }}
+                        {% for error in archivo_form.archivos.errors %}
+                            <div class="invalid-feedback d-block">{{ error }}</div>
+                        {% endfor %}
+                        <div class="form-text">Formatos permitidos: PDF, DOC, XLS, JPG, PNG (máx. 10MB)</div>
+                    </div>
+                    <div class="alert alert-info small">
+                        <i class="bi bi-info-circle-fill me-2"></i>
+                        Los proyectos creados deberán ser sometidos a autorización antes de su ejecución.
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-danger">Crear Proyecto</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Editar Proyecto -->
+<div class="modal fade" id="editProjectModal" tabindex="-1" aria-labelledby="editProjectModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editProjectModalLabel">Editar Proyecto</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editProjectForm" method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="edit_nombre" class="form-label">Nombre del Proyecto</label>
+                        <input type="text" id="edit_nombre" name="nombre" class="form-control">
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_descripcion" class="form-label">Descripción</label>
+                        <textarea id="edit_descripcion" name="descripcion" class="form-control" rows="3"></textarea>
+                    </div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label for="edit_fecha_inicio" class="form-label">Fecha de Inicio</label>
+                            <input type="date" id="edit_fecha_inicio" name="fecha_inicio" class="form-control">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="edit_fecha_fin" class="form-label">Fecha de Finalización</label>
+                            <input type="date" id="edit_fecha_fin" name="fecha_fin" class="form-control">
+                        </div>
+                    </div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label for="edit_presupuesto" class="form-label">Presupuesto (CLP)</label>
+                            <input type="number" id="edit_presupuesto" name="presupuesto" class="form-control">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="edit_responsable" class="form-label">Responsable</label>
+                            <select id="edit_responsable" name="responsable" class="form-select">
+                                {% for choice in proyecto_form.responsable.field.choices %}
+                                    <option value="{{ choice.0 }}">{{ choice.1 }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label d-block">Tipo de Proyecto</label>
+                        <div id="edit_tipo_container">
+                        {% for radio in proyecto_form.tipo %}
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="tipo" id="edit_tipo_{{ forloop.counter }}" value="{{ radio.data.value }}">
+                                <label class="form-check-label" for="edit_tipo_{{ forloop.counter }}">{{ radio.choice_label }}</label>
+                            </div>
+                        {% endfor %}
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_prioridad" class="form-label">Prioridad: <span id="editPriorityValue">50</span>%</label>
+                        <input type="range" class="form-range" min="0" max="100" id="edit_prioridad" name="prioridad" oninput="document.getElementById('editPriorityValue').innerText = this.value;">
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_archivos" class="form-label">Añadir Documentos</label>
+                        <input type="file" id="edit_archivos" name="archivos" class="form-control" multiple>
+                        <div class="form-text">Puedes seleccionar múltiples archivos para añadir al proyecto.</div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-danger">Guardar Cambios</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Eliminar Proyecto -->
+<div class="modal fade" id="deleteProjectModal" tabindex="-1" aria-labelledby="deleteProjectModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteProjectModalLabel">Confirmar Eliminación</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Estás seguro de que quieres eliminar el proyecto "<strong><span id="projectNameToDelete"></span></strong>"?</p>
+                <p class="text-danger small">Esta acción no se puede deshacer y eliminará todos los archivos asociados.</p>
+            </div>
+            <div class="modal-footer">
+                <form id="deleteProjectForm" method="post">
+                    {% csrf_token %}
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-danger">Sí, eliminar</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+{{ block.super }}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    // Si hay errores en el formulario de proyectos, reabrir el modal al cargar la página.
+    {% if proyecto_form.errors %}
+        var createProjectModal = new bootstrap.Modal(document.getElementById('createProjectModal'));
+        createProjectModal.show();
+    {% endif %}
+
+    // Lógica para el modal de edición
+    var editModal = document.getElementById('editProjectModal');
+    editModal.addEventListener('show.bs.modal', function (event) {
+        var button = event.relatedTarget;
+        var form = document.getElementById('editProjectForm');
+        form.action = `/proyectos/${button.dataset.proyectoId}/edit/`;
+        form.querySelector('#edit_nombre').value = button.dataset.proyectoNombre;
+        form.querySelector('#edit_descripcion').value = button.dataset.proyectoDescripcion;
+        form.querySelector('#edit_fecha_inicio').value = button.dataset.proyectoFecha_inicio;
+        form.querySelector('#edit_fecha_fin').value = button.dataset.proyectoFecha_fin;
+        
+        // Formatear el presupuesto reemplazando comas por puntos si el navegador lo localiza,
+        // y manejar correctamente los campos vacíos
+        var presupuestoStr = button.dataset.proyectoPresupuesto;
+        if (presupuestoStr && presupuestoStr !== 'None') {
+            form.querySelector('#edit_presupuesto').value = presupuestoStr.replace(',', '.');
+        } else {
+            form.querySelector('#edit_presupuesto').value = '';
+        }
+        
+        form.querySelector('#edit_responsable').value = button.dataset.proyectoResponsable;
+        
+        var tipo = button.dataset.proyectoTipo;
+        var radioTipo = form.querySelector(`input[name="tipo"][value="${tipo}"]`);
+        if (radioTipo) radioTipo.checked = true;
+
+        var prioridadInput = form.querySelector('#edit_prioridad');
+        var prioridadValue = button.dataset.proyectoPrioridad;
+        prioridadInput.value = prioridadValue;
+        document.getElementById('editPriorityValue').innerText = prioridadValue;
+
+        // Limpiar el campo de archivos cada vez que se abre el modal
+        form.querySelector('#edit_archivos').value = '';
+    });
+
+    // Lógica para el modal de eliminación
+    var deleteModal = document.getElementById('deleteProjectModal');
+    deleteModal.addEventListener('show.bs.modal', function (event) {
+        var button = event.relatedTarget;
+        var form = document.getElementById('deleteProjectForm');
+        form.action = `/proyectos/${button.dataset.proyectoId}/delete/`;
+        document.getElementById('projectNameToDelete').textContent = button.dataset.proyectoNombre;
+    });
+
+    // --- Lógica de Filtrado en Tiempo Real para Proyectos ---
+    const searchInput = document.getElementById('projectSearchInput');
+    const typeFilter = document.getElementById('typeFilter');
+    const statusFilter = document.getElementById('statusFilter');
+    const proyectosList = document.getElementById('proyectos-list');
+    const noResultsRow = document.getElementById('no-proyectos-found');
+
+    function filterProjects() {
+        if (!proyectosList) return;
+        const searchText = searchInput.value.toLowerCase();
+        const selectedType = typeFilter.value.toLowerCase();
+        const selectedStatus = statusFilter.value.toLowerCase();
+        const cards = proyectosList.getElementsByClassName('project-card');
+        let visibleCards = 0;
+
+        for (let i = 0; i < cards.length; i++) {
+            const card = cards[i];
+            const textContent = card.textContent.toLowerCase();
+            
+            let type = "";
+            const tagIcon = card.querySelector('.bi-tag-fill');
+            if (tagIcon && tagIcon.parentElement) {
+                type = tagIcon.parentElement.textContent.trim().toLowerCase();
+            }
+            
+            let status = "";
+            const badge = card.querySelector('.badge');
+            if (badge) {
+                status = badge.textContent.trim().toLowerCase();
+            }
+
+            const matchesSearch = searchText === "" || textContent.includes(searchText);
+            const matchesType = selectedType === "" || type === selectedType;
+            const matchesStatus = selectedStatus === "" || status === selectedStatus;
+
+            if (matchesSearch && matchesType && matchesStatus) {
+                card.style.display = "";
+                visibleCards++;
+            } else {
+                card.style.display = "none";
+            }
+        }
+
+        if (noResultsRow) {
+            noResultsRow.style.display = visibleCards === 0 ? "block" : "none";
+        }
+    }
+
+    if (searchInput) searchInput.addEventListener('keyup', filterProjects);
+    if (typeFilter) typeFilter.addEventListener('change', filterProjects);
+    if (statusFilter) statusFilter.addEventListener('change', filterProjects);
+
+    // --- Lógica AJAX para Crear Proyecto ---
+    const createForm = document.getElementById('createProjectForm');
+    const createModalEl = document.getElementById('createProjectModal');
+    const createModal = new bootstrap.Modal(createModalEl);
+    const errorContainer = document.getElementById('create-form-errors');
+
+    createForm.addEventListener('submit', function(e) {
+        e.preventDefault(); // Evitamos el envío tradicional del formulario
+
+        const formData = new FormData(createForm);
+        const submitButton = createForm.querySelector('button[type="submit"]');
+        submitButton.disabled = true;
+        submitButton.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Guardando...`;
+        errorContainer.classList.add('d-none'); // Ocultar errores previos
+
+        fetch("{% url 'proyectos' %}", {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest', // Header para que la vista sepa que es AJAX
+                'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Éxito: cerrar modal, resetear formulario y añadir el nuevo proyecto a la lista
+                createModal.hide();
+                createForm.reset();
+                addProjectToDOM(data.proyecto);
+
+                // Reaplicar filtros por si el usuario tiene una búsqueda activa
+                if (typeof filterProjects === 'function') filterProjects();
+
+                // Opcional: mostrar una notificación de éxito (toast)
+                // (requiere implementar toasts de Bootstrap)
+
+            } else {
+                // Error: mostrar los errores en el modal
+                let errorHtml = '<strong>Por favor, corrige los siguientes errores:</strong><ul>';
+                for (const field in data.errors) {
+                    data.errors[field].forEach(error => {
+                        errorHtml += `<li>${error}</li>`;
+                    });
+                }
+                errorHtml += '</ul>';
+                errorContainer.innerHTML = errorHtml;
+                errorContainer.classList.remove('d-none');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            errorContainer.innerHTML = 'Ocurrió un error inesperado. Inténtalo de nuevo.';
+            errorContainer.classList.remove('d-none');
+        })
+        .finally(() => {
+            // Reactivar el botón de envío
+            submitButton.disabled = false;
+            submitButton.innerHTML = 'Crear Proyecto';
+        });
+    });
+
+    function addProjectToDOM(proyecto) {
+        // Si el placeholder de "no hay proyectos" existe, lo eliminamos
+        const placeholder = document.getElementById('no-proyectos-placeholder');
+        if (placeholder) {
+            placeholder.remove();
+        }
+
+        const filterContainer = document.getElementById('project-filter-container');
+        if (filterContainer) {
+            filterContainer.style.display = '';
+        }
+
+        const proyectosList = document.getElementById('proyectos-list');
+        const template = document.getElementById('projectCardTemplate');
+        const newCard = template.content.cloneNode(true);
+
+        // Llenar los datos de la nueva tarjeta
+        newCard.querySelector('#template-nombre').textContent = proyecto.nombre;
+        newCard.querySelector('#template-descripcion').textContent = proyecto.descripcion;
+        newCard.querySelector('#template-responsable').textContent = proyecto.responsable_nombre;
+        newCard.querySelector('#template-tipo').textContent = proyecto.tipo;
+
+        const presupuestoContainer = newCard.querySelector('#template-presupuesto-container');
+        if (proyecto.presupuesto) {
+            newCard.querySelector('#template-presupuesto').textContent = proyecto.presupuesto;
+        } else {
+            presupuestoContainer.remove();
+        }
+
+        // Determinar el estado basado en las fechas (dinámico)
+        let statusText = 'Planificado';
+        let statusClass = 'secondary';
+        
+        const today = new Date();
+        const yyyy = today.getFullYear();
+        const mm = String(today.getMonth() + 1).padStart(2, '0');
+        const dd = String(today.getDate()).padStart(2, '0');
+        const todayStr = `${yyyy}-${mm}-${dd}`;
+
+        if (proyecto.fecha_fin && proyecto.fecha_fin <= todayStr) {
+            statusText = 'Finalizado';
+            statusClass = 'success';
+        } else if (proyecto.fecha_inicio && proyecto.fecha_inicio <= todayStr) {
+            statusText = 'En Progreso';
+            statusClass = 'primary';
+        }
+
+        const statusBadge = newCard.querySelector('#template-status-badge');
+        statusBadge.textContent = statusText;
+        statusBadge.classList.add(`bg-${statusClass}-subtle`, `text-${statusClass}-emphasis`);
+
+        // Configurar botones de acción (Editar y Eliminar)
+        const editBtn = newCard.querySelector('.edit-btn');
+        if (editBtn) {
+            editBtn.setAttribute('data-bs-toggle', 'modal');
+            editBtn.setAttribute('data-bs-target', '#editProjectModal');
+            editBtn.dataset.proyectoId = proyecto.id;
+            editBtn.dataset.proyectoNombre = proyecto.nombre;
+            editBtn.dataset.proyectoDescripcion = proyecto.descripcion;
+            editBtn.dataset.proyectoFecha_inicio = proyecto.fecha_inicio || '';
+            editBtn.dataset.proyectoFecha_fin = proyecto.fecha_fin || '';
+            editBtn.dataset.proyectoPresupuesto = proyecto.presupuesto_raw || '';
+            editBtn.dataset.proyectoResponsable = proyecto.responsable_id || '';
+            editBtn.dataset.proyectoTipo = proyecto.tipo;
+            editBtn.dataset.proyectoPrioridad = proyecto.prioridad;
+        }
+
+        const deleteBtn = newCard.querySelector('.delete-btn');
+        if (deleteBtn) {
+            deleteBtn.setAttribute('data-bs-toggle', 'modal');
+            deleteBtn.setAttribute('data-bs-target', '#deleteProjectModal');
+            deleteBtn.dataset.proyectoId = proyecto.id;
+            deleteBtn.dataset.proyectoNombre = proyecto.nombre;
+        }
+
+        // Prioridad
+        const prioridadBar = newCard.querySelector('#template-prioridad-bar');
+        prioridadBar.style.width = `${proyecto.prioridad}%`;
+        if (proyecto.prioridad > 75) {
+            prioridadBar.classList.add('bg-danger');
+        } else if (proyecto.prioridad > 50) {
+            prioridadBar.classList.add('bg-warning');
+        } else {
+            prioridadBar.classList.add('bg-success');
+        }
+        
+        // Insertamos la nueva tarjeta al principio de la lista
+        proyectosList.prepend(newCard);
+    }
+
+    // Limpiar el formulario y los errores cuando el modal se cierra
+    createModalEl.addEventListener('hidden.bs.modal', function () {
+        createForm.reset();
+        errorContainer.classList.add('d-none');
+        errorContainer.innerHTML = '';
+        // Limpiar clases 'is-invalid' de los campos si las hubiera
+        createForm.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+    });
+});
+</script>
+{% endblock %}

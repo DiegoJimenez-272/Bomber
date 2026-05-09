@@ -1,0 +1,624 @@
+{% extends 'base_con_condicion.html' %}
+
+{% block title %}Cursos - {{ block.super }}{% endblock %}
+
+{% block content %}
+<!-- Header del contenido principal -->
+<header class="d-flex align-items-center justify-content-between pb-3 mb-4 border-bottom">
+    <h1 class="h2 mb-0">Gestión de Cursos</h1>
+    {% if request.user.is_superuser or request.user.rol.editar_capacitaciones %}
+    <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#createCapacitacionModal">
+        <i class="bi bi-plus-lg me-1"></i> Nuevo Curso
+    </button>
+    {% endif %}
+</header>
+
+<!-- Contenido de Cursos -->
+<main>
+    {% if messages %}
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {% endfor %}
+    {% endif %}
+
+    {% if not capacitaciones %}
+    <div class="card text-center p-5 border-dashed">
+        <div class="card-body">
+            <i class="bi bi-mortarboard-fill display-1 text-muted"></i>
+            <h5 class="card-title mt-3">No hay cursos programados</h5>
+            <p class="card-text text-muted">Registra un nuevo curso para comenzar a gestionarlo.</p>
+            {% if request.user.is_superuser or request.user.rol.editar_capacitaciones %}
+            <button class="btn btn-danger mt-2" data-bs-toggle="modal" data-bs-target="#createCapacitacionModal">
+                Crear mi primer curso
+            </button>
+            {% endif %}
+        </div>
+    </div>
+    {% else %}
+        <!-- Formulario de Búsqueda y Filtros -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-body">
+                <div class="row g-3 align-items-center">
+                    <div class="col-lg-8">
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-search"></i></span>
+                            <input class="form-control" type="search" id="cursoSearchInput" placeholder="Buscar por nombre, descripción, instructor o lugar...">
+                        </div>
+                    </div>
+                    <div class="col-lg-4">
+                        <select id="mallaFilter" class="form-select">
+                            <option value="">Todas las Mallas</option>
+                            {% for choice in form.malla.field.choices %}
+                                <option value="{{ choice.0 }}">{{ choice.1 }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="no-cursos-found" class="text-center text-muted py-4" style="display: none;">
+            No se encontraron cursos con los filtros aplicados.
+        </div>
+
+        <div class="row row-cols-1 row-cols-lg-2 g-4" id="capacitaciones-list">
+            {% for cap in capacitaciones %}
+            <div class="col capacitacion-card">
+                <div class="card h-100 shadow-sm border-light-subtle">
+                    <div class="card-body">
+                        <div class="d-flex align-items-start mb-3">
+                            <div class="d-flex align-items-center justify-content-center bg-light rounded-circle me-3" style="width: 48px; height: 48px;">
+                                <i class="bi bi-mortarboard-fill fs-4 text-danger"></i>
+                            </div>
+                            <div>
+                                <h5 class="card-title mb-1">{{ cap.nombre }}</h5>
+                                <p class="mb-1"><span class="badge bg-secondary">{{ cap.malla }}</span></p>
+                                <p class="card-text text-muted small">
+                                    <i class="bi bi-person-fill me-1"></i> Creado por: {{ cap.creado_por.get_full_name|default:"Sistema" }}
+                                </p>
+                            </div>
+                        </div>
+                        
+                        <div class="list-group list-group-flush small mb-3">
+                            <div class="list-group-item px-0 d-flex justify-content-between">
+                                <span class="text-muted"><i class="bi bi-calendar-event me-2"></i>Inicio</span>
+                                <strong>{{ cap.fecha_inicio|date:"d/m/Y, H:i" }}</strong>
+                            </div>
+                            {% if cap.fecha_fin %}
+                            <div class="list-group-item px-0 d-flex justify-content-between">
+                                <span class="text-muted"><i class="bi bi-calendar-check me-2"></i>Fin</span>
+                                <strong>{{ cap.fecha_fin|date:"d/m/Y, H:i" }}</strong>
+                            </div>
+                            {% endif %}
+                            <div class="list-group-item px-0 d-flex justify-content-between">
+                                <span class="text-muted"><i class="bi bi-geo-alt-fill me-2"></i>Lugar</span>
+                                <strong>{{ cap.lugar }}</strong>
+                            </div>
+                            <div class="list-group-item px-0 d-flex justify-content-between">
+                                <span class="text-muted"><i class="bi bi-person-video3 me-2"></i>Instructor</span>
+                                <strong>{{ cap.instructor }}</strong>
+                            </div>
+                        </div>
+
+                        <a class="btn btn-sm btn-outline-secondary w-100 mb-3" data-bs-toggle="collapse" href="#card-collapse-{{ cap.id }}" role="button">
+                            Ver Descripción y Asistentes <i class="bi bi-chevron-down ms-1"></i>
+                        </a>
+
+                    </div>
+                    <div class="collapse" id="card-collapse-{{ cap.id }}">
+                        <div class="card-body border-top pt-3">
+                            <h6 class="small fw-bold text-muted">DESCRIPCIÓN</h6>
+                            <p class="small">{{ cap.descripcion|linebreaksbr }}</p>
+                            <h6 class="small fw-bold text-muted mt-3">ASISTENTES</h6>
+                            <ul class="list-unstyled small mb-0">
+                                {% for asistente in cap.asistentes.all %}
+                                    <li><i class="bi bi-person-check-fill text-success me-2"></i>{{ asistente.get_full_name }}</li>
+                                {% empty %}
+                                    <li class="text-muted">No hay asistentes registrados.</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="card-footer d-flex justify-content-between align-items-center">
+                        <div class="text-muted small">
+                            <i class="bi bi-people-fill me-1"></i>
+                            {{ cap.asistentes.count }} Asistente(s)
+                            {% if cap.cupos %}/ {{ cap.cupos }} Cupos{% endif %}
+                        </div>
+                        {% if request.user.is_superuser or request.user.rol.editar_capacitaciones %}
+                        <div>
+                            <button class="btn btn-sm btn-outline-primary"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#editCapacitacionModal"
+                                    data-cap-id="{{ cap.id }}"
+                                    data-cap-nombre="{{ cap.nombre }}"
+                                    data-cap-malla="{{ cap.malla }}"
+                                    data-cap-descripcion="{{ cap.descripcion }}"
+                                    data-cap-fecha_inicio="{{ cap.fecha_inicio|date:'Y-m-d\TH:i' }}"
+                                    data-cap-fecha_fin="{{ cap.fecha_fin|date:'Y-m-d\TH:i' }}"
+                                    data-cap-lugar="{{ cap.lugar }}"
+                                    data-cap-instructor="{{ cap.instructor }}"
+                                    data-cap-cupos="{{ cap.cupos|default_if_none:'' }}"
+                                    data-cap-asistentes="{% for a in cap.asistentes.all %}{{ a.id }}{% if not forloop.last %},{% endif %}{% endfor %}"
+                                    data-cap-companias="{% for c in cap.companias_invitadas.all %}{{ c.id }}{% if not forloop.last %},{% endif %}{% endfor %}">
+                                <i class="bi bi-pencil-fill"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger"
+                                    data-bs-toggle="modal" data-bs-target="#deleteCapacitacionModal"
+                                    data-cap-id="{{ cap.id }}" data-cap-nombre="{{ cap.nombre }}">
+                                <i class="bi bi-trash-fill"></i></button>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+</main>
+
+<!-- Modal Crear Curso -->
+<div class="modal fade" id="createCapacitacionModal" tabindex="-1" aria-labelledby="createCapacitacionModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="createCapacitacionModalLabel">Registrar Nuevo Curso</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form method="post">
+                    {% csrf_token %}
+                    {% if form.non_field_errors %}
+                    <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+                    {% endif %}
+
+                    <div class="row g-3 mb-3 border rounded p-3 bg-body-tertiary mx-0 shadow-sm">
+                        <div class="col-12">
+                            <div class="form-check form-switch">
+                                {{ form.enviar_invitacion }}
+                                <label class="form-check-label fw-bold text-primary" for="{{ form.enviar_invitacion.id_for_label }}"><i class="bi bi-bell-fill me-1"></i>{{ form.enviar_invitacion.label }}</label>
+                            </div>
+                        </div>
+                        <div class="col-12 mt-2" id="audiencia-container" style="display: none;">
+                            <label class="form-label d-block text-muted small fw-bold">{{ form.audiencia.label }}</label>
+                            <div class="d-flex gap-4">
+                                {% for radio in form.audiencia %}
+                                <div class="form-check">
+                                    {{ radio.tag }}
+                                    <label class="form-check-label" for="{{ radio.id_for_label }}">{{ radio.choice_label }}</label>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            <div class="form-text text-muted mt-2"><i class="bi bi-info-circle-fill me-1"></i> Si es general, todos recibirán la invitación en su campana de notificaciones. Si es para específicos, solo los asistentes seleccionados abajo la recibirán.</div>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-8">
+                            <label for="{{ form.nombre.id_for_label }}" class="form-label">Nombre del Curso</label>
+                            {{ form.nombre }}
+                            {% for error in form.nombre.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                        </div>
+                        <div class="col-md-4">
+                            <label for="{{ form.malla.id_for_label }}" class="form-label">Malla / Nivel</label>
+                            {{ form.malla }}
+                            {% for error in form.malla.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="{{ form.descripcion.id_for_label }}" class="form-label">Descripción</label>
+                        {{ form.descripcion }}
+                        {% for error in form.descripcion.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                    </div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label for="{{ form.fecha_inicio.id_for_label }}" class="form-label">Fecha y Hora de Inicio</label>
+                            {{ form.fecha_inicio }}
+                            {% for error in form.fecha_inicio.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="{{ form.fecha_fin.id_for_label }}" class="form-label">Fecha y Hora de Fin (Opcional)</label>
+                            {{ form.fecha_fin }}
+                            {% for error in form.fecha_fin.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                        </div>
+                    </div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-8">
+                            <label for="{{ form.lugar.id_for_label }}" class="form-label">Lugar</label>
+                            {{ form.lugar }}
+                            {% for error in form.lugar.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                        </div>
+                        <div class="col-md-4">
+                            <label for="{{ form.cupos.id_for_label }}" class="form-label">Cupos (Opcional)</label>
+                            {{ form.cupos }}
+                            {% for error in form.cupos.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="{{ form.instructor.id_for_label }}" class="form-label">Instructor o Entidad</label>
+                        {{ form.instructor }}
+                        {% for error in form.instructor.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                    </div>
+                    <div class="mb-3 border rounded p-3 bg-body-tertiary shadow-sm">
+                        <label class="form-label fw-bold">Compañías Invitadas</label>
+                        <div class="form-text mb-2 text-muted">Las compañías seleccionadas podrán ver este curso y podrás filtrar asistentes de ellas.</div>
+                        <div class="d-flex gap-3 flex-wrap mb-3" id="company-filters-create">
+                            <div class="form-check">
+                                <input class="form-check-input comp-filter-all" type="checkbox" value="all" id="comp_all_create" checked>
+                                <label class="form-check-label fw-bold text-danger" for="comp_all_create">Seleccionar Todas</label>
+                            </div>
+                            {% for checkbox in form.companias_invitadas %}
+                            <div class="form-check">
+                                {{ checkbox.tag }}
+                                <label class="form-check-label" for="{{ checkbox.id_for_label }}">{{ checkbox.choice_label }}</label>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        
+                        <div class="d-flex justify-content-between align-items-end mb-2">
+                            <label for="{{ form.asistentes.id_for_label }}" class="form-label mb-0 fw-bold">Selección de Asistentes</label>
+                            <div>
+                                <button type="button" class="btn btn-sm btn-link text-decoration-none p-0 me-3" id="selectAllCreate"><i class="bi bi-check-all me-1"></i>Seleccionar visibles</button>
+                                <button type="button" class="btn btn-sm btn-link text-decoration-none text-muted p-0" id="deselectAllCreate"><i class="bi bi-x-circle me-1"></i>Limpiar visibles</button>
+                            </div>
+                        </div>
+                        <div class="border rounded p-0 custom-scroll-list" style="max-height: 200px; overflow-y: auto;" id="asistentes-list-create">
+                            {% for checkbox in form.asistentes %}
+                                <div class="form-check m-0">
+                                    {{ checkbox.tag }}
+                                    <label class="form-check-label w-100" style="cursor: pointer;" for="{{ checkbox.id_for_label }}">
+                                        {{ checkbox.choice_label }}
+                                    </label>
+                                </div>
+                            {% endfor %}
+                        </div>
+                        <div class="form-text mt-2"><i class="bi bi-info-circle me-1"></i> Marca las casillas para agregar o quitar asistentes individualmente.</div>
+                        {% for error in form.asistentes.errors %}<div class="invalid-feedback d-block mt-2">{{ error }}</div>{% endfor %}
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-danger">Guardar Curso</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Editar Curso -->
+<div class="modal fade" id="editCapacitacionModal" tabindex="-1" aria-labelledby="editCapacitacionModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editCapacitacionModalLabel">Editar Curso</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editCapacitacionForm" method="post">
+                    {% csrf_token %}
+                    
+                    <div class="row g-3 mb-3 border rounded p-3 bg-body-tertiary mx-0 shadow-sm">
+                        <div class="col-12">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" name="enviar_invitacion" id="edit_enviar_invitacion">
+                                <label class="form-check-label fw-bold text-primary" for="edit_enviar_invitacion"><i class="bi bi-bell-fill me-1"></i>Enviar actualización como notificación</label>
+                            </div>
+                        </div>
+                        <div class="col-12 mt-2" id="edit-audiencia-container" style="display: none;">
+                            <label class="form-label d-block text-muted small fw-bold">¿A quién notificar?</label>
+                            <div class="d-flex gap-4">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="audiencia" id="edit_audiencia_general" value="general" checked>
+                                    <label class="form-check-label" for="edit_audiencia_general">General (Todos los miembros activos)</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="audiencia" id="edit_audiencia_especificos" value="especificos">
+                                    <label class="form-check-label" for="edit_audiencia_especificos">Solo a los asistentes</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-8">
+                            <label for="edit_nombre" class="form-label">Nombre del Curso</label>
+                            <input type="text" id="edit_nombre" name="nombre" class="form-control">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="edit_malla" class="form-label">Malla / Nivel</label>
+                            <select id="edit_malla" name="malla" class="form-select">
+                                {% for choice in form.malla.field.choices %}
+                                    <option value="{{ choice.0 }}">{{ choice.1 }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_descripcion" class="form-label">Descripción</label>
+                        <textarea id="edit_descripcion" name="descripcion" class="form-control" rows="3"></textarea>
+                    </div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label for="edit_fecha_inicio" class="form-label">Fecha y Hora de Inicio</label>
+                            <input type="datetime-local" id="edit_fecha_inicio" name="fecha_inicio" class="form-control">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="edit_fecha_fin" class="form-label">Fecha y Hora de Fin (Opcional)</label>
+                            <input type="datetime-local" id="edit_fecha_fin" name="fecha_fin" class="form-control">
+                        </div>
+                    </div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-8">
+                            <label for="edit_lugar" class="form-label">Lugar</label>
+                            <input type="text" id="edit_lugar" name="lugar" class="form-control">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="edit_cupos" class="form-label">Cupos (Opcional)</label>
+                            <input type="number" id="edit_cupos" name="cupos" class="form-control">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_instructor" class="form-label">Instructor o Entidad</label>
+                        <input type="text" id="edit_instructor" name="instructor" class="form-control">
+                    </div>
+                    <div class="mb-3 border rounded p-3 bg-body-tertiary shadow-sm">
+                        <label class="form-label fw-bold">Compañías Invitadas</label>
+                        <div class="form-text mb-2 text-muted">Las compañías seleccionadas podrán ver este curso y podrás filtrar asistentes de ellas.</div>
+                        <div class="d-flex gap-3 flex-wrap mb-3" id="company-filters-edit">
+                            <div class="form-check">
+                                <input class="form-check-input comp-filter-all" type="checkbox" value="all" id="comp_all_edit" checked>
+                                <label class="form-check-label fw-bold text-danger" for="comp_all_edit">Seleccionar Todas</label>
+                            </div>
+                            {% for comp in companias %}
+                            <div class="form-check">
+                                <input class="form-check-input comp-filter-cb" type="checkbox" name="companias_invitadas" value="{{ comp.id }}" id="comp_{{ comp.id }}_edit">
+                                <label class="form-check-label" for="comp_{{ comp.id }}_edit">{{ comp.nombre }}</label>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        
+                        <div class="d-flex justify-content-between align-items-end mb-2">
+                            <label for="edit_asistentes" class="form-label mb-0 fw-bold">Selección de Asistentes</label>
+                            <div>
+                                <button type="button" class="btn btn-sm btn-link text-decoration-none p-0 me-3" id="selectAllEdit"><i class="bi bi-check-all me-1"></i>Seleccionar visibles</button>
+                                <button type="button" class="btn btn-sm btn-link text-decoration-none text-muted p-0" id="deselectAllEdit"><i class="bi bi-x-circle me-1"></i>Limpiar visibles</button>
+                            </div>
+                        </div>
+                        <div class="border rounded p-0 custom-scroll-list" style="max-height: 200px; overflow-y: auto;" id="asistentes-list-edit">
+                            {% for choice in form.asistentes.field.choices %}
+                                <div class="form-check m-0">
+                                    <input class="form-check-input" type="checkbox" name="asistentes" value="{{ choice.0 }}" id="edit_asistente_{{ choice.0 }}">
+                                    <label class="form-check-label w-100" style="cursor: pointer;" for="edit_asistente_{{ choice.0 }}">
+                                        {{ choice.1 }}
+                                    </label>
+                                </div>
+                            {% endfor %}
+                        </div>
+                        <div class="form-text mt-2"><i class="bi bi-info-circle me-1"></i> Marca las casillas para agregar o quitar asistentes individualmente.</div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-danger">Guardar Cambios</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Eliminar Curso -->
+<div class="modal fade" id="deleteCapacitacionModal" tabindex="-1" aria-labelledby="deleteCapacitacionModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteCapacitacionModalLabel">Confirmar Eliminación</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Estás seguro de que quieres eliminar el curso "<strong><span id="capNameToDelete"></span></strong>"?</p>
+                <p class="text-danger small">Esta acción no se puede deshacer.</p>
+            </div>
+            <div class="modal-footer">
+                <form id="deleteCapacitacionForm" method="post">
+                    {% csrf_token %}
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-danger">Sí, eliminar</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ block.super }}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    // Si hay errores en el formulario, reabrir el modal al cargar la página.
+    {% if form.errors %}
+        var createCapacitacionModal = new bootstrap.Modal(document.getElementById('createCapacitacionModal'));
+        createCapacitacionModal.show();
+    {% endif %}
+
+    // Lógica para el modal de edición
+    var editModal = document.getElementById('editCapacitacionModal');
+    editModal.addEventListener('show.bs.modal', function (event) {
+        var button = event.relatedTarget;
+        var form = document.getElementById('editCapacitacionForm');
+        form.action = `/capacitaciones/${button.dataset.capId}/edit/`;
+        form.querySelector('#edit_nombre').value = button.dataset.capNombre;
+        form.querySelector('#edit_malla').value = button.dataset.capMalla;
+        form.querySelector('#edit_descripcion').value = button.dataset.capDescripcion;
+        form.querySelector('#edit_fecha_inicio').value = button.dataset.capFecha_inicio;
+        form.querySelector('#edit_fecha_fin').value = button.dataset.capFecha_fin;
+        form.querySelector('#edit_lugar').value = button.dataset.capLugar;
+        form.querySelector('#edit_instructor').value = button.dataset.capInstructor;
+        form.querySelector('#edit_cupos').value = button.dataset.capCupos;
+        
+        // Seleccionar asistentes
+        var asistentesIds = button.dataset.capAsistentes ? button.dataset.capAsistentes.split(',') : [];
+        var checkboxes = form.querySelectorAll('#asistentes-list-edit input[type="checkbox"]');
+        checkboxes.forEach(function(cb) {
+            cb.checked = asistentesIds.includes(cb.value);
+        });
+
+        // Seleccionar compañías invitadas
+        var companiasIds = button.dataset.capCompanias ? button.dataset.capCompanias.split(',') : [];
+        var compCheckboxes = form.querySelectorAll('#company-filters-edit .comp-filter-cb');
+        compCheckboxes.forEach(function(cb) {
+            cb.checked = companiasIds.includes(cb.value);
+        });
+
+        // Disparar evento para actualizar filtros visuales y el checkbox "Todas"
+        if (compCheckboxes.length > 0) {
+            compCheckboxes[0].dispatchEvent(new Event('change'));
+        }
+    });
+
+    // Lógica para el modal de eliminación
+    var deleteModal = document.getElementById('deleteCapacitacionModal');
+    deleteModal.addEventListener('show.bs.modal', function (event) {
+        var button = event.relatedTarget;
+        var form = document.getElementById('deleteCapacitacionForm');
+        form.action = `/capacitaciones/${button.dataset.capId}/delete/`;
+        document.getElementById('capNameToDelete').textContent = button.dataset.capNombre;
+    });
+
+    // Lógica para toggle de invitación
+    const checkInvitacion = document.getElementById('{{ form.enviar_invitacion.id_for_label }}');
+    const containerAudiencia = document.getElementById('audiencia-container');
+    if(checkInvitacion && containerAudiencia) {
+        checkInvitacion.addEventListener('change', function() {
+            containerAudiencia.style.display = this.checked ? 'block' : 'none';
+        });
+        if(checkInvitacion.checked) {
+            containerAudiencia.style.display = 'block';
+        }
+    }
+
+    const editCheckInvitacion = document.getElementById('edit_enviar_invitacion');
+    const editContainerAudiencia = document.getElementById('edit-audiencia-container');
+    if(editCheckInvitacion && editContainerAudiencia) {
+        editCheckInvitacion.addEventListener('change', function() {
+            editContainerAudiencia.style.display = this.checked ? 'block' : 'none';
+        });
+    }
+
+    // --- Lógica de Filtro Dinámico de Asistentes por Compañía ---
+    const usuariosCompanias = {{ usuarios_companias_json|safe|default:"{}" }};
+
+    function setupCompanyFilters(containerId, listId, btnSelectAllId, btnDeselectAllId) {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+        
+        const listContainer = document.getElementById(listId);
+        const checkboxes = listContainer.querySelectorAll('input[type="checkbox"]');
+        const cbAll = container.querySelector('.comp-filter-all');
+        const cbComps = container.querySelectorAll('.comp-filter-cb');
+        
+        function updateFilters() {
+            const selectedComps = Array.from(cbComps).filter(cb => cb.checked).map(cb => parseInt(cb.value));
+            
+            checkboxes.forEach(cb => {
+                const userId = parseInt(cb.value);
+                const userCompId = usuariosCompanias[userId];
+                const wrapper = cb.closest('.form-check');
+                
+                if (selectedComps.includes(userCompId)) {
+                    wrapper.style.display = '';
+                } else {
+                    wrapper.style.display = 'none';
+                    cb.checked = false; // Desmarcar si la compañía ya no está invitada
+                }
+            });
+        }
+
+        cbAll.addEventListener('change', function() {
+            const isChecked = this.checked;
+            cbComps.forEach(cb => cb.checked = isChecked);
+            updateFilters();
+        });
+
+        cbComps.forEach(cb => {
+            cb.addEventListener('change', function() {
+                if (Array.from(cbComps).every(c => c.checked)) { cbAll.checked = true; } 
+                else { cbAll.checked = false; }
+                updateFilters();
+            });
+        });
+
+        // Inicializar compañías marcadas si "Todas" está checked por defecto
+        if (cbAll.checked) {
+            cbComps.forEach(cb => cb.checked = true);
+        }
+        updateFilters();
+
+        // Botones de selección masiva
+        document.getElementById(btnSelectAllId).addEventListener('click', function() {
+            checkboxes.forEach(cb => {
+                const wrapper = cb.closest('.form-check');
+                if (wrapper.style.display !== 'none') {
+                    cb.checked = true;
+                }
+            });
+        });
+        document.getElementById(btnDeselectAllId).addEventListener('click', function() {
+            checkboxes.forEach(cb => {
+                const wrapper = cb.closest('.form-check');
+                if (wrapper.style.display !== 'none') {
+                    cb.checked = false;
+                }
+            });
+        });
+    }
+
+    setupCompanyFilters('company-filters-create', 'asistentes-list-create', 'selectAllCreate', 'deselectAllCreate');
+    setupCompanyFilters('company-filters-edit', 'asistentes-list-edit', 'selectAllEdit', 'deselectAllEdit');
+
+    // --- Lógica de Filtrado en Tiempo Real para Cursos ---
+    const cursoSearchInput = document.getElementById('cursoSearchInput');
+    const mallaFilter = document.getElementById('mallaFilter');
+    const capacitacionesList = document.getElementById('capacitaciones-list');
+    const noCursosRow = document.getElementById('no-cursos-found');
+
+    function filterCursos() {
+        if (!capacitacionesList) return;
+        const searchText = cursoSearchInput.value.toLowerCase();
+        const selectedMalla = mallaFilter.value.toLowerCase();
+        const cards = capacitacionesList.getElementsByClassName('capacitacion-card');
+        let visibleCards = 0;
+
+        for (let i = 0; i < cards.length; i++) {
+            const card = cards[i];
+            const textContent = card.textContent.toLowerCase();
+            
+            let malla = "";
+            const badge = card.querySelector('.badge');
+            if (badge) {
+                malla = badge.textContent.trim().toLowerCase();
+            }
+
+            const matchesSearch = searchText === "" || textContent.includes(searchText);
+            const matchesMalla = selectedMalla === "" || malla === selectedMalla;
+
+            if (matchesSearch && matchesMalla) {
+                card.style.display = "";
+                visibleCards++;
+            } else {
+                card.style.display = "none";
+            }
+        }
+
+        if (noCursosRow) {
+            noCursosRow.style.display = visibleCards === 0 ? "block" : "none";
+        }
+    }
+
+    if (cursoSearchInput) cursoSearchInput.addEventListener('keyup', filterCursos);
+    if (mallaFilter) mallaFilter.addEventListener('change', filterCursos);
+});
+</script>
+{% endblock %}

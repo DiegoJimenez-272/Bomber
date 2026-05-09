@@ -1,0 +1,415 @@
+{% extends 'base_con_condicion.html' %}
+{% load humanize %}
+
+{% block title %}Mi Perfil - {{ block.super }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Estilos personalizados para el perfil */
+    .profile-avatar-container {
+        position: relative;
+        display: inline-block;
+        margin-bottom: 1.5rem;
+    }
+    .profile-avatar-img {
+        width: 160px;
+        height: 160px;
+        object-fit: cover;
+        box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.15);
+    }
+    .profile-avatar-initials {
+        width: 160px;
+        height: 160px;
+        font-size: 4rem;
+        background-color: #dc3545;
+        color: #fff;
+        box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.15);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* =========================================
+       MODO OSCURO - UX/UI REDISEÑO
+       ========================================= */
+    
+    /* 1. Fondo de la Tarjeta (Gris Carbón Profundo) */
+    body.dark-mode .card {
+        background-color: #2c3034 !important;
+        border-color: transparent !important;
+    }
+
+    /* 2. Legibilidad: Jerarquía sin deslumbramiento */
+    body.dark-mode h1, body.dark-mode h2, body.dark-mode h3, body.dark-mode h5, body.dark-mode h6,
+    body.dark-mode .fw-bold, body.dark-mode .fw-medium, body.dark-mode .text-dark {
+        color: #f8f9fa !important; /* Blanco Humo / Gris Perla */
+    }
+    body.dark-mode .text-muted, body.dark-mode small, body.dark-mode .small {
+        color: #868e96 !important; /* Gris Cemento Medio */
+    }
+
+    /* 3. Separadores Visuales Sutiles */
+    body.dark-mode .border-bottom, body.dark-mode .border-top {
+        border-color: rgba(255, 255, 255, 0.05) !important;
+    }
+
+    /* Tarjetas de estadísticas en Modo Oscuro */
+    body.dark-mode .stat-card {
+        background-color: #f8f9fa !important; /* Mantener fondo blanco/claro */
+        border: 1px solid #dee2e6 !important;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1) !important;
+    }
+
+    .stat-card {
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .stat-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 .5rem 1rem rgba(0,0,0,.08) !important;
+    }
+    /* Pestañas de Navegación (Modo Claro) */
+    .custom-nav-pills .nav-link {
+        color: #495057 !important; /* Gris Grafito para pestañas inactivas */
+        font-weight: 600;
+        border-radius: 0.5rem;
+        padding: 0.6rem 1.2rem;
+        transition: all 0.3s ease;
+        border: none !important;
+    }
+    .custom-nav-pills .nav-link:hover:not(.active) {
+        background-color: rgba(220, 53, 69, 0.1) !important; /* Fondo rojo translúcido */
+        color: #dc3545 !important; /* Rojo carmesí al pasar el cursor */
+    }
+    .custom-nav-pills .nav-link.active {
+        background-color: #dc3545 !important; /* Rojo carmesí sólido */
+        color: #ffffff !important; /* Texto blanco puro */
+        box-shadow: 0 4px 10px rgba(220, 53, 69, 0.3);
+    }
+    /* Pestañas de Navegación (Modo Oscuro) */
+    body.dark-mode .custom-nav-pills .nav-link {
+        color: #ced4da !important; /* Gris Plata para pestañas inactivas */
+        background-color: transparent !important;
+    }
+    body.dark-mode .custom-nav-pills .nav-link:hover:not(.active) {
+        background-color: rgba(220, 53, 69, 0.15) !important; /* Granate translúcido profundo */
+        color: #ff9aa2 !important; /* Rojo coral brillante al pasar el cursor */
+    }
+    /* 4. Botón Activo: Contraste y Vibración */
+    body.dark-mode .custom-nav-pills .nav-link.active {
+        background-color: #b0303e !important; /* Rojo Carmesí Mate / Desaturado */
+        color: #f8f9fa !important; /* Blanco Humo suave */
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Contenido de Perfil -->
+<main>
+    <!-- Header -->
+    <header class="d-flex align-items-center justify-content-between pb-3 mb-4 border-bottom">
+        <h1 class="h2 mb-0">Mi Perfil</h1>
+    </header>
+
+    {% if messages %}
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {% endfor %}
+    {% endif %}
+
+    <!-- Tarjeta de cabecera del perfil (Diseño Minimalista) -->
+    <div class="card shadow-sm border-0 mb-4 rounded-4">
+        <div class="card-body text-center pt-5 pb-5 position-relative">
+            <div class="profile-avatar-container">
+                {% if user.foto_perfil %}
+                    <img src="{{ user.foto_perfil.url }}" alt="Foto de perfil de {{ user.get_full_name }}" class="rounded-circle profile-avatar-img">
+                {% else %}
+                    <div class="rounded-circle profile-avatar-initials text-uppercase">
+                        <strong>{{ user.nombre.0 }}{{ user.apellido.0 }}</strong>
+                    </div>
+                {% endif %}
+            </div>
+            <h1 class="card-title mb-2" style="font-weight: 900; letter-spacing: -0.5px; font-size: 2.5rem;">{{ user.get_full_name }}</h1>
+            <div class="mb-5">
+                <span class="badge bg-danger-subtle text-danger-emphasis fs-6 rounded-pill px-4 py-2 fw-medium" style="background-color: #f8d7da !important; color: #58151c !important;">
+                    {{ user.rol.nombre|default:"Miembro" }}
+                </span>
+            </div>
+
+            <!-- Estadísticas estilo tarjetas individuales -->
+            <div class="row justify-content-center g-3 px-2 px-md-4 mt-2">
+                <div class="col-12 col-sm-6 col-md-3">
+                    <div class="p-4 bg-light rounded-4 stat-card h-100 border text-center">
+                        <div class="text-danger mb-2"><i class="bi bi-mortarboard fs-2"></i></div>
+                        <h3 class="mb-0 fw-bold" style="color: #212529 !important;">{{ capacitaciones_asistidas.count }}</h3>
+                        <span class="text-uppercase small fw-bold" style="color: #6c757d !important; letter-spacing: 1px;">Cursos Aprobados</span>
+                    </div>
+                </div>
+                <div class="col-12 col-sm-6 col-md-3">
+                    <div class="p-4 bg-light rounded-4 stat-card h-100 border text-center">
+                        <div class="text-danger mb-2"><i class="bi bi-box-seam fs-2"></i></div>
+                        <h3 class="mb-0 fw-bold" style="color: #212529 !important;">{{ equipos_asignados.count }}</h3>
+                        <span class="text-uppercase small fw-bold" style="color: #6c757d !important; letter-spacing: 1px;">Equipos Asignados</span>
+                    </div>
+                </div>
+                <div class="col-12 col-sm-6 col-md-3">
+                    <div class="p-4 bg-light rounded-4 stat-card h-100 border text-center">
+                        <div class="text-danger mb-2"><i class="bi bi-calendar-check fs-2"></i></div>
+                        <h3 class="mb-0 fw-bold" style="color: #212529 !important;">{{ user.date_joined|date:"d M, Y" }}</h3>
+                        <span class="text-uppercase small fw-bold" style="color: #6c757d !important; letter-spacing: 1px;">Fecha de Ingreso</span>
+                    </div>
+                </div>
+                <div class="col-12 col-sm-6 col-md-3">
+                    <div class="p-4 bg-light rounded-4 stat-card h-100 border text-center">
+                        <div class="text-danger mb-2">
+                            {% if user.compania %}
+                                {% if user.compania.logo %}
+                                    <img src="{{ user.compania.logo.url }}" alt="Logo {{ user.compania.nombre }}" style="height: 40px; width: 40px; object-fit: contain; border-radius: 4px;">
+                                {% else %}
+                                    <i class="bi bi-building fs-2"></i>
+                                {% endif %}
+                            {% endif %}
+                        </div>
+                        <h3 class="mb-0 fw-bold text-truncate px-2" title="{{ user.compania.nombre|default:'N/A' }}" style="color: #212529 !important;">{{ user.compania.nombre|default:"N/A" }}</h3>
+                        <span class="text-uppercase small fw-bold" style="color: #6c757d !important; letter-spacing: 1px;">Compañía Actual</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-5">
+        <!-- Columna Izquierda: Información Adicional -->
+        <div class="col-lg-4">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-header bg-transparent border-bottom-0 pt-4 pb-0 px-4">
+                    <h5 class="card-title fw-bold mb-0"><i class="bi bi-person-vcard text-danger me-2"></i>Detalles</h5>
+                </div>
+                <div class="card-body px-4">
+                    <div class="mb-4">
+                        <small class="text-muted text-uppercase fw-semibold d-block mb-1" style="font-size: 0.75rem; letter-spacing: 0.5px;">Correo Electrónico</small>
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-envelope-fill text-secondary opacity-50 me-2 fs-5"></i>
+                            <span class="fs-6 fw-medium">{{ user.email }}</span>
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        <small class="text-muted text-uppercase fw-semibold d-block mb-1" style="font-size: 0.75rem; letter-spacing: 0.5px;">RUT</small>
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-person-badge-fill text-secondary opacity-50 me-2 fs-5"></i>
+                            <span class="fs-6 fw-medium">{{ user.rut|default:"No especificado" }}</span>
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        <small class="text-muted text-uppercase fw-semibold d-block mb-1" style="font-size: 0.75rem; letter-spacing: 0.5px;">Clave Radial</small>
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-broadcast text-secondary opacity-50 me-2 fs-5"></i>
+                            <span class="fs-6 fw-medium">{{ user.clave_radial|default:"No especificada" }}</span>
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        <small class="text-muted text-uppercase fw-semibold d-block mb-1" style="font-size: 0.75rem; letter-spacing: 0.5px;">Compañía Asignada</small>
+                        <div class="d-flex align-items-center">
+                            {% if user.compania %}<i class="bi bi-building-fill text-secondary opacity-50 me-2 fs-5"></i>{% endif %}
+                            <span class="fs-6 fw-medium">{{ user.compania.nombre|default:"No asignada" }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Columna Derecha: Pestañas de Acciones -->
+        <div class="col-lg-8">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-header bg-transparent pt-4 pb-3 px-4 border-bottom">
+                    <ul class="nav custom-nav-pills nav-pills flex-column flex-sm-row gap-2" id="profileTab" role="tablist">
+                        <li class="nav-item" role="presentation"><button class="btn btn-outline-danger active" id="edit-profile-tab" data-bs-toggle="tab" data-bs-target="#edit-profile" type="button" role="tab" aria-controls="edit-profile" aria-selected="true"><i class="bi bi-pencil-square me-1"></i>Editar Perfil</button></li>
+                        <li class="nav-item" role="presentation"><button class="btn btn-outline-danger" id="change-password-tab" data-bs-toggle="tab" data-bs-target="#change-password" type="button" role="tab" aria-controls="change-password" aria-selected="false"><i class="bi bi-shield-lock-fill me-1"></i>Seguridad</button></li>
+                        <li class="nav-item" role="presentation"><button class="btn btn-outline-danger" id="capacitaciones-tab" data-bs-toggle="tab" data-bs-target="#capacitaciones" type="button" role="tab" aria-controls="capacitaciones" aria-selected="false"><i class="bi bi-mortarboard-fill me-1"></i>Capacitaciones</button></li>
+                        <li class="nav-item" role="presentation"><button class="btn btn-outline-danger" id="equipamiento-tab" data-bs-toggle="tab" data-bs-target="#equipamiento" type="button" role="tab" aria-controls="equipamiento" aria-selected="false"><i class="bi bi-box-seam-fill me-1"></i>Mi Equipamiento</button></li>
+                    </ul>
+                </div>
+                <div class="card-body tab-content p-4">
+                    <!-- Pestaña Editar Perfil -->
+                    <div class="tab-pane fade show active" id="edit-profile" role="tabpanel">
+                        <div class="d-flex align-items-center mb-4">
+                            <h5 class="mb-0 fw-bold">Actualizar Información Personal</h5>
+                        </div>
+                        <form method="post" enctype="multipart/form-data">
+                            {% csrf_token %}
+                            <input type="hidden" name="update_profile" value="1">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label for="{{ perfil_form.nombre.id_for_label }}" class="form-label">Nombres</label>
+                                    {{ perfil_form.nombre }}
+                                    {% for error in perfil_form.nombre.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="{{ perfil_form.apellido.id_for_label }}" class="form-label">Apellidos</label>
+                                    {{ perfil_form.apellido }}
+                                    {% for error in perfil_form.apellido.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                                </div>
+                                <div class="col-12">
+                                    <label for="{{ perfil_form.email.id_for_label }}" class="form-label">Email</label>
+                                    {{ perfil_form.email }}
+                                    {% for error in perfil_form.email.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                                </div>
+                                <div class="col-12">
+                                    <label for="{{ perfil_form.clave_radial.id_for_label }}" class="form-label">Clave Radial</label>
+                                    {{ perfil_form.clave_radial }}
+                                    {% for error in perfil_form.clave_radial.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                                </div>
+                                <div class="col-12">
+                                    <label for="{{ perfil_form.compania.id_for_label }}" class="form-label">Mi Compañía</label>
+                                    {{ perfil_form.compania }}
+                                    {% for error in perfil_form.compania.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                                </div>
+                                <div class="col-12">
+                                    <label for="{{ perfil_form.foto_perfil.id_for_label }}" class="form-label">Actualizar Foto de Perfil</label>
+                                    {{ perfil_form.foto_perfil }}
+                                    <div class="form-text">Formatos recomendados: JPG, PNG. Tamaño cuadrado ideal.</div>
+                                    {% for error in perfil_form.foto_perfil.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                                </div>
+                            </div>
+                            <hr class="my-4">
+                            <button type="submit" class="btn btn-danger"><i class="bi bi-check-circle-fill me-2"></i>Guardar Cambios</button>
+                        </form>
+                    </div>
+
+                    <!-- Pestaña Cambiar Contraseña -->
+                    <div class="tab-pane fade" id="change-password" role="tabpanel">
+                        <div class="d-flex align-items-center mb-4">
+                            <h5 class="mb-0 fw-bold">Cambiar Contraseña</h5>
+                        </div>
+                        <form method="post">
+                            {% csrf_token %}
+                            <input type="hidden" name="change_password" value="1">
+                            <div class="mb-3">
+                                <label for="{{ password_form.old_password.id_for_label }}" class="form-label">{{ password_form.old_password.label }}</label>
+                                {{ password_form.old_password }}
+                                {% for error in password_form.old_password.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                            </div>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label for="{{ password_form.new_password1.id_for_label }}" class="form-label">{{ password_form.new_password1.label }}</label>
+                                    {{ password_form.new_password1 }}
+                                    {% for error in password_form.new_password1.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="{{ password_form.new_password2.id_for_label }}" class="form-label">{{ password_form.new_password2.label }}</label>
+                                    {{ password_form.new_password2 }}
+                                    {% for error in password_form.new_password2.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                                </div>
+                            </div>
+                            <hr class="my-4">
+                            <button type="submit" class="btn btn-danger"><i class="bi bi-key-fill me-2"></i>Actualizar Contraseña</button>
+                        </form>
+                    </div>
+
+                    <!-- Pestaña Mis Capacitaciones -->
+                    <div class="tab-pane fade" id="capacitaciones" role="tabpanel">
+                        <div class="d-flex align-items-center mb-4">
+                            <h5 class="mb-0 fw-bold">Historial de Cursos Realizados</h5>
+                        </div>
+                        <div class="list-group">
+                            {% for cap in capacitaciones_asistidas %}
+                            <div class="list-group-item list-group-item-action border-0 shadow-sm mb-3 rounded">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1 fw-bold text-danger">{{ cap.nombre }}</h6>
+                                    <small class="text-muted badge bg-light text-dark align-self-start">{{ cap.fecha_inicio|date:"d M, Y" }}</small>
+                                </div>
+                                <p class="mb-1 small">{{ cap.descripcion|truncatewords:20 }}</p>
+                                <small class="text-muted">
+                                    <i class="bi bi-person-video3 me-1"></i> Instructor: {{ cap.instructor }}
+                                </small>
+                            </div>
+                            {% empty %}
+                                <div class="text-center p-4 text-muted">
+                                    <i class="bi bi-journal-x fs-1"></i>
+                                    <p class="mt-2">No has asistido a ninguna capacitación registrada.</p>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <!-- Pestaña Mi Equipamiento -->
+                    <div class="tab-pane fade" id="equipamiento" role="tabpanel">
+                        <div class="d-flex align-items-center mb-4">
+                            <h5 class="mb-0 fw-bold">Equipamiento Asignado</h5>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Ítem</th>
+                                        <th>Ubicación</th>
+                                        <th>Estado</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for equipo in equipos_asignados %}
+                                    <tr class="align-middle">
+                                        <td><strong>{{ equipo.get_nombre_display }}</strong></td>
+                                        <td>{{ equipo.ubicacion }}</td>
+                                        <td>
+                                            {% if equipo.estado == 'Bueno' %}<span class="badge bg-success">{{ equipo.estado }}</span>
+                                            {% elif equipo.estado == 'Regular' %}<span class="badge bg-info text-dark">{{ equipo.estado }}</span>
+                                            {% elif equipo.estado == 'En Reparación' %}<span class="badge bg-warning text-dark">{{ equipo.estado }}</span>
+                                            {% else %}<span class="badge bg-danger">{{ equipo.estado }}</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="3" class="text-center p-4 text-muted">
+                                            <i class="bi bi-box-seam fs-1 d-block mb-2"></i>
+                                            No tienes equipamiento asignado actualmente.
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+{% endblock %}
+
+{% block scripts %}
+{{ block.super }}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    // Lógica para recordar la pestaña activa
+    const triggerTabList = document.querySelectorAll('#profileTab button');
+    triggerTabList.forEach(triggerEl => {
+        triggerEl.addEventListener('click', event => {
+            // Previene salto o scroll brusco al hacer clic
+            event.preventDefault();
+            localStorage.setItem('activeProfileTab', triggerEl.getAttribute('data-bs-target'));
+        });
+    });
+
+    const activeTab = localStorage.getItem('activeProfileTab');
+    if (activeTab) {
+        const activeTabEl = document.querySelector(`button[data-bs-target="${activeTab}"]`);
+        if (activeTabEl) {
+            new bootstrap.Tab(activeTabEl).show();
+        }
+    }
+
+    // Si hay errores en algún formulario, activa su pestaña correspondiente
+    {% if perfil_form.errors %}
+        new bootstrap.Tab(document.getElementById('edit-profile-tab')).show();
+        localStorage.setItem('activeProfileTab', '#edit-profile');
+    {% elif password_form.errors %}
+        new bootstrap.Tab(document.getElementById('change-password-tab')).show();
+        localStorage.setItem('activeProfileTab', '#change-password');
+    {% endif %}
+});
+</script>
+{% endblock %}

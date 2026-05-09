@@ -1,0 +1,37 @@
+{% extends 'base_con_condicion.html' %}
+
+{% block title %}Inicio - {{ block.super }}{% endblock %}
+
+{% block content %}
+<!-- Contenido de Inicio -->
+<main>
+    <div class="d-flex flex-column flex-md-row align-items-start justify-content-between mb-4">
+        <div>
+            <h1 class="h3 mb-2 text-dark">Bienvenido, {{ user.get_full_name }}</h1>
+            <p class="text-muted">Accede rápidamente a las funciones principales del sistema.</p>
+        </div>
+        
+    </div>
+
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+        {% for module in modules %}
+            <div class="col">
+                <div class="card h-100 shadow-sm border-light-subtle">
+                    <div class="card-body text-center">
+                        <div class="d-inline-flex align-items-center justify-content-center bg-light rounded-circle mb-3" style="width: 64px; height: 64px;">
+                            <i class="{{ module.icon }} fs-2 text-danger"></i>
+                        </div>
+                        <h5 class="card-title">{{ module.title }}</h5>
+                        <p class="card-text text-muted small">{{ module.desc }}</p>
+                        <a href="{% if module.url_name != '#' %}{% url module.url_name %}{% else %}#{% endif %}" class="btn btn-outline-danger mt-auto{% if module.url_name == '#' %} disabled{% endif %}">
+                            Acceder
+                        </a>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+
+
+
+{% endblock %}

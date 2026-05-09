@@ -1,0 +1,434 @@
+/* Estilos para el modo oscuro */
+body.dark-mode {
+    /* Dark Mode Variables */
+    --bs-body-bg: #212529;
+    --sidebar-bg: #343a40;
+    --text-muted-light: #adb5bd;
+    --text-color: #e9ecef;
+    --card-bg: #343a40;
+    --card-border: #495057;
+    --card-header-bg: #3b4147;
+    --table-header-bg: #495057;
+    --table-row-bg: #343a40;
+    --form-control-bg: #495057;
+    --form-control-border: #6c757d;
+}
+
+/* Regla global para el color de texto en modo oscuro */
+body.dark-mode {
+    color: var(--text-color) !important;
+}
+/* Forzar el color en elementos de texto comunes y etiquetas de formulario */
+body.dark-mode h1:not(.text-danger):not(.text-success):not(.text-warning):not(.text-info):not(.text-primary):not(.force-black-text),
+body.dark-mode h2:not(.text-danger):not(.text-success):not(.text-warning):not(.text-info):not(.text-primary):not(.force-black-text),
+body.dark-mode h3:not(.text-danger):not(.text-success):not(.text-warning):not(.text-info):not(.text-primary):not(.force-black-text),
+body.dark-mode h4:not(.text-danger):not(.text-success):not(.text-warning):not(.text-info):not(.text-primary):not(.force-black-text),
+body.dark-mode h5:not(.text-danger):not(.text-success):not(.text-warning):not(.text-info):not(.text-primary):not(.force-black-text),
+body.dark-mode h6:not(.text-danger):not(.text-success):not(.text-warning):not(.text-info):not(.text-primary):not(.force-black-text),
+body.dark-mode p:not(.text-muted):not(.text-danger):not(.text-success):not(.text-warning):not(.text-info):not(.text-primary):not(.force-black-text),
+body.dark-mode span:not(.text-muted):not(.text-danger):not(.text-success):not(.text-warning):not(.text-info):not(.text-primary):not(.force-black-text):not(.text-success-emphasis):not(.text-primary-emphasis):not(.text-secondary-emphasis),
+body.dark-mode strong:not(.text-danger):not(.text-success):not(.text-warning):not(.text-info):not(.text-primary):not(.force-black-text),
+body.dark-mode label:not(.text-danger):not(.text-success):not(.text-warning):not(.text-info):not(.text-primary):not(.force-black-text),
+body.dark-mode li:not(.text-muted):not(.text-danger):not(.text-success):not(.text-warning):not(.text-info):not(.text-primary):not(.force-black-text) {
+    color: var(--text-color) !important;
+}
+
+/* Forzar texto negro en modo oscuro para elementos específicos */
+body.dark-mode .force-black-text,
+.force-black-text {
+    color: #212529 !important;
+}
+
+
+/* Sidebar specific styles */
+body.dark-mode .sidebar {
+    background-color: var(--sidebar-bg) !important;
+    border-right-color: var(--card-border) !important;
+}
+body.dark-mode .sidebar-header {
+    color: var(--text-color);
+}
+body.dark-mode .sidebar .nav-link {
+    color: var(--text-muted-light);
+}
+body.dark-mode .sidebar .nav-link:hover {
+    color: #ffffff;
+    background-color: rgba(var(--bs-primary-rgb), 0.15); /* Use primary color for hover */
+}
+body.dark-mode .sidebar .nav-link.active {
+    color: #ffffff;
+    border-left-color: var(--bs-danger); /* Mantener el color rojo para el indicador activo */
+    background-color: rgba(220, 53, 69, 0.2); /* Fondo rojizo sutil para el activo */
+}
+
+/* List group items */
+body.dark-mode .list-group-item {
+    background-color: var(--card-bg) !important;
+    color: var(--text-color) !important;
+    border-color: var(--card-border) !important;
+}
+body.dark-mode .list-group-item:hover {
+    background-color: var(--card-header-bg) !important;
+    color: #ffffff !important;
+}
+
+/* Sidebar footer (including theme toggle and logout) */
+body.dark-mode .sidebar-footer .nav-link {
+    color: var(--text-muted-light) !important;
+}
+body.dark-mode .sidebar-footer .nav-link:hover {
+    color: #ffffff !important;
+    background-color: rgba(var(--bs-primary-rgb), 0.15) !important;
+}
+
+/* Header/Navbar */
+body.dark-mode header.bg-white { /* Target the specific header in base.html */
+    background-color: var(--sidebar-bg) !important;
+    border-bottom-color: var(--card-border) !important;
+}
+body.dark-mode header.bg-white .text-dark {
+    color: var(--text-color) !important;
+}
+body.dark-mode header.bg-white .text-muted {
+    color: var(--text-muted-light) !important;
+}
+
+
+/* Cards */
+body.dark-mode .card {
+    background-color: var(--card-bg);
+    border-color: var(--card-border);
+    color: var(--text-color);
+}
+body.dark-mode .card-header {
+    background-color: var(--card-header-bg);
+    border-bottom-color: var(--card-border);
+}
+body.dark-mode .card-footer {
+    background-color: var(--card-header-bg);
+    border-top-color: var(--card-border);
+}
+body.dark-mode .card-header .text-dark {
+    /* Asegura que los títulos de las tarjetas (filtros) sean blancos */
+    color: var(--text-color) !important;
+}
+body.dark-mode .card-header.bg-light {
+    /* Corrige el texto en cabeceras de tarjeta que usan .bg-light (ej: Asignación de Equipos) */
+    color: var(--text-color) !important;
+    background-color: var(--card-header-bg) !important;
+}
+body.dark-mode .text-muted {
+    color: var(--text-muted-light) !important; /* Un gris más claro para texto secundario */
+}
+
+/* Tablas */
+body.dark-mode .table {
+    color: var(--text-color);
+}
+
+body.dark-mode .table thead th {
+    background-color: var(--table-header-bg);
+    color: var(--text-color);
+    border-color: var(--form-control-border);
+}
+/* Estilo para las filas de la tabla en modo oscuro */
+body.dark-mode .table tbody tr {
+    background-color: var(--table-row-bg);
+    color: var(--text-color); /* Hereda el color a los hijos */
+}
+/* ==========================================================================
+   JERARQUÍA TIPOGRÁFICA PARA TABLAS EN MODO OSCURO (Accesibilidad)
+   ========================================================================== */
+body.dark-mode .table tbody td {
+    /* 1. Texto Principal (Datos de columnas regulares) */
+    color: #E9ECEF !important; /* Gris Nube / Blanco Roto */
+}
+body.dark-mode .table tbody td strong,
+body.dark-mode .table tbody td b {
+    /* Títulos Clave (Ej. Primera columna) */
+    color: #FFFFFF !important; /* Blanco puro para anclar la mirada */
+}
+body.dark-mode .table tbody td .text-muted,
+body.dark-mode .table tbody td p.text-muted,
+body.dark-mode .table tbody td small {
+    /* 2. Texto Secundario (Textos de apoyo, direcciones) */
+    color: #ADB5BD !important; /* Gris Platinado / Ceniza */
+}
+body.dark-mode .table-hover tbody tr:hover {
+    background-color: var(--card-header-bg);
+}
+
+/* Formularios */
+body.dark-mode .form-control,
+body.dark-mode .form-select,
+body.dark-mode .input-group-text {
+    background-color: var(--form-control-bg);
+    color: var(--text-color);
+    border-color: var(--form-control-border);
+}
+body.dark-mode .form-control::placeholder {
+    color: #adb5bd;
+}
+body.dark-mode .form-label {
+    /* 
+     * Solución definitiva para el color de las etiquetas en formularios.
+     * Esta regla anula los estilos por defecto de Bootstrap en modo oscuro.
+    */
+    color: var(--text-color) !important;
+}
+
+/* Modals */
+body.dark-mode .modal-content {
+    background-color: var(--card-bg);
+    color: var(--text-color);
+}
+body.dark-mode .modal-header, body.dark-mode .modal-footer {
+    border-color: var(--card-border);
+}
+body.dark-mode .btn-close {
+    filter: invert(1); /* Para que el icono de cerrar sea visible en fondo oscuro */
+}
+
+/* Dropdown Menus (Menú de Perfil y Notificaciones) en Modo Oscuro */
+body.dark-mode .dropdown-menu {
+    background-color: var(--card-bg);
+    border-color: var(--card-border);
+    box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.4);
+}
+body.dark-mode .dropdown-header {
+    color: var(--text-muted-light);
+}
+body.dark-mode .dropdown-item {
+    color: var(--text-color) !important; /* Blanco humo/Gris plata para legibilidad */
+}
+body.dark-mode .dropdown-item:hover,
+body.dark-mode .dropdown-item:focus {
+    background-color: var(--card-header-bg) !important; /* Gris plomo sutil para hover */
+    color: #ffffff !important;
+}
+body.dark-mode .dropdown-item.text-danger:hover,
+body.dark-mode .dropdown-item.text-danger:focus {
+    background-color: rgba(220, 53, 69, 0.15) !important; /* Fondo rojo translúcido */
+    color: #ffc1c6 !important; /* Rojo coral brillante */
+}
+body.dark-mode .dropdown-divider {
+    border-top-color: var(--card-border);
+}
+
+/* Pestañas de Compañía en Inventario */
+body.dark-mode .nav-pills-custom .nav-link {
+    /* Usamos un rojo oscuro como fondo y texto claro */
+    background-color: #4a1a1f; /* Un rojo muy oscuro */
+    color: #ffc1c6; /* Un rojo pálido para el texto */
+    border-color: #8c2a32; /* Borde rojo oscuro */
+}
+
+body.dark-mode .nav-pills-custom .nav-link.active,
+body.dark-mode .nav-pills-custom .show > .nav-link {
+    background-color: var(--bs-danger); /* Mantener el color rojo para activo */
+    border-color: var(--bs-danger);
+    color: #fff;
+}
+
+body.dark-mode .nav-pills-custom .nav-link:not(.active):hover {
+    background-color: var(--bs-danger);
+    color: #fff;
+}
+
+/* Pestañas generales y sub-pestañas en modo oscuro (Inventario, Admin, etc.) */
+body.dark-mode .nav-tabs .nav-link,
+body.dark-mode .nav-pills .nav-link {
+    color: #ffc1c6; /* Rojo pálido para texto inactivo */
+    background-color: transparent;
+    border-color: #8c2a32; /* Borde rojo oscuro */
+}
+
+body.dark-mode .nav-tabs .nav-link.active,
+body.dark-mode .nav-pills .nav-link.active {
+    color: #fff;
+    background-color: var(--bs-danger);
+    border-color: var(--bs-danger);
+}
+body.dark-mode .nav-tabs .nav-link:hover:not(.active),
+body.dark-mode .nav-pills .nav-link:hover:not(.active) {
+    background-color: #4a1a1f; /* Fondo rojo oscuro al pasar el cursor */
+    border-color: #8c2a32;
+}
+
+/* Badges: Forzar texto claro en badges específicos para modo oscuro */
+body.dark-mode .badge.text-dark {
+    color: #fff !important;
+}
+
+/* Mantener los colores originales en las etiquetas de estado de proyectos en modo oscuro */
+body.dark-mode .text-success-emphasis { color: #0a3622 !important; background-color: #d1e7dd !important; }
+body.dark-mode .text-primary-emphasis { color: #052c65 !important; background-color: #cfe2ff !important; }
+body.dark-mode .text-secondary-emphasis { color: #2b2f32 !important; background-color: #e2e3e5 !important; }
+
+/* Iconos de colores en modo oscuro (listas, tablas, etc.) */
+/* Estas reglas deben ir DESPUÉS de la regla global de color de texto */
+body.dark-mode .text-danger { color: #dc3545 !important; }
+body.dark-mode .text-warning { color: #ffc107 !important; }
+body.dark-mode .text-info { color: #0dcaf0 !important; }
+body.dark-mode .text-primary { color: #0d6efd !important; }
+body.dark-mode .text-success { color: #198754 !important; }
+
+/* Botones Outline Primary -> Rojo */
+body.dark-mode .btn-outline-primary {
+    color: var(--bs-danger);
+    border-color: var(--bs-danger);
+}
+
+/* --- Sobrescritura Global de Colores Azules a Rojos --- */
+
+/* 
+ * Textos: Se mueven las reglas de color de texto dentro del modo oscuro 
+ * para evitar conflictos y asegurar el contraste correcto.
+*/
+body.dark-mode .text-primary,
+body.dark-mode .text-info {
+    color: #ff9aa2 !important; /* Tono rojo claro para legibilidad en modo oscuro */
+} 
+
+/* Fondos */
+.bg-primary {
+    background-color: var(--bs-danger) !important;
+}
+.bg-info {
+    background-color: #dc3545cc !important; /* Un rojo con algo de transparencia */
+}
+
+/* Badges */
+.badge.bg-info {
+    background-color: #c82333 !important;
+    color: #fff !important;
+}
+
+/* Botones */
+.btn-primary {
+    background-color: var(--bs-danger);
+    border-color: var(--bs-danger);
+}
+.btn-primary:hover {
+    background-color: #c82333;
+    border-color: #c82333;
+}
+.btn-outline-primary {
+    color: var(--bs-danger);
+    border-color: var(--bs-danger);
+}
+.btn-outline-primary:hover {
+    background-color: var(--bs-danger);
+    color: #fff;
+}
+
+/* Switches apagados en modo oscuro para que no deslumbren en blanco */
+body.dark-mode .form-check-input:not(:checked) {
+    background-color: var(--form-control-bg);
+    border-color: var(--form-control-border);
+}
+
+/* Color rojo principal para los interruptores activos */
+.form-check-input:checked {
+    background-color: var(--bs-danger);
+    border-color: var(--bs-danger);
+}
+
+/* Contenedor de permisos (bg-body-tertiary) y bordes separadores en modo oscuro */
+body.dark-mode .bg-body-tertiary {
+    background-color: rgba(0, 0, 0, 0.25) !important; /* Efecto visual de incrustación / inset */
+}
+body.dark-mode .border, 
+body.dark-mode .border-bottom {
+    border-color: var(--card-border) !important;
+}
+
+/* --- Estilos para Acordeón Rojo (Inventario) --- */
+
+/* Modo Claro */
+.accordion-button {
+    background-color: var(--bs-danger-bg-subtle);
+    color: var(--bs-danger-text-emphasis);
+    font-weight: 600;
+}
+.accordion-button:not(.collapsed) {
+    color: #fff;
+    background-color: var(--bs-danger);
+}
+.accordion-button:focus {
+    box-shadow: 0 0 0 0.25rem rgba(var(--bs-danger-rgb), 0.25);
+}
+.accordion-button:not(.collapsed)::after {
+    filter: brightness(0) invert(1);
+}
+
+/* Modo Oscuro */
+body.dark-mode .accordion-button {
+    background-color: rgba(220, 53, 69, 0.15); /* Fondo rojo sutil y transparente */
+    color: #ff9aa2; /* Tono de texto rojo más brillante para mejor contraste */
+}
+body.dark-mode .accordion-button:not(.collapsed) {
+    background-color: var(--bs-danger);
+}
+
+/* --- Notificaciones y Alertas en Modo Oscuro (Diseño de Elevación y Acento) --- */
+
+body.dark-mode .alert {
+    background-color: #2c3034 !important; /* Gris carbón oscuro para elevar sobre el fondo */
+    border: none !important;
+    border-left: 4px solid transparent !important; /* Espacio para la línea de acento */
+    color: #f8f9fa !important; /* Texto blanco suave */
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3) !important; /* Efecto flotante */
+    border-radius: 6px !important;
+}
+
+/* Botón de cerrar de la alerta */
+body.dark-mode .alert .btn-close {
+    filter: invert(1) opacity(0.6);
+}
+body.dark-mode .alert .btn-close:hover {
+    filter: invert(1) opacity(1);
+}
+
+/* Colores de Acento Semánticos (Desaturados para confort visual) */
+body.dark-mode .alert-success {
+    border-left-color: #20c997 !important; /* Verde esmeralda suave */
+}
+body.dark-mode .alert-danger, body.dark-mode .alert-error {
+    border-left-color: #ff6b6b !important; /* Rojo coral */
+}
+body.dark-mode .alert-warning {
+    border-left-color: #ffc107 !important; /* Ámbar suave */
+}
+body.dark-mode .alert-info {
+    border-left-color: #6ea8fe !important; /* Azul pastel */
+}
+
+/* --- Lista de Checkboxes con Scroll (Asistentes) --- */
+.custom-scroll-list {
+    background-color: #ffffff;
+    border-color: var(--bs-border-color);
+}
+.custom-scroll-list .form-check {
+    padding: 0.5rem 1rem 0.5rem 2.5rem; /* Mantiene el checkbox alineado */
+    margin: 0;
+    border-bottom: 1px solid var(--bs-border-color);
+    transition: background-color 0.2s ease;
+}
+.custom-scroll-list .form-check:last-child {
+    border-bottom: none;
+}
+.custom-scroll-list .form-check:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+/* Modo Oscuro para la lista */
+body.dark-mode .custom-scroll-list {
+    background-color: var(--form-control-bg) !important;
+    border-color: var(--form-control-border) !important;
+}
+body.dark-mode .custom-scroll-list .form-check {
+    border-bottom-color: var(--card-border);
+}
+body.dark-mode .custom-scroll-list .form-check:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}

@@ -1,0 +1,372 @@
+{% extends 'base_con_condicion.html' %}
+
+{% block title %}Salidas a Terreno - {{ block.super }}{% endblock %}
+
+{% block content %}
+<!-- Header del contenido principal -->
+<header class="d-flex align-items-center justify-content-between pb-3 mb-4 border-bottom">
+    <h1 class="h2 mb-0">Gestión de Salidas a Terreno</h1>
+    {% if request.user.is_superuser or request.user.rol.editar_salidas_terreno %}
+    <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#createSalidaModal">
+        <i class="bi bi-plus-lg me-1"></i> Registrar Salida
+    </button>
+    {% endif %}
+</header>
+
+<!-- Contenido de Salidas -->
+<main>
+    {% if messages %}
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {% endfor %}
+    {% endif %}
+
+    <!-- Formulario de Búsqueda y Filtros -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3 align-items-end">
+                <div class="col-lg-7">
+                    <label for="q" class="form-label">Buscar por motivo, dirección, unidades...</label>
+                    <input type="text" name="q" id="salidaSearchInput" class="form-control" value="{{ request.GET.q|default:'' }}">
+                </div>
+                <div class="col-lg-3">
+                    <label for="usuario" class="form-label">Personal a Cargo</label>
+                    <select name="usuario" id="salidaUserFilter" class="form-select">
+                        <option value="">Todos</option>
+                        {% for user in usuarios_con_salidas %}<option value="{{ user.id }}" {% if request.GET.usuario == user.id|stringformat:"s" %}selected{% endif %}>{{ user.get_full_name }}</option>{% endfor %}
+                    </select>
+                </div>
+                <div class="col-lg-2">
+                    <label for="ordenar_por" class="form-label">Ordenar por</label>
+                    <select name="ordenar_por" id="ordenar_por" class="form-select" onchange="this.form.submit()">
+                        <option value="-fecha_hora_salida" {% if request.GET.ordenar_por == '-fecha_hora_salida' %}selected{% endif %}>Más nuevas</option>
+                        <option value="fecha_hora_salida" {% if request.GET.ordenar_por == 'fecha_hora_salida' %}selected{% endif %}>Más antiguas</option>
+                        <option value="motivo" {% if request.GET.ordenar_por == 'motivo' %}selected{% endif %}>Motivo (A-Z)</option>
+                        <option value="-motivo" {% if request.GET.ordenar_por == '-motivo' %}selected{% endif %}>Motivo (Z-A)</option>
+                    </select>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <h5 class="card-title">Historial de Salidas</h5>
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th scope="col">Motivo / Dirección</th>
+                            <th scope="col">Fecha y Hora Salida</th>
+                            <th scope="col">Fecha y Hora Regreso</th>
+                            <th scope="col">Unidades</th>
+                            <th scope="col">Km Recorridos</th>
+                            <th scope="col">A Cargo</th>
+                            <th scope="col">Acciones</th>
+                        </tr>
+                    </thead>
+                <tbody id="salidasTableBody">
+                    <tr id="no-salidas-found" style="display: none;"><td colspan="7" class="text-center text-muted py-4">No se encontraron salidas con los filtros aplicados.</td></tr>
+                        {% for salida in salidas %}
+                        <tr>
+                            <td>
+                                <strong>{{ salida.motivo }}</strong>
+                                <p class="text-muted small mb-0">{{ salida.direccion }}</p>
+                            </td>
+                            <td>{{ salida.fecha_hora_salida|date:"d/m/Y H:i" }}</td>
+                            <td>{{ salida.fecha_hora_regreso|date:"d/m/Y H:i"|default:"En servicio" }}</td>
+                            <td>{{ salida.unidades_involucradas }}</td>
+                            <td>
+                                {% if salida.kilometraje_regreso %}
+                                    {{ salida.kilometros_recorridos }} km
+                                {% else %} - {% endif %}
+                            </td>
+                            <td>{{ salida.personal_a_cargo.get_full_name|default:"N/A" }}</td>
+                            <td>
+                                {% if request.user.is_superuser or request.user.rol.editar_salidas_terreno %}
+                                <div class="btn-group" role="group">
+                                    <button type="button" class="btn btn-sm btn-outline-primary"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#editSalidaModal"
+                                            data-salida-id="{{ salida.id }}"
+                                            data-salida-motivo="{{ salida.motivo }}"
+                                            data-salida-direccion="{{ salida.direccion }}"
+                                            data-salida-fecha_hora_salida="{{ salida.fecha_hora_salida|date:'Y-m-d\TH:i' }}"
+                                            data-salida-fecha_hora_regreso="{{ salida.fecha_hora_regreso|date:'Y-m-d\TH:i' }}"
+                                            data-salida-unidades_involucradas="{{ salida.unidades_involucradas }}"
+                                            data-salida-kilometraje_salida="{{ salida.kilometraje_salida }}"
+                                            data-salida-kilometraje_regreso="{{ salida.kilometraje_regreso }}"
+                                            data-salida-personal_a_cargo="{{ salida.personal_a_cargo.id }}"
+                                            data-salida-descripcion="{{ salida.descripcion }}">
+                                        <i class="bi bi-pencil-fill"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-danger"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#deleteSalidaModal"
+                                            data-salida-id="{{ salida.id }}"
+                                            data-salida-motivo="{{ salida.motivo }}">
+                                        <i class="bi bi-trash-fill"></i>
+                                    </button>
+                                </div>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center text-muted py-4">No hay salidas registradas todavía.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</main>
+
+<!-- Modal Registrar Salida -->
+<div class="modal fade" id="createSalidaModal" tabindex="-1" aria-labelledby="createSalidaModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="createSalidaModalLabel">Registrar Nueva Salida a Terreno</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="{{ form.motivo.id_for_label }}" class="form-label">Motivo de la Salida</label>
+                            {{ form.motivo }}
+                            {% for error in form.motivo.errors %}
+                                <div class="invalid-feedback d-block">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="{{ form.direccion.id_for_label }}" class="form-label">Dirección</label>
+                            {{ form.direccion }}
+                            {% for error in form.direccion.errors %}
+                                <div class="invalid-feedback d-block">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="{{ form.fecha_hora_salida.id_for_label }}" class="form-label">Fecha y Hora de Salida</label>
+                            {{ form.fecha_hora_salida }}
+                            {% for error in form.fecha_hora_salida.errors %}
+                                <div class="invalid-feedback d-block">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="{{ form.fecha_hora_regreso.id_for_label }}" class="form-label">Fecha y Hora de Regreso (Opcional)</label>
+                            {{ form.fecha_hora_regreso }}
+                            {% for error in form.fecha_hora_regreso.errors %}
+                                <div class="invalid-feedback d-block">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="{{ form.unidades_involucradas.id_for_label }}" class="form-label">Unidades Involucradas</label>
+                            {{ form.unidades_involucradas }}
+                            {% for error in form.unidades_involucradas.errors %}
+                                <div class="invalid-feedback d-block">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="{{ form.personal_a_cargo.id_for_label }}" class="form-label">Personal a Cargo</label>
+                            {{ form.personal_a_cargo }}
+                            {% for error in form.personal_a_cargo.errors %}
+                                <div class="invalid-feedback d-block">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="{{ form.kilometraje_salida.id_for_label }}" class="form-label">Kilometraje de Salida (Opcional)</label>
+                            {{ form.kilometraje_salida }}
+                            {% for error in form.kilometraje_salida.errors %}
+                                <div class="invalid-feedback d-block">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="{{ form.kilometraje_regreso.id_for_label }}" class="form-label">Kilometraje de Regreso (Opcional)</label>
+                            {{ form.kilometraje_regreso }}
+                            {% for error in form.kilometraje_regreso.errors %}
+                                <div class="invalid-feedback d-block">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-12">
+                            <label for="{{ form.descripcion.id_for_label }}" class="form-label">Reporte / Novedades</label>
+                            {{ form.descripcion }}
+                            {% for error in form.descripcion.errors %}
+                                <div class="invalid-feedback d-block">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-danger">Registrar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Editar Salida -->
+<div class="modal fade" id="editSalidaModal" tabindex="-1" aria-labelledby="editSalidaModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editSalidaModalLabel">Editar Salida a Terreno</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="editSalidaForm" method="post">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="edit_motivo" class="form-label">Motivo</label>
+                            <input type="text" id="edit_motivo" name="motivo" class="form-control">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="edit_direccion" class="form-label">Dirección</label>
+                            <input type="text" id="edit_direccion" name="direccion" class="form-control">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="edit_fecha_hora_salida" class="form-label">Fecha y Hora de Salida</label>
+                            <input type="datetime-local" id="edit_fecha_hora_salida" name="fecha_hora_salida" class="form-control">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="edit_fecha_hora_regreso" class="form-label">Fecha y Hora de Regreso</label>
+                            <input type="datetime-local" id="edit_fecha_hora_regreso" name="fecha_hora_regreso" class="form-control">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="edit_kilometraje_salida" class="form-label">Kilometraje de Salida</label>
+                            <input type="number" id="edit_kilometraje_salida" name="kilometraje_salida" class="form-control">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="edit_kilometraje_regreso" class="form-label">Kilometraje de Regreso</label>
+                            <input type="number" id="edit_kilometraje_regreso" name="kilometraje_regreso" class="form-control">
+                        </div>
+                        <div class="col-12">
+                            <label for="edit_unidades_involucradas" class="form-label">Unidades Involucradas</label>
+                            <input type="text" id="edit_unidades_involucradas" name="unidades_involucradas" class="form-control">
+                        </div>
+                        
+                        <div class="col-12">
+                            <label for="edit_personal_a_cargo" class="form-label">Personal a Cargo</label>
+                            <select id="edit_personal_a_cargo" name="personal_a_cargo" class="form-select">
+                                {% for choice in form.personal_a_cargo.field.choices %}
+                                    <option value="{{ choice.0 }}">{{ choice.1 }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label for="edit_descripcion" class="form-label">Reporte / Novedades</label>
+                            <textarea id="edit_descripcion" name="descripcion" class="form-control" rows="4"></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-danger">Guardar Cambios</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Eliminar Salida -->
+<div class="modal fade" id="deleteSalidaModal" tabindex="-1" aria-labelledby="deleteSalidaModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteSalidaModalLabel">Confirmar Eliminación</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Estás seguro de que quieres eliminar la salida por "<strong><span id="salidaMotivoToDelete"></span></strong>"?</p>
+                <p class="text-danger small">Esta acción no se puede deshacer.</p>
+            </div>
+            <div class="modal-footer">
+                <form id="deleteSalidaForm" method="post">
+                    {% csrf_token %}
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-danger">Sí, eliminar</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ block.super }}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    // Si hay errores en el formulario de creación, reabrir el modal.
+    {% if form.errors %}
+        var createSalidaModal = new bootstrap.Modal(document.getElementById('createSalidaModal'));
+        createSalidaModal.show();
+    {% endif %}
+
+    // Lógica para el modal de edición
+    var editModal = document.getElementById('editSalidaModal');
+    editModal.addEventListener('show.bs.modal', function (event) {
+        var button = event.relatedTarget;
+        var form = document.getElementById('editSalidaForm');
+        form.action = `/salidas/${button.dataset.salidaId}/edit/`;
+        form.querySelector('#edit_motivo').value = button.dataset.salidaMotivo;
+        form.querySelector('#edit_direccion').value = button.dataset.salidaDireccion;
+        form.querySelector('#edit_fecha_hora_salida').value = button.dataset.salidaFecha_hora_salida;
+        form.querySelector('#edit_fecha_hora_regreso').value = button.dataset.salidaFecha_hora_regreso;
+        form.querySelector('#edit_unidades_involucradas').value = button.dataset.salidaUnidades_involucradas;
+        form.querySelector('#edit_kilometraje_salida').value = button.dataset.salidaKilometraje_salida;
+        form.querySelector('#edit_kilometraje_regreso').value = button.dataset.salidaKilometraje_regreso;
+        form.querySelector('#edit_personal_a_cargo').value = button.dataset.salidaPersonal_a_cargo;
+        form.querySelector('#edit_descripcion').value = button.dataset.salidaDescripcion;
+    });
+
+    // Lógica para el modal de eliminación
+    var deleteModal = document.getElementById('deleteSalidaModal');
+    deleteModal.addEventListener('show.bs.modal', function (event) {
+        var button = event.relatedTarget;
+        var form = document.getElementById('deleteSalidaForm');
+        form.action = `/salidas/${button.dataset.salidaId}/delete/`;
+        document.getElementById('salidaMotivoToDelete').textContent = button.dataset.salidaMotivo;
+    });
+
+    // --- Lógica de Filtrado en Tiempo Real para Salidas ---
+    const salidaSearchInput = document.getElementById('salidaSearchInput');
+    const salidaUserFilter = document.getElementById('salidaUserFilter');
+    const salidasTableBody = document.getElementById('salidasTableBody');
+    const noSalidasRow = document.getElementById('no-salidas-found');
+
+    function filterSalidas() {
+        if (!salidasTableBody) return;
+        const searchText = salidaSearchInput.value.toLowerCase();
+        const isUserSelected = salidaUserFilter.value !== "";
+        const selectedUserText = salidaUserFilter.options[salidaUserFilter.selectedIndex].text.toLowerCase();
+
+        const rows = salidasTableBody.querySelectorAll('tr:not(#no-salidas-found)');
+        let visibleRows = 0;
+
+        rows.forEach(row => {
+            if (row.children.length === 1 && row.textContent.includes('No hay salidas registradas todavía')) return;
+
+            const textContent = row.textContent.toLowerCase();
+            const userCell = row.cells[5] ? row.cells[5].textContent.toLowerCase() : "";
+            const matchesSearch = searchText === "" || textContent.includes(searchText);
+            const matchesUser = !isUserSelected || userCell.includes(selectedUserText) || selectedUserText === "todos";
+
+            if (matchesSearch && matchesUser) { row.style.display = ""; visibleRows++; } 
+            else { row.style.display = "none"; }
+        });
+        if (noSalidasRow) noSalidasRow.style.display = visibleRows === 0 && rows.length > 0 ? "" : "none";
+    }
+
+    if (salidaSearchInput) salidaSearchInput.addEventListener('keyup', filterSalidas);
+    if (salidaUserFilter) salidaUserFilter.addEventListener('change', filterSalidas);
+});
+</script>
+{% endblock %}
