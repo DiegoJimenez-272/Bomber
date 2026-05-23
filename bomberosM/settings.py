@@ -139,7 +139,7 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
 
 # Aquí van las carpetas de origen (las que usabas en desarrollo)
 STATICFILES_DIRS = [STATIC_DIR] 
@@ -148,7 +148,7 @@ STATICFILES_DIRS = [STATIC_DIR]
 STATIC_ROOT = '/var/www/bombersystem/static/'
 
 # media sirve para los archivos subidos por los usuarios
-MEDIA_URL = 'media/'
+MEDIA_URL = '/media/'
 MEDIA_ROOT = MEDIA_DIR
 
 # Default primary key field type

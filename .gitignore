@@ -1,0 +1,2 @@
+**/__pycache__/
+*.pycgit rm -r --cached **/___pycache___/ 2>$null
