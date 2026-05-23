@@ -16,6 +16,7 @@ body.dark-mode {
 
 /* Regla global para el color de texto en modo oscuro */
 body.dark-mode {
+    background-color: var(--bs-body-bg) !important;
     color: var(--text-color) !important;
 }
 /* Forzar el color en elementos de texto comunes y etiquetas de formulario */
@@ -93,6 +94,13 @@ body.dark-mode header.bg-white .text-muted {
     color: var(--text-muted-light) !important;
 }
 
+/* Sobrescribir contenedores y fondos blancos globales (como el contenedor de las tablas) */
+body.dark-mode .bg-white,
+body.dark-mode .bg-light {
+    background-color: var(--card-bg) !important;
+    color: var(--text-color) !important;
+}
+
 
 /* Cards */
 body.dark-mode .card {
@@ -124,6 +132,7 @@ body.dark-mode .text-muted {
 /* Tablas */
 body.dark-mode .table {
     color: var(--text-color);
+    --bs-table-bg: transparent; /* Permite que el fondo de la tabla se mezcle con el contenedor oscuro */
 }
 
 body.dark-mode .table thead th {

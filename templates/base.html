@@ -271,7 +271,7 @@
                 {% endif %}
             </ul>
             <div class="sidebar-footer mt-auto border-top pt-2"> <!-- Pushes content to the bottom and adds a top border -->
-                <button id="theme-toggle" class="nav-link w-100 text-start">
+                <button class="nav-link w-100 text-start theme-toggle-btn">
                     <i class="bi bi-moon-fill me-2"></i>
                     <span>Modo Oscuro</span>
                 </button>
@@ -294,6 +294,12 @@
                 </div>
                 <div class="d-flex align-items-center gap-3">
                     
+                    <!-- Botón Toggle Modo Oscuro (Menú Superior) -->
+                    <button class="btn btn-outline-secondary border-0 theme-toggle-btn" id="theme-toggle" type="button" aria-label="Cambiar modo" title="Alternar modo oscuro">
+                        <!-- Ícono de Luna (Por defecto) -->
+                        <i class="bi bi-moon-fill" id="theme-icon"></i>
+                    </button>
+
                     <!-- Campana de Notificaciones -->
                     <div class="dropdown">
                         <button class="btn btn-light position-relative rounded-circle p-2 border" type="button" id="userNotificationsBell" data-bs-toggle="dropdown" aria-expanded="false">
@@ -372,31 +378,6 @@
                 });
             }
 
-            const themeToggleBtn = document.getElementById('theme-toggle');
-            const body = document.body;
-            const currentTheme = localStorage.getItem('theme');
-
-            // Apply saved theme on load
-            if (currentTheme === 'dark') {
-                body.classList.add('dark-mode');
-                if (themeToggleBtn) {
-                    themeToggleBtn.innerHTML = '<i class="bi bi-sun-fill me-2"></i><span>Modo Claro</span>';
-                }
-            } else {
-                if (themeToggleBtn) {
-                    themeToggleBtn.innerHTML = '<i class="bi bi-moon-fill me-2"></i><span>Modo Oscuro</span>';
-                }
-            }
-
-            // Theme toggle functionality
-            if (themeToggleBtn) {
-                themeToggleBtn.addEventListener('click', function () {
-                    body.classList.toggle('dark-mode');
-                    const newTheme = body.classList.contains('dark-mode') ? 'dark' : 'light';
-                    localStorage.setItem('theme', newTheme);
-                    themeToggleBtn.innerHTML = newTheme === 'dark' ? '<i class="bi bi-sun-fill me-2"></i><span>Modo Claro</span>' : '<i class="bi bi-moon-fill me-2"></i><span>Modo Oscuro</span>';
-                });
-            }
 
             // Lógica de Notificaciones
             const notifBell = document.getElementById('userNotificationsBell');
