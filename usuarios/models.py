@@ -65,8 +65,8 @@ class Usuario(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(unique=True, max_length=80)
     rut = models.CharField(max_length=12, unique=True, null=True, blank=True, verbose_name='RUT')
     clave_radial = models.CharField(max_length=20, null=True, blank=True, verbose_name='Clave Radial')
-    rol = models.ForeignKey(Rol, on_delete=models.CASCADE, null=True, blank=True)
-    compania = models.ForeignKey(Compania, on_delete=models.CASCADE, null=True, blank=True)
+    rol = models.ForeignKey(Rol, on_delete=models.SET_NULL, null=True, blank=True)
+    compania = models.ForeignKey(Compania, on_delete=models.SET_NULL, null=True, blank=True)
     foto_perfil = models.ImageField(upload_to='fotos_perfil/', null=True, blank=True, verbose_name='Foto de Perfil')
     
     # Campos requeridos para AbstractBaseUser
