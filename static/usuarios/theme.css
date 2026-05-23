@@ -356,28 +356,39 @@ body.dark-mode .border-bottom {
 
 /* Modo Claro */
 .accordion-button {
-    background-color: var(--bs-danger-bg-subtle);
-    color: var(--bs-danger-text-emphasis);
+    background-color: #f8d7da !important; /* Fondo rojo claro (anula el blanco/azul por defecto) */
+    color: #842029 !important; /* Texto rojo oscuro */
     font-weight: 600;
 }
 .accordion-button:not(.collapsed) {
-    color: #fff;
-    background-color: var(--bs-danger);
+    color: #ffffff !important;
+    background-color: var(--bs-danger) !important; /* Rojo fuerte al estar abierto */
 }
 .accordion-button:focus {
-    box-shadow: 0 0 0 0.25rem rgba(var(--bs-danger-rgb), 0.25);
+    box-shadow: 0 0 0 0.25rem rgba(220, 53, 69, 0.25) !important;
 }
 .accordion-button:not(.collapsed)::after {
-    filter: brightness(0) invert(1);
+    filter: brightness(0) invert(1) !important; /* Flecha blanca */
+}
+.accordion-button::after {
+    /* Flecha roja oscura al estar cerrado */
+    filter: invert(15%) sepia(80%) saturate(6000%) hue-rotate(345deg) brightness(90%) contrast(90%) !important;
 }
 
 /* Modo Oscuro */
 body.dark-mode .accordion-button {
-    background-color: rgba(220, 53, 69, 0.15); /* Fondo rojo sutil y transparente */
-    color: #ff9aa2; /* Tono de texto rojo más brillante para mejor contraste */
+    background-color: rgba(220, 53, 69, 0.15) !important; /* Fondo rojo sutil y transparente */
+    color: #ff9aa2 !important; /* Tono de texto rojo más brillante para mejor contraste */
 }
 body.dark-mode .accordion-button:not(.collapsed) {
-    background-color: var(--bs-danger);
+    background-color: var(--bs-danger) !important;
+    color: #ffffff !important;
+}
+body.dark-mode .accordion-button::after {
+    filter: invert(70%) sepia(30%) saturate(4000%) hue-rotate(320deg) brightness(100%) contrast(100%) !important; /* Flecha rojo pálido */
+}
+body.dark-mode .accordion-button:not(.collapsed)::after {
+    filter: brightness(0) invert(1) !important; /* Flecha blanca */
 }
 
 /* --- Notificaciones y Alertas en Modo Oscuro (Diseño de Elevación y Acento) --- */

@@ -1,22 +1,32 @@
 document.addEventListener('DOMContentLoaded', function() {
-    // Seleccionamos todos los botones con la clase indicada o el ID
-    const themeToggleButtons = document.querySelectorAll('#theme-toggle, .theme-toggle-btn');
+    // Seleccionamos TODOS los botones usando solo la clase para evitar conflictos de especificidad
+    const themeToggleButtons = document.querySelectorAll('.theme-toggle-btn');
     const body = document.body;
 
-    // Cargar la preferencia de tema desde localStorage
-    const savedTheme = localStorage.getItem('theme');
-    if (savedTheme === 'dark') {
-        body.classList.add('dark-mode');
-        updateButtons('dark');
-    } else {
-        updateButtons('light');
+    // Manejo seguro de localStorage para evitar errores de estado global
+    let currentTheme = 'light';
+    try {
+        currentTheme = localStorage.getItem('theme') || 'light';
+    } catch (e) {
+        console.warn("No se pudo acceder al almacenamiento local.");
     }
 
+    // Forzamos el estado global inicialmente
+    if (currentTheme === 'dark') {
+        body.classList.add('dark-mode');
+    } else {
+        body.classList.remove('dark-mode');
+    }
+    updateButtons(currentTheme);
+
     themeToggleButtons.forEach(btn => {
-        btn.addEventListener('click', function() {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault(); // Detenemos propagaciones y comportamientos del navegador default
             body.classList.toggle('dark-mode');
-            const currentTheme = body.classList.contains('dark-mode') ? 'dark' : 'light';
-            localStorage.setItem('theme', currentTheme);
+            currentTheme = body.classList.contains('dark-mode') ? 'dark' : 'light';
+            try {
+                localStorage.setItem('theme', currentTheme);
+            } catch (e) {}
             updateButtons(currentTheme);
         });
     });
