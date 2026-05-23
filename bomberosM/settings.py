@@ -88,11 +88,13 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'bomberos',
-        'USER':'root',
-        'PASSWORD':'',
+        'USER': 'admin_bomberos',          # <-- Cambiado
+        'PASSWORD': 'Bomber@2026',         # <-- Cambiado (usa la contraseña que elegiste)
+        'HOST': '127.0.0.1',               # <-- Asegura que busque en la VPS local
+        'PORT': '3306',                    # <-- Puerto por defecto
         'OPTIONS': {
-            'init_command':"SET sql_mode='STRICT_TRANS_TABLES'",
-            'charset':'utf8mb4'
+            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+            'charset': 'utf8mb4'
         }
     }
 }
