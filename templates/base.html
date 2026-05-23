@@ -3,7 +3,6 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <script src="{% static 'usuarios/theme-toggle.js' %}"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Sistema Bomberos{% endblock %}</title>
     <!-- Favicon (Evitar error 404) -->
@@ -507,6 +506,44 @@
                 
                 notifBell.addEventListener('show.bs.dropdown', function () {
                     cargarNotificaciones(); // Recargar al abrir el menú
+                });
+            }
+
+            // --- Lógica Definitiva del Modo Oscuro ---
+            const body = document.body;
+            let currentTheme = 'light';
+            try {
+                currentTheme = localStorage.getItem('theme') || 'light';
+            } catch (e) {
+                console.warn("No se pudo acceder al almacenamiento local.");
+            }
+
+            if (currentTheme === 'dark') {
+                body.classList.add('dark-mode');
+            } else {
+                body.classList.remove('dark-mode');
+            }
+            updateThemeButtons(currentTheme);
+
+            document.addEventListener('click', function(e) {
+                const toggleBtn = e.target.closest('.theme-toggle-btn');
+                if (toggleBtn) {
+                    e.preventDefault();
+                    body.classList.toggle('dark-mode');
+                    currentTheme = body.classList.contains('dark-mode') ? 'dark' : 'light';
+                    try { localStorage.setItem('theme', currentTheme); } catch (e) {}
+                    updateThemeButtons(currentTheme);
+                }
+            });
+
+            function updateThemeButtons(theme) {
+                const themeToggleButtons = document.querySelectorAll('.theme-toggle-btn');
+                themeToggleButtons.forEach(btn => {
+                    if (btn.classList.contains('nav-link')) {
+                        btn.innerHTML = theme === 'dark' ? '<i class="bi bi-sun-fill me-2"></i><span>Modo Claro</span>' : '<i class="bi bi-moon-fill me-2"></i><span>Modo Oscuro</span>';
+                    } else {
+                        btn.innerHTML = theme === 'dark' ? '<i class="bi bi-sun-fill" id="theme-icon"></i>' : '<i class="bi bi-moon-fill" id="theme-icon"></i>';
+                    }
                 });
             }
         });

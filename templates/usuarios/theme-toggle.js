@@ -1,6 +1,4 @@
 document.addEventListener('DOMContentLoaded', function() {
-    // Seleccionamos TODOS los botones usando solo la clase para evitar conflictos de especificidad
-    const themeToggleButtons = document.querySelectorAll('.theme-toggle-btn');
     const body = document.body;
 
     // Manejo seguro de localStorage para evitar errores de estado global
@@ -19,8 +17,12 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     updateButtons(currentTheme);
 
-    themeToggleButtons.forEach(btn => {
-        btn.addEventListener('click', function(e) {
+    // Usamos Delegación de Eventos: escuchamos los clics en todo el documento.
+    // Esto evita que el botón deje de funcionar tras cambiar su ícono interno (innerHTML)
+    document.addEventListener('click', function(e) {
+        const toggleBtn = e.target.closest('.theme-toggle-btn');
+        
+        if (toggleBtn) {
             e.preventDefault(); // Detenemos propagaciones y comportamientos del navegador default
             body.classList.toggle('dark-mode');
             currentTheme = body.classList.contains('dark-mode') ? 'dark' : 'light';
@@ -28,10 +30,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 localStorage.setItem('theme', currentTheme);
             } catch (e) {}
             updateButtons(currentTheme);
-        });
+        }
     });
 
     function updateButtons(theme) {
+        const themeToggleButtons = document.querySelectorAll('.theme-toggle-btn');
         themeToggleButtons.forEach(btn => {
             if (btn.classList.contains('nav-link')) {
                 // Botón del sidebar (con texto)
