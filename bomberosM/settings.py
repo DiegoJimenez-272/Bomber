@@ -30,9 +30,9 @@ MEDIA_DIR = os.path.join(BASE_DIR,'media')
 SECRET_KEY = 'django-insecure-lbh9!lvj!8yit!=4k=3se%r!e9pseyoryo#hi)1khps$17tiy&'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['srv1682969.hstgr.cloud','187.77.16.176']
 
 # Si usas túneles como Ngrok o VS Code, añade tu dominio aquí (ejemplo).
 # CSRF_TRUSTED_ORIGINS = ['https://tu-url-de-ngrok.app']
@@ -138,7 +138,13 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = 'static/'
-STATICFILES_DIRS = [STATIC_DIR]
+
+# Aquí van las carpetas de origen (las que usabas en desarrollo)
+STATICFILES_DIRS = [STATIC_DIR] 
+
+# La carpeta de producción DEBE estar afuera de tu código de desarrollo
+STATIC_ROOT = '/var/www/bombersystem/static/'
+
 # media sirve para los archivos subidos por los usuarios
 MEDIA_URL = 'media/'
 MEDIA_ROOT = MEDIA_DIR
