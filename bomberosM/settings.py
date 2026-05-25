@@ -33,6 +33,7 @@ SECRET_KEY = 'django-insecure-lbh9!lvj!8yit!=4k=3se%r!e9pseyoryo#hi)1khps$17tiy&
 DEBUG = False
 
 ALLOWED_HOSTS = ['srv1682969.hstgr.cloud','187.77.16.176']
+ALLOWED_HOSTS = ['srv1682969.hstgr.cloud', '187.77.16.176', 'sigbomberosmulchen.cl', 'www.sigbomberosmulchen.cl']
 
 # Si usas túneles como Ngrok o VS Code, añade tu dominio aquí (ejemplo).
 # CSRF_TRUSTED_ORIGINS = ['https://tu-url-de-ngrok.app']
