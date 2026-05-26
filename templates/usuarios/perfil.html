@@ -262,11 +262,6 @@
                                     {% for error in perfil_form.clave_radial.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
                                 </div>
                                 <div class="col-12">
-                                    <label for="{{ perfil_form.compania.id_for_label }}" class="form-label">Mi Compañía</label>
-                                    {{ perfil_form.compania }}
-                                    {% for error in perfil_form.compania.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
-                                </div>
-                                <div class="col-12">
                                     <label for="{{ perfil_form.foto_perfil.id_for_label }}" class="form-label">Actualizar Foto de Perfil</label>
                                     {{ perfil_form.foto_perfil }}
                                     <div class="form-text">Formatos recomendados: JPG, PNG. Tamaño cuadrado ideal.</div>

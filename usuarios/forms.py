@@ -325,20 +325,16 @@ class PerfilForm(forms.ModelForm):
 
     class Meta:
         model = Usuario
-        fields = ['foto_perfil', 'nombre', 'apellido', 'email', 'clave_radial', 'compania']
+        fields = ['foto_perfil', 'nombre', 'apellido', 'email', 'clave_radial']
         widgets = {
             'nombre': forms.TextInput(attrs={'class': 'form-control'}),
             'apellido': forms.TextInput(attrs={'class': 'form-control'}),
             'email': forms.EmailInput(attrs={'class': 'form-control'}),
             'clave_radial': forms.TextInput(attrs={'class': 'form-control'}),
-            'compania': forms.Select(attrs={'class': 'form-select'}),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['compania'].queryset = Compania.objects.all()
-        self.fields['compania'].empty_label = "Selecciona tu compañía"
-        self.fields['compania'].required = False
 
         if self.errors:
             for field_name in self.errors:
