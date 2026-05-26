@@ -110,7 +110,10 @@
                             </td>
                             <td>{{ doc.subido_por.get_full_name|default:"N/A" }}</td>
                             {% if request.user.is_superuser %}
-                            <td>{{ doc.compania.nombre|default:"General" }}</td>
+                            <td>
+                                {% if doc.compania %}{{ doc.compania.nombre }}
+                                {% else %}<span class="badge bg-danger"><i class="bi bi-shield-lock-fill me-1"></i>Solo Admin</span>{% endif %}
+                            </td>
                             {% endif %}
                             <td>{{ doc.subido_en|date:"d/m/Y H:i" }}</td>
                             <td>{{ doc.tamano_seguro|filesizeformat }}</td>
@@ -156,7 +159,7 @@
                     {% endfor %}
                 </tbody>
             </table>
-        </div>
+                        <div class="form-text text-danger"><i class="bi bi-info-circle-fill me-1"></i>Si seleccionas "Solo Administración", el documento no pertenecerá a ninguna compañía y estará oculto para usuarios normales.</div>
     </div>
 </main>
 
@@ -185,9 +188,9 @@
                     </div>
                     {% if form.compania %}
                     <div class="mb-3">
-                        <label for="{{ form.compania.id_for_label }}" class="form-label">Asignar a Compañía (Solo Admin)</label>
+                        <label for="{{ form.compania.id_for_label }}" class="form-label">Asignar a Compañía (Opcional)</label>
                         {{ form.compania }}
-                        <div class="form-text">Dejar en blanco para guardar como documento general visible para todos.</div>
+                        <div class="form-text text-danger"><i class="bi bi-info-circle-fill me-1"></i>Si seleccionas "Solo Administración", el documento estará oculto para usuarios normales.</div>
                     </div>
                     {% endif %}
                 </div>
@@ -226,9 +229,9 @@
                     </div>
                     {% if request.user.is_superuser %}
                     <div class="mb-3">
-                        <label for="compania_texto" class="form-label">Asignar a Compañía (Solo Admin)</label>
+                        <label for="compania_texto" class="form-label">Asignar a Compañía (Opcional)</label>
                         <select class="form-select" id="compania_texto" name="compania">
-                            <option value="">Documento General (Visible por todos)</option>
+                            <option value="">Solo Administración (Oculto a todos)</option>
                             {% for choice in form.compania.field.choices %}
                                 {% if choice.0 %}<option value="{{ choice.0 }}">{{ choice.1 }}</option>{% endif %}
                             {% endfor %}

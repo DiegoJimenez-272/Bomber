@@ -719,10 +719,10 @@ def documentos_view(request):
 
     if not request.user.is_superuser:
         if request.user.compania:
-            # Mostrar los de su compañía o los que son generales (compania=None)
-            documentos = documentos.filter(Q(compania=request.user.compania) | Q(compania__isnull=True))
+                # Los documentos sin compañía ahora son Solo Admin
+                documentos = documentos.filter(compania=request.user.compania)
         else:
-            documentos = documentos.filter(compania__isnull=True)
+                documentos = Documento.objects.none()
 
     # Filtrar por término de búsqueda
     if query:
@@ -752,7 +752,7 @@ def documentos_view(request):
         documentos = documentos.order_by(ordenar_por)
 
     if not request.user.is_superuser and request.user.compania:
-        usuarios_con_docs = Usuario.objects.filter(Q(documento__compania=request.user.compania) | Q(documento__compania__isnull=True), documento__isnull=False).distinct().order_by('nombre')
+            usuarios_con_docs = Usuario.objects.filter(documento__compania=request.user.compania, documento__isnull=False).distinct().order_by('nombre')
     else:
         usuarios_con_docs = Usuario.objects.filter(documento__isnull=False).distinct().order_by('nombre')
 

@@ -314,7 +314,7 @@ class DocumentoForm(forms.ModelForm):
                 del self.fields['compania']
         elif 'compania' in self.fields:
             self.fields['compania'].queryset = Compania.objects.all()
-            self.fields['compania'].empty_label = "Documento General (Visible por todos)"
+                    self.fields['compania'].empty_label = "Solo Administración (Oculto a todos)"
             self.fields['compania'].required = False
 class PerfilForm(forms.ModelForm):
     foto_perfil = forms.ImageField(
