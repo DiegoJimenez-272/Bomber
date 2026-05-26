@@ -159,7 +159,7 @@
                     {% endfor %}
                 </tbody>
             </table>
-                        <div class="form-text text-danger"><i class="bi bi-info-circle-fill me-1"></i>Si seleccionas "Solo Administración", el documento no pertenecerá a ninguna compañía y estará oculto para usuarios normales.</div>
+        </div>
     </div>
 </main>
 
@@ -236,6 +236,7 @@
                                 {% if choice.0 %}<option value="{{ choice.0 }}">{{ choice.1 }}</option>{% endif %}
                             {% endfor %}
                         </select>
+                        <div class="form-text text-danger"><i class="bi bi-info-circle-fill me-1"></i>Si seleccionas "Solo Administración", el documento no pertenecerá a ninguna compañía y estará oculto para usuarios normales.</div>
                     </div>
                     {% endif %}
                 </div>
