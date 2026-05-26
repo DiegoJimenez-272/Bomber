@@ -140,6 +140,7 @@ class Documento(models.Model):
     descripcion = models.TextField(blank=True)
     archivo = models.FileField(upload_to='documentos/')
     compania = models.ForeignKey(Compania, on_delete=models.CASCADE, null=True, blank=True, related_name='documentos')
+    solo_admin = models.BooleanField(default=False, verbose_name='Solo Administración')
     subido_por = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
     subido_en = models.DateTimeField(auto_now_add=True)
 

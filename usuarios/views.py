@@ -647,6 +647,7 @@ def documentos_view(request):
             descripcion = request.POST.get('descripcion_texto', '')
             contenido = request.POST.get('contenido_texto', '')
             compania_id = request.POST.get('compania')
+            solo_admin = request.POST.get('solo_admin') == 'on'
 
             if not nombre or not contenido:
                 messages.error(request, 'El título y el contenido son obligatorios.')
@@ -676,16 +677,18 @@ def documentos_view(request):
             documento = Documento(
                 nombre=nombre,
                 descripcion=descripcion,
-                subido_por=request.user
+                subido_por=request.user,
+                solo_admin=solo_admin
             )
             
-            if request.user.is_superuser and compania_id:
-                try:
-                    documento.compania = Compania.objects.get(id=compania_id)
-                except Compania.DoesNotExist:
-                    pass
-            elif not request.user.is_superuser and request.user.compania:
-                documento.compania = request.user.compania
+            if not solo_admin:
+                if request.user.is_superuser and compania_id:
+                    try:
+                        documento.compania = Compania.objects.get(id=compania_id)
+                    except Compania.DoesNotExist:
+                        pass
+                elif not request.user.is_superuser and request.user.compania:
+                    documento.compania = request.user.compania
                 
             documento.archivo.save(safe_filename, ContentFile(pdf_bytes), save=False)
             documento.save()
@@ -698,7 +701,9 @@ def documentos_view(request):
                 documento = form.save(commit=False)
                 documento.subido_por = request.user
                 
-                if not request.user.is_superuser and request.user.compania:
+                if getattr(documento, 'solo_admin', False):
+                    documento.compania = None
+                elif not request.user.is_superuser and request.user.compania:
                     documento.compania = request.user.compania
                     
                 documento.save()
@@ -718,11 +723,14 @@ def documentos_view(request):
     documentos = Documento.objects.select_related('subido_por', 'compania').all()
 
     if not request.user.is_superuser:
+        # Ocultar los documentos exclusivos de administración
+        documentos = documentos.filter(solo_admin=False)
+        
         if request.user.compania:
-            # Los documentos sin compañía ahora son Solo Admin
-            documentos = documentos.filter(compania=request.user.compania)
+            # Mostrar los de su compañía o los que son generales (compania=None)
+            documentos = documentos.filter(Q(compania=request.user.compania) | Q(compania__isnull=True))
         else:
-            documentos = Documento.objects.none()
+            documentos = documentos.filter(compania__isnull=True)
 
     # Filtrar por término de búsqueda
     if query:
@@ -752,7 +760,7 @@ def documentos_view(request):
         documentos = documentos.order_by(ordenar_por)
 
     if not request.user.is_superuser and request.user.compania:
-        usuarios_con_docs = Usuario.objects.filter(documento__compania=request.user.compania, documento__isnull=False).distinct().order_by('nombre')
+        usuarios_con_docs = Usuario.objects.filter(Q(documento__compania=request.user.compania) | Q(documento__compania__isnull=True), documento__solo_admin=False, documento__isnull=False).distinct().order_by('nombre')
     else:
         usuarios_con_docs = Usuario.objects.filter(documento__isnull=False).distinct().order_by('nombre')
 

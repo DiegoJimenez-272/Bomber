@@ -294,9 +294,16 @@ class ArchivoProyectoForm(forms.Form):
     )
 
 class DocumentoForm(forms.ModelForm):
+    solo_admin = forms.BooleanField(
+        label="Solo Administración",
+        required=False,
+        initial=False,
+        widget=forms.CheckboxInput(attrs={'class': 'form-check-input', 'onchange': 'var c = document.getElementById("id_compania"); if(c) c.disabled = this.checked;'})
+    )
+
     class Meta:
         model = Documento
-        fields = ['nombre', 'descripcion', 'archivo', 'compania']
+        fields = ['nombre', 'descripcion', 'archivo', 'compania', 'solo_admin']
         widgets = {
             'nombre': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Nombre del documento'}),
             'descripcion': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Descripción breve (opcional)'}),
