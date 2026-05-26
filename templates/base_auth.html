@@ -206,65 +206,10 @@
         </div>
     </div>
     
-    <!-- Librería para las partículas -->
-    <script src="https://cdn.jsdelivr.net/npm/tsparticles-slim@2.12.0/tsparticles.slim.bundle.min.js"></script>
     <!-- Bootstrap 5.3.3 JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
     
     {% block scripts %}
-    <script>
-        // Configuración e inicialización de ts-particles
-        document.addEventListener('DOMContentLoaded', async (event) => {
-            await tsParticles.load("tsparticles", {
-                fpsLimit: 60,
-                interactivity: {
-                    events: {
-                        onHover: {
-                            enable: true,
-                            mode: "repulse",
-                        },
-                        resize: true,
-                    },
-                    modes: {
-                        repulse: {
-                            distance: 100,
-                            duration: 0.4,
-                        },
-                    },
-                },
-                particles: {
-                    color: {
-                        value: "#dc3545", // Color rojo de bombero
-                    },
-                    links: {
-                        color: "#343a40", // Cambiamos el color de las líneas a oscuro para que se vean en fondo claro
-                        distance: 150,
-                        enable: true,
-                        opacity: 0.3, // Aumentamos la opacidad de las líneas
-                        width: 1,
-                    },
-                    move: {
-                        direction: "none",
-                        enable: true,
-                        outModes: "out",
-                        random: false,
-                        speed: 2, // Aumentamos un poco la velocidad
-                        straight: false,
-                    },
-                    number: {
-                        density: {
-                            enable: true,
-                        },
-                        value: 120, // Aumentamos la cantidad de partículas
-                    },
-                    opacity: { value: 0.5 }, // Hacemos las partículas más opacas
-                    shape: { type: "circle" },
-                    size: { value: { min: 1, max: 4 } }, // Aumentamos ligeramente el tamaño máximo
-                },
-                detectRetina: true,
-            });
-        });
-    </script>
     {% endblock %}
 </body>
 </html>
