@@ -94,6 +94,13 @@ urlpatterns = [
     # Avisos 
     path('aviso/create/', views.aviso_create_view, name='aviso_create'),
     path('aviso/<int:aviso_id>/delete/', views.aviso_delete_view, name='aviso_delete'),
-    path('avisos/<int:destinatario_id>/leer/', views.aviso_leer_view, name='aviso_leer'),
+    path('avisos/<int:destinatario_id>/leer/', views.aviso_leer_view, name='aviso_leer'), 
+    
+    # ... tus otras urls ...
+    path('recuperar-password/', views.password_reset_request_view, name='password_reset_request'),
+    path('recuperar-password/verificar/', views.password_reset_verify_view, name='password_reset_verify'),
+    path('recuperar-password/nueva/', views.password_reset_new_password_view, name='password_reset_new_password'),
+    
+    
 
 ]

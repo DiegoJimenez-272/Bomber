@@ -1,7 +1,7 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm, PasswordChangeForm as AuthPasswordChangeForm
 from django.db.models import Sum, Case, When, DecimalField, F
-from .models import Usuario, Compania, Rol, Proyecto, Documento, SalidaTerreno, Emergencia, Capacitacion, Mantenimiento, Inventario, CajaChica, Aviso
+from .models import Usuario, Compania, Rol, Proyecto, Documento, SalidaTerreno, Emergencia, Capacitacion, Mantenimiento, Inventario, CajaChica, Aviso, PasswordResetCode
 
 class RegistroForm(UserCreationForm):
     email = forms.EmailField(
@@ -631,3 +631,26 @@ class AvisoForm(forms.ModelForm):
             'titulo': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej: Reunión Extraordinaria o Aviso Importante'}),
             'mensaje': forms.Textarea(attrs={'class': 'form-control', 'rows': 4, 'placeholder': 'Escribe el mensaje del aviso...'}),
         }
+
+class PasswordResetRequestForm(forms.Form):
+    email = forms.EmailField(
+        widget=forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'Ingresa tu correo electrónico'})
+    )
+
+class PasswordResetVerifyForm(forms.Form):
+    codigo = forms.CharField(
+        max_length=6, 
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Código de 6 dígitos', 'autocomplete': 'off'})
+    )
+
+class PasswordResetNewPasswordForm(forms.Form):
+    password = forms.CharField(widget=forms.PasswordInput(attrs={'class': 'form-control', 'placeholder': 'Nueva contraseña'}))
+    password_confirm = forms.CharField(widget=forms.PasswordInput(attrs={'class': 'form-control', 'placeholder': 'Confirmar nueva contraseña'}))
+
+    def clean(self):
+        cleaned_data = super().clean()
+        p1 = cleaned_data.get('password')
+        p2 = cleaned_data.get('password_confirm')
+        if p1 and p2 and p1 != p2:
+            self.add_error('password_confirm', 'Las contraseñas no coinciden.')
+        return cleaned_data

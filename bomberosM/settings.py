@@ -156,3 +156,12 @@ MEDIA_ROOT = MEDIA_DIR
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Email settings
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com' # Cambiar por tu servidor SMTP si usas otro
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'tu_correo@gmail.com' # Cambiar por el correo que enviará los mensajes
+EMAIL_HOST_PASSWORD = 'tu_contraseña_de_aplicacion' # Contraseña de aplicación
+DEFAULT_FROM_EMAIL = 'Sistema Bomberos <tu_correo@gmail.com>'

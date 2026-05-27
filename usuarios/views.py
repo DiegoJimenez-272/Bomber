@@ -9,9 +9,12 @@ from django.utils import timezone
 from django.db.models.functions import TruncDay
 from datetime import datetime, timedelta
 import json, re
+import random
 from io import BytesIO
 from django.core.files.base import ContentFile
 from django.http import HttpResponse, JsonResponse
+from django.core.mail import send_mail
+from django.conf import settings
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.enums import TA_CENTER, TA_LEFT
@@ -19,8 +22,8 @@ from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter
 import openpyxl
 from reportlab.lib.units import inch
-from .forms import RegistroForm, LoginForm, ProyectoForm, ArchivoProyectoForm, DocumentoForm, SalidaTerrenoForm, EmergenciaForm, PerfilForm, PasswordChangeForm, CapacitacionForm, MantenimientoForm, ArchivoMantenimientoForm, InventarioForm, CajaChicaForm, AdminUserCreationForm, AdminUserChangeForm, RolForm, CompaniaForm, InventarioEditForm, InventarioGroupEditForm, AvisoForm
-from .models import Rol, Compania, Proyecto, ArchivoProyecto, Documento, SalidaTerreno, Emergencia, Usuario, Capacitacion, Mantenimiento, ArchivoMantenimiento, Inventario, CajaChica, Notificacion, Aviso, AvisoDestinatario
+from .forms import RegistroForm, LoginForm, ProyectoForm, ArchivoProyectoForm, DocumentoForm, SalidaTerrenoForm, EmergenciaForm, PerfilForm, PasswordChangeForm, CapacitacionForm, MantenimientoForm, ArchivoMantenimientoForm, InventarioForm, CajaChicaForm, AdminUserCreationForm, AdminUserChangeForm, RolForm, CompaniaForm, InventarioEditForm, InventarioGroupEditForm, AvisoForm, PasswordResetRequestForm, PasswordResetVerifyForm, PasswordResetNewPasswordForm
+from .models import Rol, Compania, Proyecto, ArchivoProyecto, Documento, SalidaTerreno, Emergencia, Usuario, Capacitacion, Mantenimiento, ArchivoMantenimiento, Inventario, CajaChica, Notificacion, Aviso, AvisoDestinatario, PasswordResetCode
 
 def registro_view(request):
     if request.method == 'POST':
@@ -1995,3 +1998,81 @@ def marcar_notificacion_leida(request, notif_id):
     if notif.link:
         return redirect(notif.link)
     return redirect('dashboard')
+
+def password_reset_request_view(request):
+    if request.method == 'POST':
+        form = PasswordResetRequestForm(request.POST)
+        if form.is_valid():
+            email = form.cleaned_data['email']
+            user = Usuario.objects.filter(email=email).first()
+            if user:
+                codigo = str(random.randint(100000, 999999))
+                PasswordResetCode.objects.filter(usuario=user, usado=False).update(usado=True)
+                PasswordResetCode.objects.create(usuario=user, codigo=codigo)
+                
+                try:
+                    send_mail(
+                        'Código de recuperación de contraseña',
+                        f'Hola {user.nombre},\n\nTu código de verificación para recuperar tu contraseña es: {codigo}\nEste código es válido por 15 minutos.\n\nSi no solicitaste esto, ignora este correo.',
+                        settings.DEFAULT_FROM_EMAIL,
+                        [email],
+                        fail_silently=False,
+                    )
+                    request.session['reset_email'] = email
+                    messages.success(request, 'Se ha enviado un código de verificación a tu correo.')
+                    return redirect('password_reset_verify')
+                except Exception as e:
+                    messages.error(request, 'Error al enviar el correo. Por favor, verifica la configuración del servidor de correos.')
+            else:
+                # Por seguridad y evitar spam, indicamos esto genéricamente
+                messages.error(request, 'No existe un usuario con ese correo electrónico registrado.')
+    else:
+        form = PasswordResetRequestForm()
+    return render(request, 'usuarios/password_reset_request.html', {'form': form})
+
+def password_reset_verify_view(request):
+    email = request.session.get('reset_email')
+    if not email:
+        return redirect('password_reset_request')
+        
+    if request.method == 'POST':
+        form = PasswordResetVerifyForm(request.POST)
+        if form.is_valid():
+            codigo = form.cleaned_data['codigo']
+            user = Usuario.objects.filter(email=email).first()
+            reset_code = PasswordResetCode.objects.filter(usuario=user, codigo=codigo, usado=False).last()
+            
+            if reset_code and reset_code.is_valid():
+                reset_code.usado = True
+                reset_code.save()
+                request.session['reset_verified'] = True
+                messages.success(request, 'Código verificado correctamente.')
+                return redirect('password_reset_new_password')
+            else:
+                messages.error(request, 'El código es inválido o ha expirado.')
+    else:
+        form = PasswordResetVerifyForm()
+    return render(request, 'usuarios/password_reset_verify.html', {'form': form})
+
+def password_reset_new_password_view(request):
+    email = request.session.get('reset_email')
+    verified = request.session.get('reset_verified')
+    
+    if not email or not verified:
+        return redirect('password_reset_request')
+        
+    if request.method == 'POST':
+        form = PasswordResetNewPasswordForm(request.POST)
+        if form.is_valid():
+            user = Usuario.objects.filter(email=email).first()
+            if user:
+                user.set_password(form.cleaned_data['password'])
+                user.save()
+                del request.session['reset_email']
+                del request.session['reset_verified']
+                messages.success(request, 'Tu contraseña ha sido cambiada exitosamente. Ahora puedes iniciar sesión.')
+                return redirect('login')
+    else:
+        form = PasswordResetNewPasswordForm()
+        
+    return render(request, 'usuarios/password_reset_new_password.html', {'form': form})

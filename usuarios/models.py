@@ -6,6 +6,8 @@ from io import BytesIO
 from django.core.files import File
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+import datetime
+from django.utils import timezone
 
 class Rol(models.Model):
     nombre = models.CharField(max_length=80)
@@ -424,3 +426,12 @@ class AvisoDestinatario(models.Model):
     usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='avisos_asignados')
     leido = models.BooleanField(default=False)
     fecha_lectura = models.DateTimeField(null=True, blank=True)
+
+class PasswordResetCode(models.Model):
+    usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    codigo = models.CharField(max_length=6)
+    creado_en = models.DateTimeField(auto_now_add=True)
+    usado = models.BooleanField(default=False)
+
+    def is_valid(self):
+        return not self.usado and (timezone.now() - self.creado_en) < datetime.timedelta(minutes=15)
