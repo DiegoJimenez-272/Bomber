@@ -160,9 +160,9 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # Configuración de Email para Hostinger
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.hostinger.com'
-EMAIL_PORT = 465
-EMAIL_USE_SSL = True
-EMAIL_USE_TLS = False
+EMAIL_PORT = 587
+EMAIL_USE_SSL = False
+EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'contacto@sigbomberosmulchen.cl' # Cambia por tu correo real de Hostinger
 EMAIL_HOST_PASSWORD = 'TuContraseñaDelCorreo' # La contraseña normal que le pusiste al correo en el panel de Hostinger
 DEFAULT_FROM_EMAIL = 'Sistema Bomberos <contacto@sigbomberosmulchen.cl>'
