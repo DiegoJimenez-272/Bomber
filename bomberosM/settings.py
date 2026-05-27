@@ -164,5 +164,5 @@ EMAIL_PORT = 587
 EMAIL_USE_SSL = False
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'contacto@sigbomberosmulchen.cl' # Cambia por tu correo real de Hostinger
-EMAIL_HOST_PASSWORD = 'TuContraseñaDelCorreo' # La contraseña normal que le pusiste al correo en el panel de Hostinger
+EMAIL_HOST_PASSWORD = 'TU_CLAVE_REAL_AQUI' # Escribe aquí la contraseña REAL de tu correo (evita usar la letra ñ)
 DEFAULT_FROM_EMAIL = 'Sistema Bomberos <contacto@sigbomberosmulchen.cl>'
