@@ -435,7 +435,11 @@
                             </h2>
                             <div id="collapseAviso{{ aviso.id }}" class="accordion-collapse collapse" aria-labelledby="headingAviso{{ aviso.id }}" data-bs-parent="#accordionAvisos">
                                 <div class="accordion-body">
-                                    <p>{{ aviso.mensaje }}</p>
+                                    <   <p class="mb-0">{{ aviso.mensaje }}</p>
+                                        <button class="btn btn-sm btn-outline-danger ms-3 flex-shrink-0" data-bs-toggle="modal" data-bs-target="#deleteAvisoModal-{{ aviso.id }}">
+                                            <i class="bi bi-trash-fill"></i> Eliminar
+                                        </button>
+                                    </div>
                                     <h6 class="mt-4 mb-2">Estado de Lectura:</h6>
                                     <div class="table-responsive">
                                         <table class="table table-sm table-bordered text-center align-middle">
@@ -944,6 +948,29 @@
                     <form action="{% url 'compania_delete' compania.id %}" method="post">
                         {% csrf_token %}
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button><button type="submit" class="btn btn-danger">Sí, eliminar</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endfor %}
+
+<!-- Modales para Avisos -->
+{% for aviso in avisos %}
+    <!-- Modal Eliminar Aviso -->
+    <div class="modal fade" id="deleteAvisoModal-{{ aviso.id }}" tabindex="-1" aria-labelledby="deleteAvisoModalLabel-{{ aviso.id }}" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header"><h5 class="modal-title" id="deleteAvisoModalLabel-{{ aviso.id }}">Confirmar Eliminación</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+                <div class="modal-body">
+                    <p>¿Estás seguro de que quieres eliminar el aviso "<strong>{{ aviso.titulo }}</strong>"?</p>
+                    <p class="text-danger small">Esta acción no se puede deshacer. Se eliminarán los registros de lectura y notificaciones asociadas.</p>
+                </div>
+                <div class="modal-footer">
+                    <form action="{% url 'aviso_delete' aviso.id %}" method="post">
+                        {% csrf_token %}
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-danger">Sí, eliminar</button>
                     </form>
                 </div>
             </div>

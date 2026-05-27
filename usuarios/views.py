@@ -1978,6 +1978,14 @@ def api_notificaciones(request):
     return JsonResponse({'notificaciones': data, 'no_leidas': no_leidas})
 
 @login_required
+def aviso_delete_view(request, aviso_id):
+    if request.method == 'POST' and request.user.is_superuser:
+        aviso = get_object_or_404(Aviso, id=aviso_id)
+        messages.success(request, f'Aviso "{aviso.titulo}" eliminado exitosamente.')
+        aviso.delete()
+    return redirect('administracion')
+
+@login_required
 def marcar_notificacion_leida(request, notif_id):
     notif = get_object_or_404(Notificacion, id=notif_id, usuario=request.user)
     notif.leida = True

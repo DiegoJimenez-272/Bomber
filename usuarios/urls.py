@@ -93,6 +93,7 @@ urlpatterns = [
 
     # Avisos 
     path('aviso/create/', views.aviso_create_view, name='aviso_create'),
+    path('aviso/<int:aviso_id>/delete/', views.aviso_delete_view, name='aviso_delete'),
     path('avisos/<int:destinatario_id>/leer/', views.aviso_leer_view, name='aviso_leer'),
 
 ]
