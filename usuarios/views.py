@@ -2022,7 +2022,8 @@ def password_reset_request_view(request):
                     messages.success(request, 'Se ha enviado un código de verificación a tu correo.')
                     return redirect('password_reset_verify')
                 except Exception as e:
-                    messages.error(request, 'Error al enviar el correo. Por favor, verifica la configuración del servidor de correos.')
+                    print(f"Error SMTP: {str(e)}")
+                    messages.error(request, f'Error al enviar el correo. Detalle técnico: {str(e)}')
             else:
                 # Por seguridad y evitar spam, indicamos esto genéricamente
                 messages.error(request, 'No existe un usuario con ese correo electrónico registrado.')
