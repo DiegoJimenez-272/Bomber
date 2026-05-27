@@ -110,6 +110,8 @@ def dashboard_view(request):
         for m in modules:
             # Modulos estrictamente para superusuario
             if m['id'] in ['administracion']:
+                if rol and rol.ver_avisos:
+                    filtered_modules.append(m)
                 continue
             
             # Módulos controlados mediante los permisos configurados en el Rol
@@ -1615,8 +1617,8 @@ def caja_chica_delete_view(request, movimiento_id):
 
 @login_required
 def administracion_view(request):
-    # Restringimos el acceso solo a superusuarios
-    if not request.user.is_superuser:
+    # Restringimos el acceso a superusuarios o quienes tengan permiso de ver avisos
+    if not request.user.is_superuser and not (request.user.rol and request.user.rol.ver_avisos):
         messages.error(request, 'No tienes permiso para acceder a esta sección.')
         return redirect('dashboard')
 
@@ -1822,7 +1824,7 @@ def rol_delete_view(request, rol_id):
 
 @login_required
 def aviso_create_view(request):
-    if not request.user.is_superuser:
+    if not request.user.is_superuser and not (request.user.rol and request.user.rol.editar_avisos):
         messages.error(request, 'Acción no permitida.')
         return redirect('dashboard')
     
@@ -1979,7 +1981,7 @@ def api_notificaciones(request):
 
 @login_required
 def aviso_delete_view(request, aviso_id):
-    if request.method == 'POST' and request.user.is_superuser:
+    if request.method == 'POST' and (request.user.is_superuser or (request.user.rol and request.user.rol.editar_avisos)):
         aviso = get_object_or_404(Aviso, id=aviso_id)
         messages.success(request, f'Aviso "{aviso.titulo}" eliminado exitosamente.')
         aviso.delete()

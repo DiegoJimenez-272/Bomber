@@ -22,6 +22,7 @@ class Rol(models.Model):
     ver_mantenimientos = models.BooleanField(default=False, verbose_name="Mantenimientos")
     ver_proyectos = models.BooleanField(default=False, verbose_name="Proyectos")
     ver_caja_chica = models.BooleanField(default=False, verbose_name="Caja Chica")
+    ver_avisos = models.BooleanField(default=False, verbose_name="Avisos")
 
     # --- Permisos de Edición / Creación / Eliminación ---
     editar_documentacion = models.BooleanField(default=False, verbose_name="Editar Documentación")
@@ -32,6 +33,7 @@ class Rol(models.Model):
     editar_mantenimientos = models.BooleanField(default=False, verbose_name="Editar Mantenimientos")
     editar_proyectos = models.BooleanField(default=False, verbose_name="Editar Proyectos")
     editar_caja_chica = models.BooleanField(default=False, verbose_name="Editar Caja Chica")
+    editar_avisos = models.BooleanField(default=False, verbose_name="Editar Avisos")
 
     def __str__(self):
         return self.nombre

@@ -171,8 +171,8 @@ class RolForm(forms.ModelForm):
             'nombre', 'descripcion',
             'ver_resumen_general', 'ver_documentacion', 'ver_escanear_qr', 'ver_inventario',
             'ver_salidas_terreno', 'ver_emergencias', 'ver_capacitaciones', 'ver_mantenimientos', 'ver_proyectos', 'ver_caja_chica',
-            'editar_documentacion', 'editar_inventario', 'editar_salidas_terreno',
-            'editar_emergencias', 'editar_capacitaciones', 'editar_mantenimientos', 'editar_proyectos', 'editar_caja_chica'
+            'ver_avisos', 'editar_documentacion', 'editar_inventario', 'editar_salidas_terreno',
+            'editar_emergencias', 'editar_capacitaciones', 'editar_mantenimientos', 'editar_proyectos', 'editar_caja_chica', 'editar_avisos'
         ]
         widgets = {
             'nombre': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej: Capitán', 'list': 'roles-sugeridos'}),
@@ -185,8 +185,8 @@ class RolForm(forms.ModelForm):
         permisos_fields = [
             'ver_resumen_general', 'ver_documentacion', 'ver_escanear_qr', 'ver_inventario',
             'ver_salidas_terreno', 'ver_emergencias', 'ver_capacitaciones', 'ver_mantenimientos', 'ver_proyectos', 'ver_caja_chica',
-            'editar_documentacion', 'editar_inventario', 'editar_salidas_terreno',
-            'editar_emergencias', 'editar_capacitaciones', 'editar_mantenimientos', 'editar_proyectos', 'editar_caja_chica'
+            'ver_avisos', 'editar_documentacion', 'editar_inventario', 'editar_salidas_terreno',
+            'editar_emergencias', 'editar_capacitaciones', 'editar_mantenimientos', 'editar_proyectos', 'editar_caja_chica', 'editar_avisos'
         ]
         for field in permisos_fields:
             self.fields[field].widget.attrs.update({'class': 'form-check-input'})

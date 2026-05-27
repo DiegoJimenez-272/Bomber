@@ -123,6 +123,7 @@
     {% endif %}
 
     <ul class="nav admin-nav-blocks mb-5" id="adminTab" role="tablist">
+        {% if request.user.is_superuser %}
         <li class="nav-item" role="presentation">
             <button class="nav-link active" id="requests-tab" data-bs-toggle="tab" data-bs-target="#requests" type="button" role="tab" aria-controls="requests" aria-selected="true">
                 <i class="bi bi-person-lines-fill"></i>
@@ -150,15 +151,19 @@
                 <span>Compañías</span>
             </button>
         </li>
+        {% endif %}
+        {% if request.user.is_superuser or request.user.rol.ver_avisos %}
         <li class="nav-item" role="presentation">
-            <button class="nav-link" id="avisos-tab" data-bs-toggle="tab" data-bs-target="#avisos" type="button" role="tab" aria-controls="avisos" aria-selected="false">
+            <button class="nav-link {% if not request.user.is_superuser %}active{% endif %}" id="avisos-tab" data-bs-toggle="tab" data-bs-target="#avisos" type="button" role="tab" aria-controls="avisos" aria-selected="{% if not request.user.is_superuser %}true{% else %}false{% endif %}">
                 <i class="bi bi-megaphone-fill"></i>
                 <span>Avisos</span>
             </button>
         </li>
+        {% endif %}
     </ul>
 
     <div class="tab-content" id="adminTabContent">
+        {% if request.user.is_superuser %}
         <!-- Pestaña de Solicitudes de Registro -->
         <div class="tab-pane fade show active" id="requests" role="tabpanel" aria-labelledby="requests-tab">
             <div class="card shadow-sm mt-3">
@@ -414,15 +419,19 @@
                 </div>
             </div>
         </div>
+        {% endif %}
 
+        {% if request.user.is_superuser or request.user.rol.ver_avisos %}
         <!-- Pestaña de Avisos -->
-        <div class="tab-pane fade" id="avisos" role="tabpanel" aria-labelledby="avisos-tab">
+        <div class="tab-pane fade {% if not request.user.is_superuser %}show active{% endif %}" id="avisos" role="tabpanel" aria-labelledby="avisos-tab">
             <div class="card shadow-sm mt-3">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <span>Avisos Enviados</span>
+                    {% if request.user.is_superuser or request.user.rol.editar_avisos %}
                     <button class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#createAvisoModal">
                         <i class="bi bi-plus-lg me-1"></i> Nuevo Aviso
                     </button>
+                    {% endif %}
                 </div>
                 <div class="card-body">
                     <div class="accordion" id="accordionAvisos">
@@ -436,9 +445,11 @@
                             <div id="collapseAviso{{ aviso.id }}" class="accordion-collapse collapse" aria-labelledby="headingAviso{{ aviso.id }}" data-bs-parent="#accordionAvisos">
                                 <div class="accordion-body">
                                     <   <p class="mb-0">{{ aviso.mensaje }}</p>
+                                        {% if request.user.is_superuser or request.user.rol.editar_avisos %}
                                         <button class="btn btn-sm btn-outline-danger ms-3 flex-shrink-0" data-bs-toggle="modal" data-bs-target="#deleteAvisoModal-{{ aviso.id }}">
                                             <i class="bi bi-trash-fill"></i> Eliminar
                                         </button>
+                                        {% endif %}
                                     </div>
                                     <h6 class="mt-4 mb-2">Estado de Lectura:</h6>
                                     <div class="table-responsive">
@@ -483,6 +494,7 @@
                 </div>
             </div>
         </div>
+        {% endif %}
     </div>
 </main>
 
@@ -728,6 +740,17 @@
                                 <div class="form-check form-switch mb-0 fs-5 edit-toggle" title="Permite registrar o modificar presupuestos de proyectos">{{ rol_form.editar_proyectos }}</div>
                             </div>
                         </div>
+                        <div class="row g-0 py-2 align-items-center permission-row border-top">
+                            <div class="col-6 px-3">
+                                <i class="bi bi-megaphone-fill text-secondary me-2"></i> <strong>Avisos</strong>
+                            </div>
+                            <div class="col-3 d-flex justify-content-center">
+                                <div class="form-check form-switch mb-0 fs-5 view-toggle">{{ rol_form.ver_avisos }}</div>
+                            </div>
+                            <div class="col-3 d-flex justify-content-center">
+                                <div class="form-check form-switch mb-0 fs-5 edit-toggle" title="Permite crear y eliminar avisos">{{ rol_form.editar_avisos }}</div>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button><button type="submit" class="btn btn-danger">Crear Rol</button></div>
@@ -868,6 +891,17 @@
                             </div>
                             <div class="col-3 d-flex justify-content-center">
                                 <div class="form-check form-switch mb-0 fs-5 edit-toggle"><input type="checkbox" class="form-check-input mt-0" name="editar_proyectos" {% if rol.editar_proyectos %}checked{% endif %}></div>
+                            </div>
+                        </div>
+                        <div class="row g-0 py-2 align-items-center permission-row border-top">
+                            <div class="col-6 px-3">
+                                <i class="bi bi-megaphone-fill text-secondary me-2"></i> <strong>Avisos</strong>
+                            </div>
+                            <div class="col-3 d-flex justify-content-center">
+                                <div class="form-check form-switch mb-0 fs-5 view-toggle"><input type="checkbox" class="form-check-input mt-0" name="ver_avisos" {% if rol.ver_avisos %}checked{% endif %}></div>
+                            </div>
+                            <div class="col-3 d-flex justify-content-center">
+                                <div class="form-check form-switch mb-0 fs-5 edit-toggle"><input type="checkbox" class="form-check-input mt-0" name="editar_avisos" {% if rol.editar_avisos %}checked{% endif %}></div>
                             </div>
                         </div>
                     </div>
@@ -1054,7 +1088,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // Leer la pestaña activa desde la URL o desde la memoria local
     const urlParams = new URLSearchParams(window.location.search);
     const activeTabParam = urlParams.get('tab');
-    let activeTab = '#requests'; // Pestaña por defecto
+    let activeTab = '{% if request.user.is_superuser %}#requests{% else %}#avisos{% endif %}'; // Pestaña por defecto
 
     if (activeTabParam) {
         activeTab = '#' + activeTabParam;
@@ -1063,11 +1097,12 @@ document.addEventListener('DOMContentLoaded', function () {
         activeTab = localStorage.getItem('activeAdminTab');
     }
 
-    const activeTabEl = document.querySelector(`button[data-bs-target="${activeTab}"]`);
+    let activeTabEl = document.querySelector(`button[data-bs-target="${activeTab}"]`);
     if (activeTabEl) {
         new bootstrap.Tab(activeTabEl).show();
     } else {
-        new bootstrap.Tab(document.querySelector('#adminTab button')).show(); // Mostrar la primera si el parámetro es inválido
+        const firstTab = document.querySelector('#adminTab button');
+        if(firstTab) new bootstrap.Tab(firstTab).show(); 
     }
 
     // --- Lógica para Modales Genéricos de Usuario ---
