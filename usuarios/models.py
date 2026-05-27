@@ -140,7 +140,6 @@ class Documento(models.Model):
     descripcion = models.TextField(blank=True)
     archivo = models.FileField(upload_to='documentos/')
     compania = models.ForeignKey(Compania, on_delete=models.CASCADE, null=True, blank=True, related_name='documentos')
-    solo_admin = models.BooleanField(default=False, verbose_name='Solo Administración')
     subido_por = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
     subido_en = models.DateTimeField(auto_now_add=True)
 
@@ -408,3 +407,18 @@ class CajaChica(models.Model):
         ordering = ['-fecha']
         verbose_name = "Movimiento de Caja Chica"
         verbose_name_plural = "Movimientos de Caja Chica"
+
+class Aviso(models.Model):
+    titulo = models.CharField(max_length=200)
+    mensaje = models.TextField()
+    creado_por = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='avisos_creados')
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ['-fecha_creacion']
+
+class AvisoDestinatario(models.Model):
+    aviso = models.ForeignKey(Aviso, on_delete=models.CASCADE, related_name='destinatarios')
+    usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='avisos_asignados')
+    leido = models.BooleanField(default=False)
+    fecha_lectura = models.DateTimeField(null=True, blank=True)

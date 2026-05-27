@@ -19,8 +19,8 @@ from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter
 import openpyxl
 from reportlab.lib.units import inch
-from .forms import RegistroForm, LoginForm, ProyectoForm, ArchivoProyectoForm, DocumentoForm, SalidaTerrenoForm, EmergenciaForm, PerfilForm, PasswordChangeForm, CapacitacionForm, MantenimientoForm, ArchivoMantenimientoForm, InventarioForm, CajaChicaForm, AdminUserCreationForm, AdminUserChangeForm, RolForm, CompaniaForm, InventarioEditForm, InventarioGroupEditForm
-from .models import Rol, Compania, Proyecto, ArchivoProyecto, Documento, SalidaTerreno, Emergencia, Usuario, Capacitacion, Mantenimiento, ArchivoMantenimiento, Inventario, CajaChica, Notificacion
+from .forms import RegistroForm, LoginForm, ProyectoForm, ArchivoProyectoForm, DocumentoForm, SalidaTerrenoForm, EmergenciaForm, PerfilForm, PasswordChangeForm, CapacitacionForm, MantenimientoForm, ArchivoMantenimientoForm, InventarioForm, CajaChicaForm, AdminUserCreationForm, AdminUserChangeForm, RolForm, CompaniaForm, InventarioEditForm, InventarioGroupEditForm, AvisoForm
+from .models import Rol, Compania, Proyecto, ArchivoProyecto, Documento, SalidaTerreno, Emergencia, Usuario, Capacitacion, Mantenimiento, ArchivoMantenimiento, Inventario, CajaChica, Notificacion, Aviso, AvisoDestinatario
 
 def registro_view(request):
     if request.method == 'POST':
@@ -647,7 +647,6 @@ def documentos_view(request):
             descripcion = request.POST.get('descripcion_texto', '')
             contenido = request.POST.get('contenido_texto', '')
             compania_id = request.POST.get('compania')
-            solo_admin = request.POST.get('solo_admin') == 'on'
 
             if not nombre or not contenido:
                 messages.error(request, 'El título y el contenido son obligatorios.')
@@ -677,18 +676,16 @@ def documentos_view(request):
             documento = Documento(
                 nombre=nombre,
                 descripcion=descripcion,
-                subido_por=request.user,
-                solo_admin=solo_admin
+                subido_por=request.user
             )
             
-            if not solo_admin:
-                if request.user.is_superuser and compania_id:
-                    try:
-                        documento.compania = Compania.objects.get(id=compania_id)
-                    except Compania.DoesNotExist:
-                        pass
-                elif not request.user.is_superuser and request.user.compania:
-                    documento.compania = request.user.compania
+            if request.user.is_superuser and compania_id:
+                try:
+                    documento.compania = Compania.objects.get(id=compania_id)
+                except Compania.DoesNotExist:
+                    pass
+            elif not request.user.is_superuser and request.user.compania:
+                documento.compania = request.user.compania
                 
             documento.archivo.save(safe_filename, ContentFile(pdf_bytes), save=False)
             documento.save()
@@ -701,9 +698,7 @@ def documentos_view(request):
                 documento = form.save(commit=False)
                 documento.subido_por = request.user
                 
-                if getattr(documento, 'solo_admin', False):
-                    documento.compania = None
-                elif not request.user.is_superuser and request.user.compania:
+                if not request.user.is_superuser and request.user.compania:
                     documento.compania = request.user.compania
                     
                 documento.save()
@@ -723,9 +718,6 @@ def documentos_view(request):
     documentos = Documento.objects.select_related('subido_por', 'compania').all()
 
     if not request.user.is_superuser:
-        # Ocultar los documentos exclusivos de administración
-        documentos = documentos.filter(solo_admin=False)
-        
         if request.user.compania:
             # Mostrar los de su compañía o los que son generales (compania=None)
             documentos = documentos.filter(Q(compania=request.user.compania) | Q(compania__isnull=True))
@@ -760,7 +752,7 @@ def documentos_view(request):
         documentos = documentos.order_by(ordenar_por)
 
     if not request.user.is_superuser and request.user.compania:
-        usuarios_con_docs = Usuario.objects.filter(Q(documento__compania=request.user.compania) | Q(documento__compania__isnull=True), documento__solo_admin=False, documento__isnull=False).distinct().order_by('nombre')
+        usuarios_con_docs = Usuario.objects.filter(Q(documento__compania=request.user.compania) | Q(documento__compania__isnull=True), documento__isnull=False).distinct().order_by('nombre')
     else:
         usuarios_con_docs = Usuario.objects.filter(documento__isnull=False).distinct().order_by('nombre')
 
@@ -1634,6 +1626,8 @@ def administracion_view(request):
     user_change_form = AdminUserChangeForm(request=request)
     rol_form = RolForm()
     compania_form = CompaniaForm()
+    aviso_form = AvisoForm()
+    avisos = Aviso.objects.all().prefetch_related('destinatarios', 'destinatarios__usuario')
 
     # Búsqueda y filtrado de usuarios
     query = request.GET.get('q')
@@ -1662,6 +1656,8 @@ def administracion_view(request):
         'user_change_form': user_change_form,
         'rol_form': rol_form,
         'compania_form': compania_form,
+        'aviso_form': aviso_form,
+        'avisos': avisos,
         'edit_form_user_id': request.session.pop('edit_form_user_id', None) # Para saber qué modal de edición abrir si hay error en la edición de usuario
     }
     return render(request, 'usuarios/administracion.html', context)
@@ -1823,6 +1819,51 @@ def rol_delete_view(request, rol_id):
         messages.success(request, f'Rol "{rol.nombre}" eliminado.')
         rol.delete()
     return redirect('administracion')
+
+@login_required
+def aviso_create_view(request):
+    if not request.user.is_superuser:
+        messages.error(request, 'Acción no permitida.')
+        return redirect('dashboard')
+    
+    if request.method == 'POST':
+        form = AvisoForm(request.POST)
+        if form.is_valid():
+            aviso = form.save(commit=False)
+            aviso.creado_por = request.user
+            aviso.save()
+            
+            usuarios = form.cleaned_data['usuarios']
+            destinatarios = []
+            for u in usuarios:
+                destinatarios.append(AvisoDestinatario(aviso=aviso, usuario=u))
+                
+            AvisoDestinatario.objects.bulk_create(destinatarios)
+            destinatarios_db = AvisoDestinatario.objects.filter(aviso=aviso)
+            
+            notificaciones = []
+            for dest in destinatarios_db:
+                notificaciones.append(Notificacion(
+                    usuario=dest.usuario,
+                    mensaje=f"📢 Aviso del Administrador: {aviso.titulo}",
+                    link=f"/avisos/{dest.id}/leer/"
+                ))
+            Notificacion.objects.bulk_create(notificaciones)
+            
+            messages.success(request, 'Aviso enviado exitosamente.')
+        else:
+            messages.error(request, 'Error al enviar el aviso.')
+    return redirect('administracion')
+
+@login_required
+def aviso_leer_view(request, destinatario_id):
+    destinatario = get_object_or_404(AvisoDestinatario, id=destinatario_id, usuario=request.user)
+    if not destinatario.leido:
+        destinatario.leido = True
+        destinatario.fecha_lectura = timezone.now()
+        destinatario.save()
+        
+    return render(request, 'usuarios/aviso_leer.html', {'aviso': destinatario.aviso})
 
 @login_required
 def compania_create_view(request):

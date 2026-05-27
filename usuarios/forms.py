@@ -1,7 +1,7 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm, PasswordChangeForm as AuthPasswordChangeForm
 from django.db.models import Sum, Case, When, DecimalField, F
-from .models import Usuario, Compania, Rol, Proyecto, Documento, SalidaTerreno, Emergencia, Capacitacion, Mantenimiento, Inventario, CajaChica
+from .models import Usuario, Compania, Rol, Proyecto, Documento, SalidaTerreno, Emergencia, Capacitacion, Mantenimiento, Inventario, CajaChica, Aviso
 
 class RegistroForm(UserCreationForm):
     email = forms.EmailField(
@@ -294,16 +294,9 @@ class ArchivoProyectoForm(forms.Form):
     )
 
 class DocumentoForm(forms.ModelForm):
-    solo_admin = forms.BooleanField(
-        label="Solo Administración",
-        required=False,
-        initial=False,
-        widget=forms.CheckboxInput(attrs={'class': 'form-check-input', 'onchange': 'var c = document.getElementById("id_compania"); if(c) c.disabled = this.checked;'})
-    )
-
     class Meta:
         model = Documento
-        fields = ['nombre', 'descripcion', 'archivo', 'compania', 'solo_admin']
+        fields = ['nombre', 'descripcion', 'archivo', 'compania']
         widgets = {
             'nombre': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Nombre del documento'}),
             'descripcion': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Descripción breve (opcional)'}),
@@ -623,3 +616,18 @@ class InventarioGroupEditForm(forms.Form):
         choices=Inventario.ESTADO_CHOICES,
         widget=forms.Select(attrs={'class': 'form-select'})
     )
+
+class AvisoForm(forms.ModelForm):
+    usuarios = forms.ModelMultipleChoiceField(
+        queryset=Usuario.objects.filter(is_active=True).order_by('nombre'),
+        widget=forms.CheckboxSelectMultiple(attrs={'class': 'form-check-input'}),
+        label="Seleccionar Destinatarios"
+    )
+
+    class Meta:
+        model = Aviso
+        fields = ['titulo', 'mensaje']
+        widgets = {
+            'titulo': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej: Reunión Extraordinaria o Aviso Importante'}),
+            'mensaje': forms.Textarea(attrs={'class': 'form-control', 'rows': 4, 'placeholder': 'Escribe el mensaje del aviso...'}),
+        }

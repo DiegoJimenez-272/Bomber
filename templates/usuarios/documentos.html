@@ -111,8 +111,7 @@
                             <td>{{ doc.subido_por.get_full_name|default:"N/A" }}</td>
                             {% if request.user.is_superuser %}
                             <td>
-                                {% if doc.solo_admin %}<span class="badge bg-danger"><i class="bi bi-shield-lock-fill me-1"></i>Solo Admin</span>
-                                {% else %}{{ doc.compania.nombre|default:"General" }}{% endif %}
+                                {{ doc.compania.nombre|default:"General" }}
                             </td>
                             {% endif %}
                             <td>{{ doc.subido_en|date:"d/m/Y H:i" }}</td>
@@ -186,15 +185,6 @@
                         <label for="{{ form.archivo.id_for_label }}" class="form-label">Archivo</label>
                         {{ form.archivo }}
                     </div>
-                    {% if form.solo_admin %}
-                    <div class="mb-3 border p-3 rounded bg-light">
-                        <div class="form-check form-switch mb-1">
-                            {{ form.solo_admin }}
-                            <label class="form-check-label fw-bold text-danger" for="{{ form.solo_admin.id_for_label }}">{{ form.solo_admin.label }}</label>
-                        </div>
-                        <div class="form-text">El documento no pertenecerá a ninguna compañía y estará oculto para usuarios normales.</div>
-                    </div>
-                    {% endif %}
                     {% if form.compania %}
                     <div class="mb-3">
                         <label for="{{ form.compania.id_for_label }}" class="form-label">Asignar a Compañía (Opcional)</label>
@@ -236,15 +226,10 @@
                         <textarea class="form-control" id="contenido_texto" name="contenido_texto" rows="12" required placeholder="Redacta aquí el contenido del documento. El sistema generará y guardará un archivo PDF automáticamente con este texto."></textarea>
                     </div>
                     {% if request.user.is_superuser %}
-                    <div class="mb-3 border p-3 rounded bg-light">
-                        <div class="form-check form-switch mb-3">
-                            <input class="form-check-input" type="checkbox" id="solo_admin_texto" name="solo_admin" onchange="document.getElementById('compania_texto').disabled = this.checked;">
-                            <label class="form-check-label fw-bold text-danger" for="solo_admin_texto">Solo Administración</label>
-                            <div class="form-text">El documento no pertenecerá a ninguna compañía y estará oculto para usuarios normales.</div>
-                        </div>
+                    <div class="mb-3">
                         <label for="compania_texto" class="form-label">Asignar a Compañía (Opcional)</label>
                         <select class="form-select" id="compania_texto" name="compania">
-                            <option value="">Documento General (Visible por todos si no es Solo Admin)</option>
+                            <option value="">Documento General (Visible por todos)</option>
                             {% for choice in form.compania.field.choices %}
                                 {% if choice.0 %}<option value="{{ choice.0 }}">{{ choice.1 }}</option>{% endif %}
                             {% endfor %}

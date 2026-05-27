@@ -90,4 +90,9 @@ urlpatterns = [
     # Notificaciones
     path('api/notificaciones/', views.api_notificaciones, name='api_notificaciones'),
     path('notificaciones/leer/<int:notif_id>/', views.marcar_notificacion_leida, name='marcar_notificacion_leida'),
+
+    # Avisos 
+    path('aviso/create/', views.aviso_create_view, name='aviso_create'),
+    path('avisos/<int:destinatario_id>/leer/', views.aviso_leer_view, name='aviso_leer'),
+
 ]
