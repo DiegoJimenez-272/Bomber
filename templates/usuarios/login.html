@@ -36,14 +36,14 @@
                 <i class="bi bi-eye"></i>
             </button>
         </div>
-        <div class="text-end mt-2">
-            <a href="{% url 'password_reset_request' %}" class="text-decoration-none" style="color: #dc3545; font-size: 14px; font-weight: 500;">
-                ¿Olvidaste tu contraseña?
-            </a>
-        </div>
     </div>
 
-    <button type="submit" class="auth-button">Ingresar al Sistema</button>
+    <button type="submit" class="auth-button mb-3">Ingresar al Sistema</button>
+    
+    <!-- Botón de Recuperar Contraseña -->
+    <a href="{% url 'password_reset_request' %}" class="btn btn-outline-danger w-100 py-2" style="border-radius: 0.5rem; font-weight: 600;">
+        Recuperar Contraseña
+    </a>
 </form>
 
 <div class="mt-4 text-center">
