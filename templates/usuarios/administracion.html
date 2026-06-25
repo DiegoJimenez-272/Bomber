@@ -426,9 +426,15 @@
         <div class="tab-pane fade {% if not request.user.is_superuser %}show active{% endif %}" id="avisos" role="tabpanel" aria-labelledby="avisos-tab">
             <div class="card shadow-sm mt-3">
                 <div class="card-header d-flex justify-content-between align-items-center">
-                    <span>Avisos Enviados</span>
+                    <div class="d-flex flex-grow-1 gap-2 align-items-center me-3">
+                        <span class="text-nowrap fw-bold me-2">Avisos Enviados</span>
+                        <div class="input-group" style="max-width: 400px;">
+                            <span class="input-group-text"><i class="bi bi-search"></i></span>
+                            <input class="form-control" type="search" id="avisoSearchInput" placeholder="Escribe para buscar avisos...">
+                        </div>
+                    </div>
                     {% if request.user.is_superuser or request.user.rol.editar_avisos %}
-                    <button class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#createAvisoModal">
+                    <button class="btn btn-sm btn-danger flex-shrink-0" data-bs-toggle="modal" data-bs-target="#createAvisoModal">
                         <i class="bi bi-plus-lg me-1"></i> Nuevo Aviso
                     </button>
                     {% endif %}
@@ -436,15 +442,16 @@
                 <div class="card-body">
                     <div class="accordion" id="accordionAvisos">
                         {% for aviso in avisos %}
-                        <div class="accordion-item">
+                        <div class="accordion-item aviso-item">
                             <h2 class="accordion-header" id="headingAviso{{ aviso.id }}">
                                 <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseAviso{{ aviso.id }}" aria-expanded="false" aria-controls="collapseAviso{{ aviso.id }}">
-                                    <strong>{{ aviso.titulo }}</strong> &nbsp;- <span class="text-muted small ms-2">{{ aviso.fecha_creacion|date:"d/m/Y H:i" }}</span>
+                                    <strong class="aviso-titulo">{{ aviso.titulo }}</strong> &nbsp;- <span class="text-muted small ms-2">{{ aviso.fecha_creacion|date:"d/m/Y H:i" }}</span>
                                 </button>
                             </h2>
                             <div id="collapseAviso{{ aviso.id }}" class="accordion-collapse collapse" aria-labelledby="headingAviso{{ aviso.id }}" data-bs-parent="#accordionAvisos">
                                 <div class="accordion-body">
-                                    <   <p class="mb-0">{{ aviso.mensaje }}</p>
+                                    <div class="d-flex justify-content-between align-items-start mb-3">
+                                        <p class="mb-0 aviso-mensaje">{{ aviso.mensaje }}</p>
                                         {% if request.user.is_superuser or request.user.rol.editar_avisos %}
                                         <button class="btn btn-sm btn-outline-danger ms-3 flex-shrink-0" data-bs-toggle="modal" data-bs-target="#deleteAvisoModal-{{ aviso.id }}">
                                             <i class="bi bi-trash-fill"></i> Eliminar
@@ -490,6 +497,7 @@
                         {% empty %}
                         <div class="text-center text-muted py-4">No hay avisos enviados.</div>
                         {% endfor %}
+                        <div class="text-center text-muted py-4" id="no-avisos-found-msg" style="display: none;">No se encontraron avisos que coincidan con la búsqueda.</div>
                     </div>
                 </div>
             </div>
@@ -1285,6 +1293,37 @@ document.addEventListener('DOMContentLoaded', function () {
     if (btnDeselectAllAviso) btnDeselectAllAviso.addEventListener('click', () => {
         avisoUserCheckboxes.forEach(cb => cb.checked = false);
     });
+
+    // --- Lógica de Filtrado en Tiempo Real para Avisos ---
+    const avisoSearchInput = document.getElementById('avisoSearchInput');
+    const avisoItems = document.querySelectorAll('.aviso-item');
+    const noAvisosMsg = document.getElementById('no-avisos-found-msg');
+
+    if (avisoSearchInput) {
+        avisoSearchInput.addEventListener('input', function() {
+            const query = this.value.toLowerCase().trim();
+            let visibleCount = 0;
+
+            avisoItems.forEach(item => {
+                const tituloElement = item.querySelector('.aviso-titulo');
+                const mensajeElement = item.querySelector('.aviso-mensaje');
+                
+                const titulo = tituloElement ? tituloElement.textContent.toLowerCase() : '';
+                const mensaje = mensajeElement ? mensajeElement.textContent.toLowerCase() : '';
+
+                if (titulo.includes(query) || mensaje.includes(query)) {
+                    item.style.display = '';
+                    visibleCount++;
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+
+            if (noAvisosMsg) {
+                noAvisosMsg.style.display = (visibleCount === 0 && avisoItems.length > 0) ? '' : 'none';
+            }
+        });
+    }
 
 });
 </script>
