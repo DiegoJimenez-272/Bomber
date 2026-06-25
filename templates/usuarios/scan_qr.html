@@ -72,7 +72,7 @@
                                 <div class="d-flex align-items-center bg-body p-3 rounded-3 border border-success-subtle shadow-sm position-relative z-1 dark-mode-adjust">
                                     <div class="flex-shrink-0" id="user-photo-container"></div>
                                     <div class="flex-grow-1 ms-3">
-                                        <p class="mb-0 text-muted small text-uppercase fw-bold" style="font-size: 0.7rem;">Responsable Actual</p>
+                                        <p class="mb-0 text-muted small text-uppercase fw-bold" style="font-size: 0.7rem;" id="assignment-label">Responsable Actual</p>
                                         <h6 class="mb-0 fw-bold text-dark force-black-text" id="user-name">Nombre del Usuario</h6>
                                     </div>
                                 </div>
@@ -267,14 +267,24 @@
                 document.getElementById('error-container').classList.remove('d-none');
             } else {
                 document.getElementById('item-name').textContent = data.item_nombre;
-                document.getElementById('user-name').textContent = data.usuario_nombre;
                 
+                const labelElement = document.getElementById('assignment-label');
                 const photoContainer = document.getElementById('user-photo-container');
-                if (data.usuario_foto_url) {
-                    photoContainer.innerHTML = `<img src="${data.usuario_foto_url}" class="rounded-circle shadow-sm" style="width: 55px; height: 55px; object-fit: cover; border: 3px solid white;">`;
-                } else {
-                    photoContainer.innerHTML = `<div class="rounded-circle bg-danger text-white d-flex align-items-center justify-content-center shadow-sm" style="width: 55px; height: 55px; border: 3px solid white;"><strong class="fs-4">${data.usuario_iniciales}</strong></div>`;
+                
+                if (data.tipo_asignacion === 'usuario') {
+                    if (labelElement) labelElement.textContent = "Responsable Actual";
+                    document.getElementById('user-name').textContent = data.usuario_nombre;
+                    if (data.usuario_foto_url) {
+                        photoContainer.innerHTML = `<img src="${data.usuario_foto_url}" class="rounded-circle shadow-sm" style="width: 55px; height: 55px; object-fit: cover; border: 3px solid white;">`;
+                    } else {
+                        photoContainer.innerHTML = `<div class="rounded-circle bg-danger text-white d-flex align-items-center justify-content-center shadow-sm" style="width: 55px; height: 55px; border: 3px solid white;"><strong class="fs-4">${data.usuario_iniciales}</strong></div>`;
+                    }
+                } else if (data.tipo_asignacion === 'vehiculo') {
+                    if (labelElement) labelElement.textContent = "Vehículo / Carro Asignado";
+                    document.getElementById('user-name').textContent = `${data.vehiculo_nombre} (${data.compania_nombre})`;
+                    photoContainer.innerHTML = `<div class="rounded-circle bg-danger text-white d-flex align-items-center justify-content-center shadow-sm" style="width: 55px; height: 55px; border: 3px solid white;"><i class="bi bi-truck fs-4"></i></div>`;
                 }
+                
                 document.getElementById('result-container').classList.remove('d-none');
             }
         }).catch(err => {

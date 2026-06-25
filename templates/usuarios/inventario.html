@@ -42,7 +42,10 @@
         <p class="mb-0 text-muted">Gestiona, asigna y da seguimiento a todos los equipos.</p>
     </div>
     {% if request.user.is_superuser or request.user.rol.editar_inventario %}
-    <div class="d-flex gap-2">
+    <div class="d-flex gap-2 flex-wrap">
+        <button class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#createVehiculoModal">
+            <i class="bi bi-truck me-1"></i> Registrar Carro
+        </button>
         <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#createInventarioModal">
             <i class="bi bi-plus-lg me-1"></i> Agregar Ítem
         </button>
@@ -114,6 +117,37 @@
                                                 </tr>
                                             </thead>
                                             <tbody>
+                                                {% for grupo_v in data.asignados_vehiculos %}
+                                                <tr class="align-middle table-danger bg-light">
+                                                    <td>
+                                                        <div class="d-flex align-items-center">
+                                                            <div class="rounded-circle bg-danger text-white d-flex align-items-center justify-content-center me-2 shadow-sm" style="width: 35px; height: 35px;">
+                                                                <i class="bi bi-truck fs-5"></i>
+                                                            </div>
+                                                            <div>
+                                                                <strong>Carro: {{ grupo_v.vehiculo.nombre }}</strong>
+                                                                {% if grupo_v.vehiculo.patente %}
+                                                                    <div class="text-muted small">Patente: {{ grupo_v.vehiculo.patente }}</div>
+                                                                {% endif %}
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td><span class="badge bg-danger">{{ grupo_v.items|length }} equipo(s)</span></td>
+                                                    <td class="text-end">
+                                                        <div class="d-flex justify-content-end gap-2">
+                                                            {% if request.user.is_superuser or request.user.rol.editar_inventario %}
+                                                            <button class="btn btn-sm btn-outline-danger btn-assign-vehiculo" type="button" data-bs-toggle="modal" data-bs-target="#assignToVehiculoModal" data-vehiculo-id="{{ grupo_v.vehiculo.id }}" data-vehiculo-nombre="{{ grupo_v.vehiculo.nombre }}">
+                                                                <i class="bi bi-plus-circle-fill me-1"></i> Asignar Ítems
+                                                            </button>
+                                                            {% endif %}
+                                                            <button class="btn btn-sm btn-danger" type="button" data-bs-toggle="modal" data-bs-target="#modalVehiculoItems-{{ compania.id }}-{{ grupo_v.vehiculo.id }}">
+                                                                <i class="bi bi-eye-fill me-1"></i> Ver equipos
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                                {% endfor %}
+
                                                 {% for grupo in data.asignados %}
                                                 <tr class="align-middle">
                                                     <td>
@@ -135,9 +169,11 @@
                                                         </button>
                                                     </td>
                                                 </tr>
-                                                {% empty %}
-                                                <tr><td colspan="3" class="text-center text-muted py-4">No hay ítems asignados en esta compañía.</td></tr>
                                                 {% endfor %}
+
+                                                {% if not data.asignados and not data.asignados_vehiculos %}
+                                                <tr><td colspan="3" class="text-center text-muted py-4">No hay ítems asignados en esta compañía.</td></tr>
+                                                {% endif %}
                                             </tbody>
                                         </table>
                                     </div>
@@ -459,7 +495,8 @@
                                                     data-item-id="{{ item.id }}"
                                                     data-item-nombre="{{ item.nombre }}"
                                                     data-item-compania="{{ item.compania.id }}"
-                                                    data-item-asignado_a="{{ item.asignado_a.id }}"
+                                                    data-item-asignado_a="{{ item.asignado_a.id|default:'' }}"
+                                                    data-item-asignado_a_vehiculo=""
                                                     data-item-ubicacion="{{ item.ubicacion }}"
                                                     data-item-estado="{{ item.estado }}"
                                                     data-item-fecha_adquisicion="{{ item.fecha_adquisicion|date:'Y-m-d' }}">
@@ -506,6 +543,194 @@
     </div>
     {% endfor %}
 {% endfor %}
+
+<!-- Modales de Equipos Asignados por Vehículo (Carro) -->
+{% for compania, data in inventario_por_compania.items %}
+    {% for grupo_v in data.asignados_vehiculos %}
+    <div class="modal fade" id="modalVehiculoItems-{{ compania.id }}-{{ grupo_v.vehiculo.id }}" tabindex="-1" aria-labelledby="modalVehiculoItemsLabel-{{ compania.id }}-{{ grupo_v.vehiculo.id }}" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header border-bottom">
+                    <h5 class="modal-title" id="modalVehiculoItemsLabel-{{ compania.id }}-{{ grupo_v.vehiculo.id }}">
+                        <i class="bi bi-truck text-danger me-2"></i>Equipos de CARRO: {{ grupo_v.vehiculo.nombre|upper }}
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th class="ps-4">Ítem</th>
+                                    <th>Ubicación</th>
+                                    <th>Estado</th>
+                                    <th class="text-end pe-4">Opciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in grupo_v.items %}
+                                <tr class="align-middle">
+                                    <td class="ps-4"><strong>{{ item.get_nombre_display }}</strong></td>
+                                    <td>{{ item.ubicacion }}</td>
+                                    <td>
+                                        {% if item.estado == 'Bueno' %}<span class="badge bg-success">{{ item.estado }}</span>
+                                        {% elif item.estado == 'Regular' %}<span class="badge bg-info text-dark">{{ item.estado }}</span>
+                                        {% elif item.estado == 'En Reparación' %}<span class="badge bg-warning text-dark">{{ item.estado }}</span>
+                                        {% else %}<span class="badge bg-danger">{{ item.estado }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-end pe-4">
+                                        {% if request.user.is_superuser or request.user.rol.editar_inventario %}
+                                        <div class="btn-group" role="group">
+                                            <button type="button" class="btn btn-sm btn-outline-primary" title="Editar ítem"
+                                                    data-bs-toggle="modal" data-bs-target="#editInventarioModal"
+                                                    data-item-id="{{ item.id }}"
+                                                    data-item-nombre="{{ item.nombre }}"
+                                                    data-item-compania="{{ item.compania.id }}"
+                                                    data-item-asignado_a=""
+                                                    data-item-asignado_a_vehiculo="{{ item.asignado_a_vehiculo.id|default:'' }}"
+                                                    data-item-ubicacion="{{ item.ubicacion }}"
+                                                    data-item-estado="{{ item.estado }}"
+                                                    data-item-fecha_adquisicion="{{ item.fecha_adquisicion|date:'Y-m-d' }}">
+                                                <i class="bi bi-pencil-fill"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-outline-warning" title="Devolver a bodega"
+                                                    data-bs-toggle="modal" data-bs-target="#unassignInventarioModal"
+                                                    data-item-id="{{ item.id }}"
+                                                    data-item-nombre="{{ item.get_nombre_display }}">
+                                                <i class="bi bi-arrow-return-left"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-outline-danger" title="Eliminar registro"
+                                                    data-bs-toggle="modal" data-bs-target="#deleteInventarioModal"
+                                                    data-item-id="{{ item.id }}"
+                                                    data-item-nombre="{{ item.get_nombre_display }}">
+                                                <i class="bi bi-trash-fill"></i>
+                                            </button>
+                                            {% if item.qr_code %}
+                                            <button type="button" class="btn btn-sm btn-outline-secondary view-qr-btn" 
+                                                    data-bs-toggle="modal" data-bs-target="#qrCodeModal"
+                                                    data-item-name="{{ item.get_nombre_display }}"
+                                                    data-item-user="Carro: {{ item.asignado_a_vehiculo.nombre }}"
+                                                    data-item-location="{{ item.ubicacion }}"
+                                                    data-qr-url="{{ item.qr_code.url }}"
+                                                    data-item-id="{{ item.id }}"
+                                                    title="Ver/Imprimir Código QR">
+                                                <i class="bi bi-qr-code"></i>
+                                            </button>
+                                            {% endif %}
+                                        </div>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4" class="text-center text-muted py-3">No hay ítems asignados a este vehículo.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer border-top">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+{% endfor %}
+
+<!-- Modal Registrar Carro de Bomberos -->
+<div class="modal fade" id="createVehiculoModal" tabindex="-1" aria-labelledby="createVehiculoModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="createVehiculoModalLabel">Registrar Nuevo Carro de Bomberos</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form method="post" action="{% url 'vehiculo_create' %}">
+                    {% csrf_token %}
+                    {% if vehiculo_form.non_field_errors %}
+                    <div class="alert alert-danger">{{ vehiculo_form.non_field_errors }}</div>
+                    {% endif %}
+
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label for="{{ vehiculo_form.nombre.id_for_label }}" class="form-label">Nombre/Código del Carro</label>
+                            {{ vehiculo_form.nombre }}
+                            {% for error in vehiculo_form.nombre.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                        </div>
+                        <div class="col-12">
+                            <label for="{{ vehiculo_form.compania.id_for_label }}" class="form-label">Compañía</label>
+                            {{ vehiculo_form.compania }}
+                            {% for error in vehiculo_form.compania.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                        </div>
+                        <div class="col-md-12">
+                            <label for="{{ vehiculo_form.patente.id_for_label }}" class="form-label">Patente (Opcional)</label>
+                            {{ vehiculo_form.patente }}
+                            {% for error in vehiculo_form.patente.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                        </div>
+                        <div class="col-md-12">
+                            <label for="{{ vehiculo_form.descripcion.id_for_label }}" class="form-label">Descripción (Opcional)</label>
+                            {{ vehiculo_form.descripcion }}
+                            {% for error in vehiculo_form.descripcion.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                        </div>
+                    </div>
+                    
+                    <div class="modal-footer mt-4">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-danger">Guardar Carro</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Asignar Equipos a Carro de Bomberos -->
+<div class="modal fade" id="assignToVehiculoModal" tabindex="-1" aria-labelledby="assignToVehiculoModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header border-bottom">
+                <h5 class="modal-title" id="assignToVehiculoModalLabel">
+                    <i class="bi bi-truck text-danger me-2"></i>Asignar Equipos a Carro: <span id="assignVehiculoNombre"></span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{% url 'inventario_assign' %}" method="post" id="assign-vehiculo-form">
+                {% csrf_token %}
+                <input type="hidden" name="tipo_asignacion" value="vehiculo">
+                <input type="hidden" name="vehiculo_a_asignar" id="assign_vehiculo_id" value="">
+                <input type="hidden" name="compania_a_asignar" id="assign_vehiculo_compania_id" value="">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Seleccionar Equipos Disponibles</label>
+                        <div id="vehiculo-items-asignacion-container">
+                            <div class="input-group mb-2 vehiculo-item-asignacion-row">
+                                <select name="item_a_asignar" class="form-select vehiculo-item-select" required>
+                                    <option value="" selected disabled>-- Elige un tipo de ítem --</option>
+                                    {% for item_agrupado in items_disponibles_para_asignar %}
+                                    <option value="{{ item_agrupado.nombre }}" data-max="{{ item_agrupado.cantidad }}" data-compania="{{ item_agrupado.compania_id }}">{{ item_agrupado.nombre_completo }} ({{ item_agrupado.cantidad }} disp.)</option>
+                                    {% endfor %}
+                                </select>
+                                <input type="number" name="cantidad_a_asignar" class="form-control vehiculo-cantidad-input" value="1" min="1" required style="max-width: 80px;" title="Cantidad">
+                                <button type="button" class="btn btn-outline-danger remove-vehiculo-row-btn" style="display: none;" title="Quitar"><i class="bi bi-trash"></i></button>
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-link text-danger text-decoration-none p-0 mt-1" id="add-vehiculo-item-btn">
+                            <i class="bi bi-plus-circle me-1"></i> Añadir otro equipo
+                        </button>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-danger">Asignar Equipos</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
@@ -535,11 +760,20 @@
                             </select>
                         </div>
                         <div class="col-12">
-                            <label for="edit_asignado_a" class="form-label">Asignado a</label>
+                            <label for="edit_asignado_a" class="form-label">Asignado a Voluntario</label>
                             <select id="edit_asignado_a" name="asignado_a" class="form-select">
                                 <option value="">Sin asignar / Bodega</option>
                                 {% for user in edit_form.fields.asignado_a.queryset %}
                                     <option value="{{ user.id }}">{{ user.get_full_name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label for="edit_asignado_a_vehiculo" class="form-label">Asignado a Vehículo (Carro)</label>
+                            <select id="edit_asignado_a_vehiculo" name="asignado_a_vehiculo" class="form-select">
+                                <option value="">Sin asignar / Bodega</option>
+                                {% for vehiculo in vehiculos_activos %}
+                                    <option value="{{ vehiculo.id }}">{{ vehiculo.nombre }} ({{ vehiculo.compania.nombre }})</option>
                                 {% endfor %}
                             </select>
                         </div>
@@ -641,6 +875,11 @@ document.addEventListener('DOMContentLoaded', function () {
         createInventarioModal.show();
     {% endif %}
 
+    {% if vehiculo_form.errors %}
+        var createVehiculoModal = new bootstrap.Modal(document.getElementById('createVehiculoModal'));
+        createVehiculoModal.show();
+    {% endif %}
+
     // Lógica para el modal de edición
     var editModal = document.getElementById('editInventarioModal');
     editModal.addEventListener('show.bs.modal', function (event) {
@@ -649,11 +888,109 @@ document.addEventListener('DOMContentLoaded', function () {
         form.action = `/inventario/${button.dataset.itemId}/edit/`;
         form.querySelector('#edit_nombre').value = button.dataset.itemNombre;
         form.querySelector('#edit_compania').value = button.dataset.itemCompania;
-        form.querySelector('#edit_asignado_a').value = button.dataset.itemAsignado_a;
+        form.querySelector('#edit_asignado_a').value = button.dataset.itemAsignado_a || "";
+        form.querySelector('#edit_asignado_a_vehiculo').value = button.dataset.itemAsignado_a_vehiculo || "";
         form.querySelector('#edit_ubicacion').value = button.dataset.itemUbicacion;
         form.querySelector('#edit_estado').value = button.dataset.itemEstado;
         form.querySelector('#edit_fecha_adquisicion').value = button.dataset.itemFecha_adquisicion;
     });
+
+    // Lógica para abrir el modal de asignación a vehículo
+    const assignToVehiculoModal = document.getElementById('assignToVehiculoModal');
+    if (assignToVehiculoModal) {
+        assignToVehiculoModal.addEventListener('show.bs.modal', function (event) {
+            const button = event.relatedTarget;
+            const vehiculoId = button.dataset.vehiculoId;
+            const vehiculoNombre = button.dataset.vehiculoNombre;
+            
+            // Llenar datos informativos
+            document.getElementById('assignVehiculoNombre').textContent = vehiculoNombre;
+            document.getElementById('assign_vehiculo_id').value = vehiculoId;
+            
+            // Obtener la compañía activa actual para la asignación
+            const companiaActivaId = companiaActivaInput.value;
+            document.getElementById('assign_vehiculo_compania_id').value = companiaActivaId;
+            
+            // Resetear las filas a una sola fila
+            const containerVehiculo = document.getElementById('vehiculo-items-asignacion-container');
+            if (containerVehiculo) {
+                const rows = containerVehiculo.querySelectorAll('.vehiculo-item-asignacion-row');
+                for (let i = 1; i < rows.length; i++) {
+                    rows[i].remove();
+                }
+                const firstRow = rows[0];
+                firstRow.querySelector('.vehiculo-item-select').value = "";
+                firstRow.querySelector('.vehiculo-cantidad-input').value = 1;
+                firstRow.querySelector('.vehiculo-cantidad-input').removeAttribute('max');
+                
+                // Filtrar las opciones del primer select para que solo muestre las de la compañía activa
+                actualizarSelectVehiculo(firstRow.querySelector('.vehiculo-item-select'), companiaActivaId);
+            }
+        });
+    }
+
+    function actualizarSelectVehiculo(select, companiaId) {
+        if (!select) return;
+        while (select.options.length > 1) {
+            select.remove(1);
+        }
+        todasLasOpcionesDeItem.forEach(option => {
+            if (option.value === "") return;
+            if (companiaId && option.dataset.compania === companiaId) {
+                select.add(option.cloneNode(true));
+            }
+        });
+        select.value = "";
+    }
+
+    // Lógica para añadir múltiples equipos en asignación a vehículo
+    const containerVehiculo = document.getElementById('vehiculo-items-asignacion-container');
+    const btnAddVehiculo = document.getElementById('add-vehiculo-item-btn');
+    if (containerVehiculo) {
+        function bindVehiculoRowEvents(row) {
+            const itemSel = row.querySelector('.vehiculo-item-select');
+            const cantInput = row.querySelector('.vehiculo-cantidad-input');
+            const removeBtn = row.querySelector('.remove-vehiculo-row-btn');
+
+            if (itemSel && cantInput) {
+                itemSel.addEventListener('change', function() {
+                    const selectedOption = this.options[this.selectedIndex];
+                    const maxQuantity = selectedOption.getAttribute('data-max');
+                    if (maxQuantity) {
+                        cantInput.max = maxQuantity;
+                        cantInput.value = 1;
+                    }
+                });
+            }
+
+            if (removeBtn) {
+                removeBtn.addEventListener('click', function() {
+                    if (containerVehiculo.querySelectorAll('.vehiculo-item-asignacion-row').length > 1) {
+                        row.remove();
+                    }
+                });
+            }
+        }
+
+        const initialVehiculoRow = containerVehiculo.querySelector('.vehiculo-item-asignacion-row');
+        bindVehiculoRowEvents(initialVehiculoRow);
+
+        if (btnAddVehiculo) {
+            btnAddVehiculo.addEventListener('click', function() {
+                const newRow = initialVehiculoRow.cloneNode(true);
+                newRow.querySelector('.vehiculo-item-select').value = "";
+                newRow.querySelector('.vehiculo-cantidad-input').value = 1;
+                newRow.querySelector('.vehiculo-cantidad-input').removeAttribute('max');
+                newRow.querySelector('.remove-vehiculo-row-btn').style.display = 'block';
+                
+                containerVehiculo.appendChild(newRow);
+                bindVehiculoRowEvents(newRow);
+                
+                const companiaActiva = companiaActivaInput.value;
+                actualizarSelectVehiculo(newRow.querySelector('.vehiculo-item-select'), companiaActiva);
+            });
+        }
+    }
 
     // Lógica para el modal de eliminación
     var deleteModal = document.getElementById('deleteInventarioModal');
