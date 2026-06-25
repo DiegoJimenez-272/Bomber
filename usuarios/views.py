@@ -960,6 +960,41 @@ def vehiculo_create_view(request):
     return redirect('inventario')
 
 @login_required
+def vehiculo_edit_view(request, vehiculo_id):
+    vehiculo = get_object_or_404(Vehiculo, id=vehiculo_id)
+    if not request.user.is_superuser and not (request.user.rol and request.user.rol.editar_inventario):
+        messages.error(request, 'No tienes permiso para realizar esta acción.')
+        return redirect('inventario')
+
+    if request.method == 'POST':
+        form = VehiculoForm(request.POST, instance=vehiculo, user=request.user)
+        if form.is_valid():
+            vehiculo = form.save(commit=False)
+            if not request.user.is_superuser:
+                vehiculo.compania = request.user.compania
+            vehiculo.save()
+            messages.success(request, f'Carro "{vehiculo.nombre}" actualizado exitosamente.')
+        else:
+            messages.error(request, 'Error al actualizar el carro. Por favor, verifica los datos.')
+    return redirect('inventario')
+
+@login_required
+def vehiculo_delete_view(request, vehiculo_id):
+    vehiculo = get_object_or_404(Vehiculo, id=vehiculo_id)
+    if not request.user.is_superuser and not (request.user.rol and request.user.rol.editar_inventario):
+        messages.error(request, 'No tienes permiso para realizar esta acción.')
+        return redirect('inventario')
+
+    if request.method == 'POST':
+        vehiculo_nombre = vehiculo.nombre
+        items_asignados = Inventario.objects.filter(asignado_a_vehiculo=vehiculo)
+        for item in items_asignados:
+            item.asignado_a_vehiculo = None
+            item.save()
+        vehiculo.delete()
+        messages.success(request, f'Carro "{vehiculo_nombre}" eliminado exitosamente.')
+    return redirect('inventario')
+
 @login_required
 def inventario_unassign_view(request, item_id):
     item = get_object_or_404(Inventario, id=item_id)

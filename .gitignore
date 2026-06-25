@@ -1,2 +1,7 @@
 **/__pycache__/
-*.pycgit rm -r --cached **/___pycache___/ 2>$null
+*.pyc
+db.sqlite3
+media/
+.vscode/
+venv/
+env/

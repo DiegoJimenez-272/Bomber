@@ -31,6 +31,40 @@
         background-color: var(--bs-danger);
         color: #fff;
     }
+
+    /* Estilos para las filas de los carros de bomberos (Vehículos) */
+    .vehiculo-row {
+        background-color: #fdf2f2 !important; /* Rosa muy suave en modo claro */
+        border-left: 4px solid var(--bs-danger) !important; /* Línea de acento roja a la izquierda */
+        transition: all 0.2s ease-in-out;
+    }
+    
+    .vehiculo-row:hover {
+        background-color: #fce8e6 !important; /* Rosa un poco más oscuro al pasar el cursor */
+    }
+
+    .vehiculo-row td {
+        color: #721c24 !important; /* Texto rojo oscuro */
+    }
+
+    /* Ajustes para el modo oscuro */
+    body.dark-mode .vehiculo-row {
+        background-color: #3b1d20 !important; /* Rojo vino oscuro en modo oscuro */
+        border-left: 4px solid #ff4d5a !important; /* Línea de acento roja más brillante */
+    }
+
+    body.dark-mode .vehiculo-row:hover {
+        background-color: #4c2428 !important; /* Un poco más claro al hacer hover */
+    }
+
+    body.dark-mode .vehiculo-row td {
+        color: #ffc1c6 !important; /* Texto rosa pálido de alto contraste */
+    }
+
+    body.dark-mode .vehiculo-row td strong,
+    body.dark-mode .vehiculo-row td .text-muted {
+        color: #ffc1c6 !important;
+    }
 </style>
 {% endblock %}
 
@@ -118,7 +152,7 @@
                                             </thead>
                                             <tbody>
                                                 {% for grupo_v in data.asignados_vehiculos %}
-                                                <tr class="align-middle table-danger bg-light">
+                                                <tr class="align-middle vehiculo-row">
                                                     <td>
                                                         <div class="d-flex align-items-center">
                                                             <div class="rounded-circle bg-danger text-white d-flex align-items-center justify-content-center me-2 shadow-sm" style="width: 35px; height: 35px;">
@@ -139,6 +173,23 @@
                                                             <button class="btn btn-sm btn-outline-danger btn-assign-vehiculo" type="button" data-bs-toggle="modal" data-bs-target="#assignToVehiculoModal" data-vehiculo-id="{{ grupo_v.vehiculo.id }}" data-vehiculo-nombre="{{ grupo_v.vehiculo.nombre }}">
                                                                 <i class="bi bi-plus-circle-fill me-1"></i> Asignar Ítems
                                                             </button>
+                                                            <div class="btn-group" role="group">
+                                                                <button type="button" class="btn btn-sm btn-outline-primary" title="Editar carro"
+                                                                        data-bs-toggle="modal" data-bs-target="#editVehiculoModal"
+                                                                        data-vehiculo-id="{{ grupo_v.vehiculo.id }}"
+                                                                        data-vehiculo-nombre="{{ grupo_v.vehiculo.nombre }}"
+                                                                        data-vehiculo-patente="{{ grupo_v.vehiculo.patente|default:'' }}"
+                                                                        data-vehiculo-descripcion="{{ grupo_v.vehiculo.descripcion|default:'' }}"
+                                                                        data-vehiculo-compania="{{ grupo_v.vehiculo.compania.id }}">
+                                                                    <i class="bi bi-pencil-fill"></i>
+                                                                </button>
+                                                                <button type="button" class="btn btn-sm btn-outline-danger" title="Eliminar carro"
+                                                                        data-bs-toggle="modal" data-bs-target="#deleteVehiculoModal"
+                                                                        data-vehiculo-id="{{ grupo_v.vehiculo.id }}"
+                                                                        data-vehiculo-nombre="{{ grupo_v.vehiculo.nombre }}">
+                                                                    <i class="bi bi-trash-fill"></i>
+                                                                </button>
+                                                            </div>
                                                             {% endif %}
                                                             <button class="btn btn-sm btn-danger" type="button" data-bs-toggle="modal" data-bs-target="#modalVehiculoItems-{{ compania.id }}-{{ grupo_v.vehiculo.id }}">
                                                                 <i class="bi bi-eye-fill me-1"></i> Ver equipos
@@ -731,6 +782,73 @@
         </div>
     </div>
 </div>
+
+<!-- Modal Editar Carro de Bomberos -->
+<div class="modal fade" id="editVehiculoModal" tabindex="-1" aria-labelledby="editVehiculoModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editVehiculoModalLabel">Editar Carro de Bomberos</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editVehiculoForm" method="post">
+                    {% csrf_token %}
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label for="edit_vehiculo_nombre" class="form-label">Nombre/Código del Carro</label>
+                            <input type="text" id="edit_vehiculo_nombre" name="nombre" class="form-control" required>
+                        </div>
+                        <div class="col-12">
+                            <label for="edit_vehiculo_compania" class="form-label">Compañía</label>
+                            <select id="edit_vehiculo_compania" name="compania" class="form-select">
+                                {% for compania in vehiculo_form.fields.compania.queryset %}
+                                    <option value="{{ compania.id }}">{{ compania.nombre }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-12">
+                            <label for="edit_vehiculo_patente" class="form-label">Patente (Opcional)</label>
+                            <input type="text" id="edit_vehiculo_patente" name="patente" class="form-control">
+                        </div>
+                        <div class="col-md-12">
+                            <label for="edit_vehiculo_descripcion" class="form-label">Descripción (Opcional)</label>
+                            <textarea id="edit_vehiculo_descripcion" name="descripcion" class="form-control" rows="3"></textarea>
+                        </div>
+                    </div>
+                    
+                    <div class="modal-footer mt-4">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-danger">Guardar Cambios</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Eliminar Carro de Bomberos -->
+<div class="modal fade" id="deleteVehiculoModal" tabindex="-1" aria-labelledby="deleteVehiculoModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteVehiculoModalLabel">Confirmar Eliminación de Carro</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Estás seguro de que quieres eliminar el carro "<strong id="vehiculoNameToDelete"></strong>"?</p>
+                <p class="text-danger small"><strong>¡Atención!</strong> Se desasignarán automáticamente todos los equipos asignados a este vehículo y volverán a estar disponibles en bodega.</p>
+            </div>
+            <div class="modal-footer">
+                <form id="deleteVehiculoForm" method="post">
+                    {% csrf_token %}
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-danger">Sí, eliminar carro</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
@@ -894,6 +1012,31 @@ document.addEventListener('DOMContentLoaded', function () {
         form.querySelector('#edit_estado').value = button.dataset.itemEstado;
         form.querySelector('#edit_fecha_adquisicion').value = button.dataset.itemFecha_adquisicion;
     });
+
+    // Lógica para el modal de edición de vehículo
+    const editVehiculoModal = document.getElementById('editVehiculoModal');
+    if (editVehiculoModal) {
+        editVehiculoModal.addEventListener('show.bs.modal', function (event) {
+            const button = event.relatedTarget;
+            const form = document.getElementById('editVehiculoForm');
+            form.action = `/inventario/vehiculo/${button.dataset.vehiculoId}/edit/`;
+            form.querySelector('#edit_vehiculo_nombre').value = button.dataset.vehiculoNombre;
+            form.querySelector('#edit_vehiculo_compania').value = button.dataset.vehiculoCompania;
+            form.querySelector('#edit_vehiculo_patente').value = button.dataset.vehiculoPatente || "";
+            form.querySelector('#edit_vehiculo_descripcion').value = button.dataset.vehiculoDescripcion || "";
+        });
+    }
+
+    // Lógica para el modal de eliminación de vehículo
+    const deleteVehiculoModal = document.getElementById('deleteVehiculoModal');
+    if (deleteVehiculoModal) {
+        deleteVehiculoModal.addEventListener('show.bs.modal', function (event) {
+            const button = event.relatedTarget;
+            const form = document.getElementById('deleteVehiculoForm');
+            form.action = `/inventario/vehiculo/${button.dataset.vehiculoId}/delete/`;
+            document.getElementById('vehiculoNameToDelete').textContent = button.dataset.vehiculoNombre;
+        });
+    }
 
     // Lógica para abrir el modal de asignación a vehículo
     const assignToVehiculoModal = document.getElementById('assignToVehiculoModal');
