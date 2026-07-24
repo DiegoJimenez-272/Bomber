@@ -195,9 +195,16 @@ def dashboard_summary_view(request):
     egresos_data = caja_chica_qs.filter(tipo='Egreso', fecha__gte=start_date) \
         .annotate(day=TruncDay('fecha')).values('day').annotate(total=Sum('monto')).order_by('day')
 
-    # Mapear datos a los días correspondientes
-    ingresos_map = {item['day'].date(): item['total'] for item in ingresos_data}
-    egresos_map = {item['day'].date(): item['total'] for item in egresos_data}
+    # Mapear datos a los días correspondientes (seguro para MySQL que a veces devuelve date en vez de datetime)
+    def to_date(val):
+        if hasattr(val, 'date'):
+            return val.date()
+        if isinstance(val, str):
+            return datetime.strptime(val[:10], '%Y-%m-%d').date()
+        return val
+
+    ingresos_map = {to_date(item['day']): item['total'] for item in ingresos_data}
+    egresos_map = {to_date(item['day']): item['total'] for item in egresos_data}
 
     caja_chica_ingresos = [float(ingresos_map.get(d.date(), 0)) for d in date_range]
     caja_chica_egresos = [float(egresos_map.get(d.date(), 0)) for d in date_range]

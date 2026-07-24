@@ -157,12 +157,12 @@ MEDIA_ROOT = MEDIA_DIR
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# Configuración de Email para Hostinger
+# Configuración de Email para Gmail
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.hostinger.com'
+EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_SSL = False
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'andree11alegria@gmail.com' # Cambia por tu correo real de Hostinger
-EMAIL_HOST_PASSWORD = 'Hesoyamm123.00' # Escribe aquí la contraseña REAL de tu correo (evita usar la letra ñ)
-DEFAULT_FROM_EMAIL = 'Sistema Bomberos <contacto@sigbomberosmulchen.cl>'
+EMAIL_HOST_USER = 'andree11alegria@gmail.com'
+EMAIL_HOST_PASSWORD = 'abcdefghijklmnop' # <-- Borra esto y pega tus 16 letras reales aquí
+DEFAULT_FROM_EMAIL = 'Sistema Bomberos <andree11alegria@gmail.com>'
