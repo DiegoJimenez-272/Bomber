@@ -41,6 +41,9 @@ urlpatterns = [
     path('inventario/<int:item_id>/unassign/', views.inventario_unassign_view, name='inventario_unassign'),
     path('scan/', views.scan_qr_page_view, name='scan_qr_page'),
     path('inventario/qr-lookup/', views.inventario_qr_lookup_view, name='inventario_qr_lookup'),
+    path('inventario/vehiculo/create/', views.vehiculo_create_view, name='vehiculo_create'),
+    path('inventario/vehiculo/<int:vehiculo_id>/edit/', views.vehiculo_edit_view, name='vehiculo_edit'),
+    path('inventario/vehiculo/<int:vehiculo_id>/delete/', views.vehiculo_delete_view, name='vehiculo_delete'),
 
     # Salidas a terreno
     path('salidas/', views.salidas_terreno_view, name='salidas_terreno'),

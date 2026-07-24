@@ -314,6 +314,15 @@ class ArchivoMantenimiento(models.Model):
     archivo = models.FileField(upload_to='mantenimientos_archivos/')
     subido_en = models.DateTimeField(auto_now_add=True)
 
+class Vehiculo(models.Model):
+    nombre = models.CharField(max_length=80, verbose_name="Nombre / Código del Carro")
+    compania = models.ForeignKey(Compania, on_delete=models.CASCADE, related_name='vehiculos', verbose_name="Compañía")
+    patente = models.CharField(max_length=15, null=True, blank=True, verbose_name="Patente")
+    descripcion = models.TextField(max_length=500, null=True, blank=True, verbose_name="Descripción")
+
+    def __str__(self):
+        return f"{self.nombre} ({self.compania.nombre})"
+
 class Inventario(models.Model):
     ESTADO_CHOICES = [
         ('Bueno', 'Bueno'),
@@ -350,6 +359,7 @@ class Inventario(models.Model):
     estado = models.CharField(max_length=20, choices=ESTADO_CHOICES, default='Bueno')
     fecha_adquisicion = models.DateField(null=True, blank=True)
     asignado_a = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='inventario_asignado')
+    asignado_a_vehiculo = models.ForeignKey(Vehiculo, on_delete=models.SET_NULL, null=True, blank=True, related_name='inventario_asignado', verbose_name="Asignado a Carro")
     qr_code = models.ImageField(upload_to='qr_codes/', blank=True)
     agregado_por = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='inventario_agregado')
     agregado_en = models.DateTimeField(auto_now_add=True)
@@ -358,7 +368,13 @@ class Inventario(models.Model):
         ordering = ['nombre']
 
     def __str__(self):
-        return f"{self.get_nombre_display()} - Asignado a: {self.asignado_a.get_full_name() if self.asignado_a else 'Sin asignar'}"
+        if self.asignado_a:
+            asignacion = f"Asignado a: {self.asignado_a.get_full_name()}"
+        elif self.asignado_a_vehiculo:
+            asignacion = f"Asignado a Carro: {self.asignado_a_vehiculo.nombre}"
+        else:
+            asignacion = "Sin asignar / Bodega"
+        return f"{self.get_nombre_display()} - {asignacion}"
 
     @staticmethod
     def get_nombre_completo(nombre_clave):
@@ -373,8 +389,8 @@ class Inventario(models.Model):
         super().save(*args, **kwargs)
 
         qr_updated = False
-        # Generar QR solo si hay un usuario asignado
-        if self.asignado_a:
+        # Generar QR solo si hay un usuario o carro asignado
+        if self.asignado_a or self.asignado_a_vehiculo:
             # Usamos un formato simple y robusto: solo el ID del ítem.
             qr_content = str(self.id)
             qr_img = qrcode.make(qr_content)
@@ -384,8 +400,8 @@ class Inventario(models.Model):
             self.qr_code.save(file_name, File(buffer), save=False)
             qr_updated = True
         
-        # Si se desasigna el usuario, limpiar el QR
-        elif not self.asignado_a and self.qr_code:
+        # Si se desasigna de ambos, limpiar el QR
+        elif not self.asignado_a and not self.asignado_a_vehiculo and self.qr_code:
             self.qr_code.delete(save=False)
             qr_updated = True
 

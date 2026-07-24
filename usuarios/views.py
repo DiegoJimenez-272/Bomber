@@ -22,8 +22,8 @@ from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter
 import openpyxl
 from reportlab.lib.units import inch
-from .forms import RegistroForm, LoginForm, ProyectoForm, ArchivoProyectoForm, DocumentoForm, SalidaTerrenoForm, EmergenciaForm, PerfilForm, PasswordChangeForm, CapacitacionForm, MantenimientoForm, ArchivoMantenimientoForm, InventarioForm, CajaChicaForm, AdminUserCreationForm, AdminUserChangeForm, RolForm, CompaniaForm, InventarioEditForm, InventarioGroupEditForm, AvisoForm, PasswordResetRequestForm, PasswordResetVerifyForm, PasswordResetNewPasswordForm
-from .models import Rol, Compania, Proyecto, ArchivoProyecto, Documento, SalidaTerreno, Emergencia, Usuario, Capacitacion, Mantenimiento, ArchivoMantenimiento, Inventario, CajaChica, Notificacion, Aviso, AvisoDestinatario, PasswordResetCode
+from .forms import RegistroForm, LoginForm, ProyectoForm, ArchivoProyectoForm, DocumentoForm, SalidaTerrenoForm, EmergenciaForm, PerfilForm, PasswordChangeForm, CapacitacionForm, MantenimientoForm, ArchivoMantenimientoForm, InventarioForm, CajaChicaForm, AdminUserCreationForm, AdminUserChangeForm, RolForm, CompaniaForm, InventarioEditForm, InventarioGroupEditForm, AvisoForm, PasswordResetRequestForm, PasswordResetVerifyForm, PasswordResetNewPasswordForm, VehiculoForm
+from .models import Rol, Compania, Proyecto, ArchivoProyecto, Documento, SalidaTerreno, Emergencia, Usuario, Capacitacion, Mantenimiento, ArchivoMantenimiento, Inventario, CajaChica, Notificacion, Aviso, AvisoDestinatario, PasswordResetCode, Vehiculo
 
 def registro_view(request):
     if request.method == 'POST':
@@ -841,13 +841,14 @@ def inventario_view(request):
             pass # Si el ID no es válido, simplemente mostramos todo como antes
 
     for compania in companias_a_mostrar:
-        base_queryset = Inventario.objects.filter(compania=compania).select_related('asignado_a', 'compania')
+        base_queryset = Inventario.objects.filter(compania=compania).select_related('asignado_a', 'compania', 'asignado_a_vehiculo')
 
         if query:
             base_queryset = base_queryset.filter(
                 Q(nombre__icontains=query) |
                 Q(asignado_a__nombre__icontains=query) |
                 Q(asignado_a__apellido__icontains=query) |
+                Q(asignado_a_vehiculo__nombre__icontains=query) |
                 Q(ubicacion__icontains=query)
             )
 
@@ -861,8 +862,19 @@ def inventario_view(request):
             
         items_asignados = [{'usuario': u, 'items': items} for u, items in user_groups.items()]
         
+        # Procesar los carros y sus ítems asignados para esta compañía (los carros se muestran primero)
+        vehiculos_compania = Vehiculo.objects.filter(compania=compania).order_by('nombre')
+        items_asignados_vehiculo_qs = base_queryset.filter(asignado_a_vehiculo__isnull=False).order_by('asignado_a_vehiculo__nombre', 'nombre')
+        
+        vehiculo_groups = {v: [] for v in vehiculos_compania}
+        for item in items_asignados_vehiculo_qs:
+            if item.asignado_a_vehiculo in vehiculo_groups:
+                vehiculo_groups[item.asignado_a_vehiculo].append(item)
+                
+        items_asignados_vehiculos = [{'vehiculo': v, 'items': items} for v, items in vehiculo_groups.items()]
+        
         # Procesamos los ítems disponibles para añadir el nombre completo
-        items_disponibles_agrupados_qs = base_queryset.filter(asignado_a__isnull=True).values('nombre', 'ubicacion', 'estado').annotate(cantidad=Count('id')).order_by('nombre', 'ubicacion', 'estado')
+        items_disponibles_agrupados_qs = base_queryset.filter(asignado_a__isnull=True, asignado_a_vehiculo__isnull=True).values('nombre', 'ubicacion', 'estado').annotate(cantidad=Count('id')).order_by('nombre', 'ubicacion', 'estado')
         items_disponibles_agrupados = []
         for item in items_disponibles_agrupados_qs:
             item['nombre_completo'] = Inventario.get_nombre_completo(item['nombre'])
@@ -870,6 +882,7 @@ def inventario_view(request):
 
         inventario_por_compania[compania] = {
             'asignados': items_asignados,
+            'asignados_vehiculos': items_asignados_vehiculos,
             'disponibles_agrupados': items_disponibles_agrupados
         }
 
@@ -879,23 +892,28 @@ def inventario_view(request):
     if not request.user.is_superuser and request.user.compania:
         usuarios_activos = usuarios_activos.filter(compania=request.user.compania)
     
+    # Obtener vehículos activos para la asignación
+    vehiculos_activos = Vehiculo.objects.all().order_by('nombre')
+    if not request.user.is_superuser and request.user.compania:
+        vehiculos_activos = vehiculos_activos.filter(compania=request.user.compania)
+
     # CORRECCIÓN: Agrupar los ítems disponibles por nombre Y por compañía para el selector de asignación.
-    # Esto asegura que el atributo data-compania en el HTML tenga el valor correcto.
-    items_disponibles_qs = Inventario.objects.filter(asignado_a__isnull=True).values('nombre', 'compania_id').annotate(cantidad=Count('id')).order_by('nombre')
+    items_disponibles_qs = Inventario.objects.filter(asignado_a__isnull=True, asignado_a_vehiculo__isnull=True).values('nombre', 'compania_id').annotate(cantidad=Count('id')).order_by('nombre')
     
     items_disponibles_para_asignar = []
     for item in items_disponibles_qs:
         item['nombre_completo'] = Inventario.get_nombre_completo(item['nombre'])
-        # El 'compania_id' ya está incluido gracias a la consulta corregida.
         items_disponibles_para_asignar.append(item)
 
     context = {
         'form': InventarioForm(user=request.user), 
         'edit_form': InventarioEditForm(user=request.user), # Para el modal de edición
         'group_edit_form': InventarioGroupEditForm(), # Para el modal de edición de grupo
+        'vehiculo_form': VehiculoForm(user=request.user), # Formulario para crear carro
         'inventario_por_compania': inventario_por_compania,
         'items_disponibles_para_asignar': items_disponibles_para_asignar,
         'usuarios_activos': usuarios_activos,
+        'vehiculos_activos': vehiculos_activos,
         'first_compania_id': list(inventario_por_compania.keys())[0].id if inventario_por_compania else None,
     }
     return render(request, 'usuarios/inventario.html', context)
@@ -931,6 +949,60 @@ def inventario_delete_view(request, item_id):
     return redirect('inventario')
 
 @login_required
+def vehiculo_create_view(request):
+    if not request.user.is_superuser and not (request.user.rol and request.user.rol.editar_inventario):
+        messages.error(request, 'No tienes permiso para realizar esta acción.')
+        return redirect('inventario')
+
+    if request.method == 'POST':
+        form = VehiculoForm(request.POST, user=request.user)
+        if form.is_valid():
+            vehiculo = form.save(commit=False)
+            if not request.user.is_superuser:
+                vehiculo.compania = request.user.compania
+            vehiculo.save()
+            messages.success(request, f'Carro "{vehiculo.nombre}" registrado exitosamente.')
+        else:
+            messages.error(request, 'Error al registrar el carro. Por favor, verifica los datos.')
+    return redirect('inventario')
+
+@login_required
+def vehiculo_edit_view(request, vehiculo_id):
+    vehiculo = get_object_or_404(Vehiculo, id=vehiculo_id)
+    if not request.user.is_superuser and not (request.user.rol and request.user.rol.editar_inventario):
+        messages.error(request, 'No tienes permiso para realizar esta acción.')
+        return redirect('inventario')
+
+    if request.method == 'POST':
+        form = VehiculoForm(request.POST, instance=vehiculo, user=request.user)
+        if form.is_valid():
+            vehiculo = form.save(commit=False)
+            if not request.user.is_superuser:
+                vehiculo.compania = request.user.compania
+            vehiculo.save()
+            messages.success(request, f'Carro "{vehiculo.nombre}" actualizado exitosamente.')
+        else:
+            messages.error(request, 'Error al actualizar el carro. Por favor, verifica los datos.')
+    return redirect('inventario')
+
+@login_required
+def vehiculo_delete_view(request, vehiculo_id):
+    vehiculo = get_object_or_404(Vehiculo, id=vehiculo_id)
+    if not request.user.is_superuser and not (request.user.rol and request.user.rol.editar_inventario):
+        messages.error(request, 'No tienes permiso para realizar esta acción.')
+        return redirect('inventario')
+
+    if request.method == 'POST':
+        vehiculo_nombre = vehiculo.nombre
+        items_asignados = Inventario.objects.filter(asignado_a_vehiculo=vehiculo)
+        for item in items_asignados:
+            item.asignado_a_vehiculo = None
+            item.save()
+        vehiculo.delete()
+        messages.success(request, f'Carro "{vehiculo_nombre}" eliminado exitosamente.')
+    return redirect('inventario')
+
+@login_required
 def inventario_unassign_view(request, item_id):
     item = get_object_or_404(Inventario, id=item_id)
     if not request.user.is_superuser and not (request.user.rol and request.user.rol.editar_inventario):
@@ -939,6 +1011,7 @@ def inventario_unassign_view(request, item_id):
 
     if request.method == 'POST':
         usuario_anterior = item.asignado_a
+        vehiculo_anterior = item.asignado_a_vehiculo
         item_name = item.get_nombre_display()
         
         if usuario_anterior:
@@ -950,6 +1023,10 @@ def inventario_unassign_view(request, item_id):
                 link="/inventario/"
             )
             messages.success(request, f'Ítem "{item_name}" devuelto a bodega exitosamente (desasignado de {usuario_anterior.get_full_name()}).')
+        elif vehiculo_anterior:
+            item.asignado_a_vehiculo = None
+            item.save() # El save() limpiará también el QR asignado a este ítem automáticamente
+            messages.success(request, f'Ítem "{item_name}" devuelto a bodega exitosamente (desasignado del carro {vehiculo_anterior.nombre}).')
         else:
             messages.warning(request, f'El ítem "{item_name}" ya se encontraba en bodega.')
             
@@ -962,20 +1039,35 @@ def inventario_assign_view(request):
         return redirect('inventario')
 
     if request.method == 'POST':
-        user_id = request.POST.get('usuario_a_asignar')
+        tipo_asignacion = request.POST.get('tipo_asignacion', 'usuario') # 'usuario' o 'vehiculo'
         items_nombres = request.POST.getlist('item_a_asignar')
         cantidades = request.POST.getlist('cantidad_a_asignar')
 
-        if not user_id or not items_nombres or not cantidades:
-            messages.error(request, 'Debes seleccionar un usuario y al menos un ítem válido para asignar.')
+        if not items_nombres or not cantidades:
+            messages.error(request, 'Debes seleccionar al menos un ítem válido para asignar.')
             return redirect('inventario')
 
-        usuario = get_object_or_404(Usuario, id=user_id)
-        
-        # Validación extra: Asegurarnos de que el usuario tenga una compañía asignada
-        if not usuario.compania:
-            messages.error(request, f'El usuario {usuario.get_full_name()} no tiene una compañía asignada y no puede recibir ítems.')
-            return redirect('inventario')
+        usuario = None
+        vehiculo = None
+        compania_objetivo = None
+
+        if tipo_asignacion == 'usuario':
+            user_id = request.POST.get('usuario_a_asignar')
+            if not user_id:
+                messages.error(request, 'Debes seleccionar un usuario para asignar.')
+                return redirect('inventario')
+            usuario = get_object_or_404(Usuario, id=user_id)
+            if not usuario.compania:
+                messages.error(request, f'El usuario {usuario.get_full_name()} no tiene una compañía asignada.')
+                return redirect('inventario')
+            compania_objetivo = usuario.compania
+        else:
+            vehiculo_id = request.POST.get('vehiculo_a_asignar')
+            if not vehiculo_id:
+                messages.error(request, 'Debes seleccionar un carro de bomberos para asignar.')
+                return redirect('inventario')
+            vehiculo = get_object_or_404(Vehiculo, id=vehiculo_id)
+            compania_objetivo = vehiculo.compania
 
         num_asignados_total = 0
         items_asignados_detalle = []
@@ -990,14 +1082,16 @@ def inventario_assign_view(request):
             if cantidad_a_asignar <= 0:
                 continue
 
+            # Buscar ítems que estén totalmente disponibles (ni asignados a usuario ni a vehículo)
             items_para_asignar = Inventario.objects.filter(
                 nombre=item_nombre, 
                 asignado_a__isnull=True,
-                compania=usuario.compania
+                asignado_a_vehiculo__isnull=True,
+                compania=compania_objetivo
             )[:cantidad_a_asignar]
 
             if not items_para_asignar:
-                errores.append(f'No hay ítems de "{Inventario.ITEM_CHOICES_DICT.get(item_nombre, item_nombre)}" disponibles en la {usuario.compania.nombre}.')
+                errores.append(f'No hay ítems de "{Inventario.ITEM_CHOICES_DICT.get(item_nombre, item_nombre)}" disponibles en la {compania_objetivo.nombre}.')
                 continue
 
             if len(items_para_asignar) < cantidad_a_asignar:
@@ -1005,7 +1099,10 @@ def inventario_assign_view(request):
 
             asignados_de_este_tipo = 0
             for item in items_para_asignar:
-                item.asignado_a = usuario
+                if tipo_asignacion == 'usuario':
+                    item.asignado_a = usuario
+                else:
+                    item.asignado_a_vehiculo = vehiculo
                 item.save()
                 num_asignados_total += 1
                 asignados_de_este_tipo += 1
@@ -1019,12 +1116,15 @@ def inventario_assign_view(request):
 
         if num_asignados_total > 0:
             detalle_msg = ", ".join(items_asignados_detalle)
-            Notificacion.objects.create(
-                usuario=usuario,
-                mensaje=f"Se te han asignado nuevos equipos: {detalle_msg}.",
-                link="/inventario/"
-            )
-            messages.success(request, f'Se asignaron exitosamente a {usuario.get_full_name()}: {detalle_msg}.')
+            if tipo_asignacion == 'usuario':
+                Notificacion.objects.create(
+                    usuario=usuario,
+                    mensaje=f"Se te han asignado nuevos equipos: {detalle_msg}.",
+                    link="/inventario/"
+                )
+                messages.success(request, f'Se asignaron exitosamente a {usuario.get_full_name()}: {detalle_msg}.')
+            else:
+                messages.success(request, f'Se asignaron exitosamente al carro {vehiculo.nombre}: {detalle_msg}.')
         elif not errores:
             messages.error(request, 'No se pudo asignar ningún ítem.')
             
@@ -1097,16 +1197,25 @@ def inventario_qr_lookup_view(request):
         return JsonResponse({'error': 'Código QR no válido o no reconocido.'}, status=400)
 
     try:
-        item = Inventario.objects.select_related('asignado_a').get(id=item_id)
-        if not item.asignado_a:
-            return JsonResponse({'error': 'Este ítem está en bodega y no está asignado a ningún usuario.'}, status=404)
+        item = Inventario.objects.select_related('asignado_a', 'asignado_a_vehiculo').get(id=item_id)
+        if not item.asignado_a and not item.asignado_a_vehiculo:
+            return JsonResponse({'error': 'Este ítem está en bodega y no está asignado a ningún voluntario o carro.'}, status=404)
 
-        data = {
-            'item_nombre': item.get_nombre_display(),
-            'usuario_nombre': item.asignado_a.get_full_name(),
-            'usuario_foto_url': item.asignado_a.foto_perfil.url if item.asignado_a.foto_perfil else None,
-            'usuario_iniciales': f"{item.asignado_a.nombre[0] if item.asignado_a.nombre else ''}{item.asignado_a.apellido[0] if item.asignado_a.apellido else ''}".upper(),
-        }
+        if item.asignado_a:
+            data = {
+                'tipo_asignacion': 'usuario',
+                'item_nombre': item.get_nombre_display(),
+                'usuario_nombre': item.asignado_a.get_full_name(),
+                'usuario_foto_url': item.asignado_a.foto_perfil.url if item.asignado_a.foto_perfil else None,
+                'usuario_iniciales': f"{item.asignado_a.nombre[0] if item.asignado_a.nombre else ''}{item.asignado_a.apellido[0] if item.asignado_a.apellido else ''}".upper(),
+            }
+        else:
+            data = {
+                'tipo_asignacion': 'vehiculo',
+                'item_nombre': item.get_nombre_display(),
+                'vehiculo_nombre': item.asignado_a_vehiculo.nombre,
+                'compania_nombre': item.asignado_a_vehiculo.compania.nombre,
+            }
         return JsonResponse(data)
     except Inventario.DoesNotExist:
         return JsonResponse({'error': 'Ítem de inventario no encontrado.'}, status=404)

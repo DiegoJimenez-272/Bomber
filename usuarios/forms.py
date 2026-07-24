@@ -1,7 +1,7 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm, PasswordChangeForm as AuthPasswordChangeForm
 from django.db.models import Sum, Case, When, DecimalField, F
-from .models import Usuario, Compania, Rol, Proyecto, Documento, SalidaTerreno, Emergencia, Capacitacion, Mantenimiento, Inventario, CajaChica, Aviso, PasswordResetCode
+from .models import Usuario, Compania, Rol, Proyecto, Documento, SalidaTerreno, Emergencia, Capacitacion, Mantenimiento, Inventario, CajaChica, Aviso, PasswordResetCode, Vehiculo
 
 class RegistroForm(UserCreationForm):
     email = forms.EmailField(
@@ -572,14 +572,33 @@ class InventarioForm(forms.ModelForm):
                     existing_classes = self.fields[field_name].widget.attrs.get('class', '')
                     self.fields[field_name].widget.attrs['class'] = f'{existing_classes} is-invalid'.strip()
 
+class VehiculoForm(forms.ModelForm):
+    class Meta:
+        model = Vehiculo
+        fields = ['nombre', 'compania', 'patente', 'descripcion']
+        widgets = {
+            'nombre': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej: B-1, RX-2'}),
+            'compania': forms.Select(attrs={'class': 'form-select'}),
+            'patente': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej: AB-CD-12'}),
+            'descripcion': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Descripción del vehículo (marca, función, etc.)'}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        self.user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+        if self.user and not self.user.is_superuser:
+            if 'compania' in self.fields:
+                del self.fields['compania']
+
 class InventarioEditForm(forms.ModelForm):
     class Meta:
         model = Inventario
-        fields = ['nombre', 'compania', 'asignado_a', 'ubicacion', 'estado', 'fecha_adquisicion']
+        fields = ['nombre', 'compania', 'asignado_a', 'asignado_a_vehiculo', 'ubicacion', 'estado', 'fecha_adquisicion']
         widgets = {
             'nombre': forms.TextInput(attrs={'class': 'form-control', 'list': 'datalist-items', 'placeholder': 'Ej: Casco de bombero, Motosierra...'}),
             'compania': forms.Select(attrs={'class': 'form-select'}),
             'asignado_a': forms.Select(attrs={'class': 'form-select'}),
+            'asignado_a_vehiculo': forms.Select(attrs={'class': 'form-select'}),
             'ubicacion': forms.TextInput(attrs={'class': 'form-control'}),
             'estado': forms.Select(attrs={'class': 'form-select'}),
             'fecha_adquisicion': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
@@ -589,14 +608,18 @@ class InventarioEditForm(forms.ModelForm):
         self.user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
         
-        # Filtrar usuarios por la compañía a la que pertenece el ítem
+        # Filtrar usuarios y vehículos por la compañía a la que pertenece el ítem
         if self.instance and self.instance.pk and self.instance.compania:
             self.fields['asignado_a'].queryset = Usuario.objects.filter(is_active=True, compania=self.instance.compania).order_by('nombre')
+            self.fields['asignado_a_vehiculo'].queryset = Vehiculo.objects.filter(compania=self.instance.compania).order_by('nombre')
         else:
             self.fields['asignado_a'].queryset = Usuario.objects.filter(is_active=True).order_by('nombre')
+            self.fields['asignado_a_vehiculo'].queryset = Vehiculo.objects.filter().order_by('nombre')
             
         self.fields['asignado_a'].empty_label = "Sin asignar / Bodega"
         self.fields['asignado_a'].required = False
+        self.fields['asignado_a_vehiculo'].empty_label = "Sin asignar / Bodega"
+        self.fields['asignado_a_vehiculo'].required = False
         self.fields['fecha_adquisicion'].required = False
         
         if self.user and not self.user.is_superuser:
@@ -605,6 +628,15 @@ class InventarioEditForm(forms.ModelForm):
         elif 'compania' in self.fields:
             self.fields['compania'].queryset = Compania.objects.all()
             self.fields['compania'].empty_label = "Seleccionar compañía"
+
+    def clean(self):
+        cleaned_data = super().clean()
+        asignado_a = cleaned_data.get('asignado_a')
+        asignado_a_vehiculo = cleaned_data.get('asignado_a_vehiculo')
+
+        if asignado_a and asignado_a_vehiculo:
+            raise forms.ValidationError("Un ítem no puede estar asignado a un voluntario y a un carro al mismo tiempo.")
+        return cleaned_data
 
 class InventarioGroupEditForm(forms.Form):
     ubicacion = forms.CharField(
