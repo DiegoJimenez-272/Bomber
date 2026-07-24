@@ -144,7 +144,9 @@ def dashboard_summary_view(request):
     # --- KPIs / Tarjetas de Resumen ---
     total_users = Usuario.objects.count()
     total_budget = Proyecto.objects.aggregate(total=Sum('presupuesto'))['total'] or 0
-    emergencies_this_month = Emergencia.objects.filter(fecha_hora_alarma__month=timezone.now().month).count()
+    now = timezone.now()
+    start_of_month = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    emergencies_this_month = Emergencia.objects.filter(fecha_hora_alarma__gte=start_of_month).count()
 
     # --- Lógica de Filtro para Caja Chica ---
     caja_chica_qs = CajaChica.objects.all()
@@ -189,22 +191,19 @@ def dashboard_summary_view(request):
     date_range = [start_date + timedelta(days=x) for x in range(30)]
     caja_chica_labels = [d.strftime('%d/%m') for d in date_range]
 
-    # Obtener datos de ingresos y egresos
-    ingresos_data = caja_chica_qs.filter(tipo='Ingreso', fecha__gte=start_date) \
-        .annotate(day=TruncDay('fecha')).values('day').annotate(total=Sum('monto')).order_by('day')
-    egresos_data = caja_chica_qs.filter(tipo='Egreso', fecha__gte=start_date) \
-        .annotate(day=TruncDay('fecha')).values('day').annotate(total=Sum('monto')).order_by('day')
+    # Obtener datos de ingresos y egresos (agrupados en memoria para evitar errores de CONVERT_TZ en MySQL)
+    ingresos_qs = caja_chica_qs.filter(tipo='Ingreso', fecha__gte=start_date)
+    egresos_qs = caja_chica_qs.filter(tipo='Egreso', fecha__gte=start_date)
 
-    # Mapear datos a los días correspondientes (seguro para MySQL que a veces devuelve date en vez de datetime)
-    def to_date(val):
-        if hasattr(val, 'date'):
-            return val.date()
-        if isinstance(val, str):
-            return datetime.strptime(val[:10], '%Y-%m-%d').date()
-        return val
+    ingresos_map = {}
+    for item in ingresos_qs:
+        day_val = item.fecha.date() if hasattr(item.fecha, 'date') else item.fecha
+        ingresos_map[day_val] = float(ingresos_map.get(day_val, 0)) + float(item.monto)
 
-    ingresos_map = {to_date(item['day']): item['total'] for item in ingresos_data}
-    egresos_map = {to_date(item['day']): item['total'] for item in egresos_data}
+    egresos_map = {}
+    for item in egresos_qs:
+        day_val = item.fecha.date() if hasattr(item.fecha, 'date') else item.fecha
+        egresos_map[day_val] = float(egresos_map.get(day_val, 0)) + float(item.monto)
 
     caja_chica_ingresos = [float(ingresos_map.get(d.date(), 0)) for d in date_range]
     caja_chica_egresos = [float(egresos_map.get(d.date(), 0)) for d in date_range]
