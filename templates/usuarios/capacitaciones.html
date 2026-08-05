@@ -27,157 +27,298 @@
     <!-- Navegación por pestañas -->
     <ul class="nav nav-tabs mb-4" id="capacitacionesTab" role="tablist">
         <li class="nav-item" role="presentation">
-            <button class="nav-link active fw-bold" id="actividades-tab" data-bs-toggle="tab" data-bs-target="#actividades" type="button" role="tab" aria-controls="actividades" aria-selected="true">
-                <i class="bi bi-card-list me-2"></i>Gestión de Actividades
+            <button class="nav-link active fw-bold" id="cursos-tab" data-bs-toggle="tab" data-bs-target="#cursos" type="button" role="tab">
+                <i class="bi bi-mortarboard-fill me-2"></i>Cursos Oficiales
             </button>
         </li>
         <li class="nav-item" role="presentation">
-            <button class="nav-link fw-bold" id="abono-tab" data-bs-toggle="tab" data-bs-target="#abono" type="button" role="tab" aria-controls="abono" aria-selected="false">
+            <button class="nav-link fw-bold" id="capacitaciones-internas-tab" data-bs-toggle="tab" data-bs-target="#capacitaciones-internas" type="button" role="tab">
+                <i class="bi bi-people-fill me-2"></i>Capacitaciones Internas
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link fw-bold" id="abono-tab" data-bs-toggle="tab" data-bs-target="#abono" type="button" role="tab">
                 <i class="bi bi-award-fill me-2"></i>Lista de Abono (Asistencias)
             </button>
         </li>
     </ul>
 
     <div class="tab-content" id="capacitacionesTabContent">
-        <!-- Pestaña de Actividades -->
-        <div class="tab-pane fade show active" id="actividades" role="tabpanel" aria-labelledby="actividades-tab">
 
-    {% if not capacitaciones %}
-    <div class="card text-center p-5 border-dashed">
-        <div class="card-body">
-            <i class="bi bi-mortarboard-fill display-1 text-muted"></i>
-            <h5 class="card-title mt-3">No hay cursos programados</h5>
-            <p class="card-text text-muted">Registra un nuevo curso para comenzar a gestionarlo.</p>
-            {% if request.user.is_superuser or request.user.rol.editar_capacitaciones %}
-            <button class="btn btn-danger mt-2" data-bs-toggle="modal" data-bs-target="#createCapacitacionModal">
-                Crear mi primer curso
-            </button>
+        <!-- ===== PESTAÑA: CURSOS OFICIALES ===== -->
+        <div class="tab-pane fade show active" id="cursos" role="tabpanel">
+            {% with items=capacitaciones|dictsort:"fecha_inicio" %}
+            {% with cursos_list=capacitaciones %}
+            <div class="d-flex justify-content-end mb-3">
+                {% if request.user.is_superuser or request.user.rol.editar_capacitaciones %}
+                <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#createCapacitacionModal" data-tipo="Curso">
+                    <i class="bi bi-plus-lg me-1"></i> Nuevo Curso Oficial
+                </button>
+                {% endif %}
+            </div>
+            {% endwith %}{% endwith %}
+
+            {% with cursos_count=capacitaciones|length %}
+            {% if not capacitaciones.filter %}
             {% endif %}
-        </div>
-    </div>
-    {% else %}
-        <!-- Formulario de Búsqueda y Filtros -->
-        <div class="card shadow-sm mb-4">
-            <div class="card-body">
-                <div class="row g-3 align-items-center">
-                    <div class="col-lg-8">
-                        <div class="input-group">
-                            <span class="input-group-text"><i class="bi bi-search"></i></span>
-                            <input class="form-control" type="search" id="cursoSearchInput" placeholder="Buscar por nombre, descripción, instructor o lugar...">
+
+            <!-- Filtro de búsqueda cursos -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <div class="row g-3 align-items-center">
+                        <div class="col-lg-8">
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                                <input class="form-control" type="search" id="cursoSearchInput" placeholder="Buscar por nombre, instructor o lugar...">
+                            </div>
                         </div>
-                    </div>
-                    <div class="col-lg-4">
-                        <select id="mallaFilter" class="form-select">
-                            <option value="">Todas las Mallas</option>
-                            {% for choice in form.malla.field.choices %}
-                                <option value="{{ choice.0 }}">{{ choice.1 }}</option>
-                            {% endfor %}
-                        </select>
+                        <div class="col-lg-4">
+                            <select id="mallaFilter" class="form-select">
+                                <option value="">Todas las Mallas</option>
+                                {% for choice in form.malla.field.choices %}
+                                    <option value="{{ choice.0 }}">{{ choice.1 }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
 
-        <div id="no-cursos-found" class="text-center text-muted py-4" style="display: none;">
-            No se encontraron cursos con los filtros aplicados.
-        </div>
+            <div id="no-cursos-found" class="text-center text-muted py-4" style="display: none;">
+                No se encontraron cursos con los filtros aplicados.
+            </div>
 
-        <div class="row row-cols-1 row-cols-lg-2 g-4" id="capacitaciones-list">
-            {% for cap in capacitaciones %}
-            <div class="col capacitacion-card">
-                <div class="card h-100 shadow-sm border-light-subtle">
-                    <div class="card-body">
-                        <div class="d-flex align-items-start mb-3">
-                            <div class="d-flex align-items-center justify-content-center bg-light rounded-circle me-3" style="width: 48px; height: 48px;">
-                                <i class="bi bi-mortarboard-fill fs-4 text-danger"></i>
+            <div class="row row-cols-1 row-cols-lg-2 g-4" id="capacitaciones-list">
+                {% for cap in capacitaciones %}
+                {% if cap.tipo_actividad == 'Curso' %}
+                <div class="col capacitacion-card" data-malla="{{ cap.malla }}">
+                    <div class="card h-100 shadow-sm border-primary border-opacity-25">
+                        <div class="card-body">
+                            <div class="d-flex align-items-start mb-3">
+                                <div class="d-flex align-items-center justify-content-center bg-primary bg-opacity-10 rounded-circle me-3" style="width: 48px; height: 48px;">
+                                    <i class="bi bi-mortarboard-fill fs-4 text-primary"></i>
+                                </div>
+                                <div>
+                                    <h5 class="card-title mb-1">{{ cap.nombre }}</h5>
+                                    <p class="mb-1"><span class="badge bg-primary">{{ cap.malla }}</span></p>
+                                    <p class="card-text text-muted small">
+                                        <i class="bi bi-person-fill me-1"></i> Creado por: {{ cap.creado_por.get_full_name|default:"Sistema" }}
+                                    </p>
+                                </div>
                             </div>
-                            <div>
-                                <h5 class="card-title mb-1">{{ cap.nombre }}</h5>
-                                <p class="mb-1"><span class="badge bg-secondary">{{ cap.malla }}</span></p>
-                                <p class="card-text text-muted small">
-                                    <i class="bi bi-person-fill me-1"></i> Creado por: {{ cap.creado_por.get_full_name|default:"Sistema" }}
-                                </p>
+                            <div class="list-group list-group-flush small mb-3">
+                                <div class="list-group-item px-0 d-flex justify-content-between">
+                                    <span class="text-muted"><i class="bi bi-calendar-event me-2"></i>Inicio</span>
+                                    <strong>{{ cap.fecha_inicio|date:"d/m/Y, H:i" }}</strong>
+                                </div>
+                                {% if cap.fecha_fin %}
+                                <div class="list-group-item px-0 d-flex justify-content-between">
+                                    <span class="text-muted"><i class="bi bi-calendar-check me-2"></i>Fin</span>
+                                    <strong>{{ cap.fecha_fin|date:"d/m/Y, H:i" }}</strong>
+                                </div>
+                                {% endif %}
+                                <div class="list-group-item px-0 d-flex justify-content-between">
+                                    <span class="text-muted"><i class="bi bi-geo-alt-fill me-2"></i>Lugar</span>
+                                    <strong>{{ cap.lugar }}</strong>
+                                </div>
+                                <div class="list-group-item px-0 d-flex justify-content-between">
+                                    <span class="text-muted"><i class="bi bi-person-video3 me-2"></i>Instructor</span>
+                                    <strong>{{ cap.instructor }}</strong>
+                                </div>
+                            </div>
+                            <a class="btn btn-sm btn-outline-secondary w-100 mb-3" data-bs-toggle="collapse" href="#card-collapse-{{ cap.id }}" role="button">
+                                Ver Descripción y Asistentes <i class="bi bi-chevron-down ms-1"></i>
+                            </a>
+                        </div>
+                        <div class="collapse" id="card-collapse-{{ cap.id }}">
+                            <div class="card-body border-top pt-3">
+                                <h6 class="small fw-bold text-muted">DESCRIPCIÓN</h6>
+                                <p class="small">{{ cap.descripcion|linebreaksbr }}</p>
+                                <h6 class="small fw-bold text-muted mt-3">ASISTENTES</h6>
+                                <ul class="list-unstyled small mb-0">
+                                    {% for asistente in cap.asistentes.all %}
+                                        <li><i class="bi bi-person-check-fill text-success me-2"></i>{{ asistente.get_full_name }}</li>
+                                    {% empty %}
+                                        <li class="text-muted">No hay asistentes registrados.</li>
+                                    {% endfor %}
+                                </ul>
                             </div>
                         </div>
-                        
-                        <div class="list-group list-group-flush small mb-3">
-                            <div class="list-group-item px-0 d-flex justify-content-between">
-                                <span class="text-muted"><i class="bi bi-calendar-event me-2"></i>Inicio</span>
-                                <strong>{{ cap.fecha_inicio|date:"d/m/Y, H:i" }}</strong>
+                        <div class="card-footer d-flex justify-content-between align-items-center">
+                            <div class="text-muted small">
+                                <i class="bi bi-people-fill me-1"></i>
+                                {{ cap.asistentes.count }} Asistente(s)
+                                {% if cap.cupos %}/ {{ cap.cupos }} Cupos{% endif %}
                             </div>
-                            {% if cap.fecha_fin %}
-                            <div class="list-group-item px-0 d-flex justify-content-between">
-                                <span class="text-muted"><i class="bi bi-calendar-check me-2"></i>Fin</span>
-                                <strong>{{ cap.fecha_fin|date:"d/m/Y, H:i" }}</strong>
+                            {% if request.user.is_superuser or request.user.rol.editar_capacitaciones %}
+                            <div>
+                                <button class="btn btn-sm btn-outline-primary"
+                                        data-bs-toggle="modal" data-bs-target="#editCapacitacionModal"
+                                        data-cap-id="{{ cap.id }}"
+                                        data-cap-nombre="{{ cap.nombre }}"
+                                        data-cap-tipo_actividad="{{ cap.tipo_actividad }}"
+                                        data-cap-malla="{{ cap.malla }}"
+                                        data-cap-descripcion="{{ cap.descripcion }}"
+                                        data-cap-fecha_inicio="{{ cap.fecha_inicio|date:'Y-m-d\TH:i' }}"
+                                        data-cap-fecha_fin="{{ cap.fecha_fin|date:'Y-m-d\TH:i' }}"
+                                        data-cap-lugar="{{ cap.lugar }}"
+                                        data-cap-instructor="{{ cap.instructor }}"
+                                        data-cap-cupos="{{ cap.cupos|default_if_none:'' }}"
+                                        data-cap-asistentes="{% for a in cap.asistentes.all %}{{ a.id }}{% if not forloop.last %},{% endif %}{% endfor %}"
+                                        data-cap-companias="{% for c in cap.companias_invitadas.all %}{{ c.id }}{% if not forloop.last %},{% endif %}{% endfor %}">
+                                    <i class="bi bi-pencil-fill"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger"
+                                        data-bs-toggle="modal" data-bs-target="#deleteCapacitacionModal"
+                                        data-cap-id="{{ cap.id }}" data-cap-nombre="{{ cap.nombre }}">
+                                    <i class="bi bi-trash-fill"></i></button>
                             </div>
                             {% endif %}
-                            <div class="list-group-item px-0 d-flex justify-content-between">
-                                <span class="text-muted"><i class="bi bi-geo-alt-fill me-2"></i>Lugar</span>
-                                <strong>{{ cap.lugar }}</strong>
-                            </div>
-                            <div class="list-group-item px-0 d-flex justify-content-between">
-                                <span class="text-muted"><i class="bi bi-person-video3 me-2"></i>Instructor</span>
-                                <strong>{{ cap.instructor }}</strong>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                {% endfor %}
+            </div>
+            {% endwith %}
+
+            {% comment %}Mensaje si no hay cursos{% endcomment %}
+            {% with tiene_cursos=False %}
+            {% for cap in capacitaciones %}{% if cap.tipo_actividad == 'Curso' %}{% with tiene_cursos=True %}{% endwith %}{% endif %}{% endfor %}
+            {% endwith %}
+        </div> <!-- Cierre tab-pane cursos -->
+
+        <!-- ===== PESTAÑA: CAPACITACIONES INTERNAS ===== -->
+        <div class="tab-pane fade" id="capacitaciones-internas" role="tabpanel">
+            <div class="d-flex justify-content-end mb-3">
+                {% if request.user.is_superuser or request.user.rol.editar_capacitaciones %}
+                <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#createCapacitacionModal" data-tipo="Reunión">
+                    <i class="bi bi-plus-lg me-1"></i> Nueva Capacitación Interna
+                </button>
+                {% endif %}
+            </div>
+
+            <!-- Filtro de búsqueda capacitaciones -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <div class="row g-3 align-items-center">
+                        <div class="col-lg-8">
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                                <input class="form-control" type="search" id="capInternSearchInput" placeholder="Buscar por nombre, instructor o lugar...">
                             </div>
                         </div>
-
-                        <a class="btn btn-sm btn-outline-secondary w-100 mb-3" data-bs-toggle="collapse" href="#card-collapse-{{ cap.id }}" role="button">
-                            Ver Descripción y Asistentes <i class="bi bi-chevron-down ms-1"></i>
-                        </a>
-
-                    </div>
-                    <div class="collapse" id="card-collapse-{{ cap.id }}">
-                        <div class="card-body border-top pt-3">
-                            <h6 class="small fw-bold text-muted">DESCRIPCIÓN</h6>
-                            <p class="small">{{ cap.descripcion|linebreaksbr }}</p>
-                            <h6 class="small fw-bold text-muted mt-3">ASISTENTES</h6>
-                            <ul class="list-unstyled small mb-0">
-                                {% for asistente in cap.asistentes.all %}
-                                    <li><i class="bi bi-person-check-fill text-success me-2"></i>{{ asistente.get_full_name }}</li>
-                                {% empty %}
-                                    <li class="text-muted">No hay asistentes registrados.</li>
+                        <div class="col-lg-4">
+                            <select id="tipoFilter" class="form-select">
+                                <option value="">Todos los tipos</option>
+                                {% for choice in form.tipo_actividad.field.choices %}
+                                    {% if choice.0 != 'Curso' and choice.0 != '' %}
+                                    <option value="{{ choice.0 }}">{{ choice.1 }}</option>
+                                    {% endif %}
                                 {% endfor %}
-                            </ul>
+                            </select>
                         </div>
-                    </div>
-                    <div class="card-footer d-flex justify-content-between align-items-center">
-                        <div class="text-muted small">
-                            <i class="bi bi-people-fill me-1"></i>
-                            {{ cap.asistentes.count }} Asistente(s)
-                            {% if cap.cupos %}/ {{ cap.cupos }} Cupos{% endif %}
-                        </div>
-                        {% if request.user.is_superuser or request.user.rol.editar_capacitaciones %}
-                        <div>
-                            <button class="btn btn-sm btn-outline-primary"
-                                    data-bs-toggle="modal"
-                                    data-bs-target="#editCapacitacionModal"
-                                    data-cap-id="{{ cap.id }}"
-                                    data-cap-nombre="{{ cap.nombre }}"
-                                    data-cap-tipo_actividad="{{ cap.tipo_actividad }}"
-                                    data-cap-malla="{{ cap.malla }}"
-                                    data-cap-descripcion="{{ cap.descripcion }}"
-                                    data-cap-fecha_inicio="{{ cap.fecha_inicio|date:'Y-m-d\TH:i' }}"
-                                    data-cap-fecha_fin="{{ cap.fecha_fin|date:'Y-m-d\TH:i' }}"
-                                    data-cap-lugar="{{ cap.lugar }}"
-                                    data-cap-instructor="{{ cap.instructor }}"
-                                    data-cap-cupos="{{ cap.cupos|default_if_none:'' }}"
-                                    data-cap-asistentes="{% for a in cap.asistentes.all %}{{ a.id }}{% if not forloop.last %},{% endif %}{% endfor %}"
-                                    data-cap-companias="{% for c in cap.companias_invitadas.all %}{{ c.id }}{% if not forloop.last %},{% endif %}{% endfor %}">
-                                <i class="bi bi-pencil-fill"></i>
-                            </button>
-                            <button class="btn btn-sm btn-outline-danger"
-                                    data-bs-toggle="modal" data-bs-target="#deleteCapacitacionModal"
-                                    data-cap-id="{{ cap.id }}" data-cap-nombre="{{ cap.nombre }}">
-                                <i class="bi bi-trash-fill"></i></button>
-                        </div>
-                        {% endif %}
                     </div>
                 </div>
             </div>
-            {% endfor %}
-        </div>
-    {% endif %}
-    </div> <!-- Cierre tab-pane actividades -->
+
+            <div id="no-cap-intern-found" class="text-center text-muted py-4" style="display: none;">
+                No se encontraron capacitaciones con los filtros aplicados.
+            </div>
+
+            <div class="row row-cols-1 row-cols-lg-2 g-4" id="cap-intern-list">
+                {% for cap in capacitaciones %}
+                {% if cap.tipo_actividad != 'Curso' %}
+                <div class="col cap-intern-card" data-tipo="{{ cap.tipo_actividad }}">
+                    <div class="card h-100 shadow-sm border-success border-opacity-25">
+                        <div class="card-body">
+                            <div class="d-flex align-items-start mb-3">
+                                <div class="d-flex align-items-center justify-content-center bg-success bg-opacity-10 rounded-circle me-3" style="width: 48px; height: 48px;">
+                                    {% if cap.tipo_actividad == 'Reunión' %}<i class="bi bi-people-fill fs-4 text-success"></i>
+                                    {% elif cap.tipo_actividad == 'Taller' %}<i class="bi bi-tools fs-4 text-success"></i>
+                                    {% elif cap.tipo_actividad == 'Charla' %}<i class="bi bi-chat-dots-fill fs-4 text-success"></i>
+                                    {% elif cap.tipo_actividad == 'Visita' %}<i class="bi bi-binoculars-fill fs-4 text-success"></i>
+                                    {% else %}<i class="bi bi-star-fill fs-4 text-success"></i>{% endif %}
+                                </div>
+                                <div>
+                                    <h5 class="card-title mb-1">{{ cap.nombre }}</h5>
+                                    <p class="mb-1"><span class="badge bg-success">{{ cap.tipo_actividad }}</span></p>
+                                    <p class="card-text text-muted small">
+                                        <i class="bi bi-person-fill me-1"></i> Creado por: {{ cap.creado_por.get_full_name|default:"Sistema" }}
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="list-group list-group-flush small mb-3">
+                                <div class="list-group-item px-0 d-flex justify-content-between">
+                                    <span class="text-muted"><i class="bi bi-calendar-event me-2"></i>Inicio</span>
+                                    <strong>{{ cap.fecha_inicio|date:"d/m/Y, H:i" }}</strong>
+                                </div>
+                                {% if cap.fecha_fin %}
+                                <div class="list-group-item px-0 d-flex justify-content-between">
+                                    <span class="text-muted"><i class="bi bi-calendar-check me-2"></i>Fin</span>
+                                    <strong>{{ cap.fecha_fin|date:"d/m/Y, H:i" }}</strong>
+                                </div>
+                                {% endif %}
+                                <div class="list-group-item px-0 d-flex justify-content-between">
+                                    <span class="text-muted"><i class="bi bi-geo-alt-fill me-2"></i>Lugar</span>
+                                    <strong>{{ cap.lugar }}</strong>
+                                </div>
+                            </div>
+                            <a class="btn btn-sm btn-outline-secondary w-100 mb-3" data-bs-toggle="collapse" href="#cap-intern-collapse-{{ cap.id }}" role="button">
+                                Ver Descripción y Asistentes <i class="bi bi-chevron-down ms-1"></i>
+                            </a>
+                        </div>
+                        <div class="collapse" id="cap-intern-collapse-{{ cap.id }}">
+                            <div class="card-body border-top pt-3">
+                                <h6 class="small fw-bold text-muted">DESCRIPCIÓN</h6>
+                                <p class="small">{{ cap.descripcion|linebreaksbr }}</p>
+                                <h6 class="small fw-bold text-muted mt-3">ASISTENTES</h6>
+                                <ul class="list-unstyled small mb-0">
+                                    {% for asistente in cap.asistentes.all %}
+                                        <li><i class="bi bi-person-check-fill text-success me-2"></i>{{ asistente.get_full_name }}</li>
+                                    {% empty %}
+                                        <li class="text-muted">No hay asistentes registrados.</li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="card-footer d-flex justify-content-between align-items-center">
+                            <div class="text-muted small">
+                                <i class="bi bi-people-fill me-1"></i>
+                                {{ cap.asistentes.count }} Asistente(s)
+                                {% if cap.cupos %}/ {{ cap.cupos }} Cupos{% endif %}
+                            </div>
+                            {% if request.user.is_superuser or request.user.rol.editar_capacitaciones %}
+                            <div>
+                                <button class="btn btn-sm btn-outline-primary"
+                                        data-bs-toggle="modal" data-bs-target="#editCapacitacionModal"
+                                        data-cap-id="{{ cap.id }}"
+                                        data-cap-nombre="{{ cap.nombre }}"
+                                        data-cap-tipo_actividad="{{ cap.tipo_actividad }}"
+                                        data-cap-malla="{{ cap.malla }}"
+                                        data-cap-descripcion="{{ cap.descripcion }}"
+                                        data-cap-fecha_inicio="{{ cap.fecha_inicio|date:'Y-m-d\TH:i' }}"
+                                        data-cap-fecha_fin="{{ cap.fecha_fin|date:'Y-m-d\TH:i' }}"
+                                        data-cap-lugar="{{ cap.lugar }}"
+                                        data-cap-instructor="{{ cap.instructor }}"
+                                        data-cap-cupos="{{ cap.cupos|default_if_none:'' }}"
+                                        data-cap-asistentes="{% for a in cap.asistentes.all %}{{ a.id }}{% if not forloop.last %},{% endif %}{% endfor %}"
+                                        data-cap-companias="{% for c in cap.companias_invitadas.all %}{{ c.id }}{% if not forloop.last %},{% endif %}{% endfor %}">
+                                    <i class="bi bi-pencil-fill"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger"
+                                        data-bs-toggle="modal" data-bs-target="#deleteCapacitacionModal"
+                                        data-cap-id="{{ cap.id }}" data-cap-nombre="{{ cap.nombre }}">
+                                    <i class="bi bi-trash-fill"></i></button>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                {% endfor %}
+            </div>
+        </div> <!-- Cierre tab-pane capacitaciones-internas -->
 
     <!-- Pestaña Lista de Abono -->
     <div class="tab-pane fade" id="abono" role="tabpanel" aria-labelledby="abono-tab">
@@ -688,7 +829,7 @@ document.addEventListener('DOMContentLoaded', function () {
     setupCompanyFilters('company-filters-create', 'asistentes-list-create', 'selectAllCreate', 'deselectAllCreate');
     setupCompanyFilters('company-filters-edit', 'asistentes-list-edit', 'selectAllEdit', 'deselectAllEdit');
 
-    // --- Lógica de Filtrado en Tiempo Real para Cursos ---
+    // --- Lógica de Filtrado para Cursos Oficiales ---
     const cursoSearchInput = document.getElementById('cursoSearchInput');
     const mallaFilter = document.getElementById('mallaFilter');
     const capacitacionesList = document.getElementById('capacitaciones-list');
@@ -696,20 +837,15 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function filterCursos() {
         if (!capacitacionesList) return;
-        const searchText = cursoSearchInput.value.toLowerCase();
-        const selectedMalla = mallaFilter.value.toLowerCase();
+        const searchText = cursoSearchInput ? cursoSearchInput.value.toLowerCase() : '';
+        const selectedMalla = mallaFilter ? mallaFilter.value.toLowerCase() : '';
         const cards = capacitacionesList.getElementsByClassName('capacitacion-card');
         let visibleCards = 0;
 
         for (let i = 0; i < cards.length; i++) {
             const card = cards[i];
             const textContent = card.textContent.toLowerCase();
-            
-            let malla = "";
-            const badge = card.querySelector('.badge');
-            if (badge) {
-                malla = badge.textContent.trim().toLowerCase();
-            }
+            const malla = card.dataset.malla ? card.dataset.malla.toLowerCase() : '';
 
             const matchesSearch = searchText === "" || textContent.includes(searchText);
             const matchesMalla = selectedMalla === "" || malla === selectedMalla;
@@ -729,6 +865,55 @@ document.addEventListener('DOMContentLoaded', function () {
 
     if (cursoSearchInput) cursoSearchInput.addEventListener('keyup', filterCursos);
     if (mallaFilter) mallaFilter.addEventListener('change', filterCursos);
+
+    // --- Lógica de Filtrado para Capacitaciones Internas ---
+    const capInternSearchInput = document.getElementById('capInternSearchInput');
+    const tipoFilter = document.getElementById('tipoFilter');
+    const capInternList = document.getElementById('cap-intern-list');
+    const noCapInternRow = document.getElementById('no-cap-intern-found');
+
+    function filterCapInternas() {
+        if (!capInternList) return;
+        const searchText = capInternSearchInput ? capInternSearchInput.value.toLowerCase() : '';
+        const selectedTipo = tipoFilter ? tipoFilter.value.toLowerCase() : '';
+        const cards = capInternList.getElementsByClassName('cap-intern-card');
+        let visibleCards = 0;
+
+        for (let i = 0; i < cards.length; i++) {
+            const card = cards[i];
+            const textContent = card.textContent.toLowerCase();
+            const tipo = card.dataset.tipo ? card.dataset.tipo.toLowerCase() : '';
+
+            const matchesSearch = searchText === "" || textContent.includes(searchText);
+            const matchesTipo = selectedTipo === "" || tipo === selectedTipo;
+
+            if (matchesSearch && matchesTipo) {
+                card.style.display = "";
+                visibleCards++;
+            } else {
+                card.style.display = "none";
+            }
+        }
+
+        if (noCapInternRow) {
+            noCapInternRow.style.display = visibleCards === 0 ? "block" : "none";
+        }
+    }
+
+    if (capInternSearchInput) capInternSearchInput.addEventListener('keyup', filterCapInternas);
+    if (tipoFilter) tipoFilter.addEventListener('change', filterCapInternas);
+
+    // --- Pre-seleccionar tipo de actividad en el modal de creación ---
+    const createModal = document.getElementById('createCapacitacionModal');
+    if (createModal) {
+        createModal.addEventListener('show.bs.modal', function(event) {
+            const button = event.relatedTarget;
+            if (button && button.dataset.tipo) {
+                const tipoSelect = createModal.querySelector('#id_tipo_actividad');
+                if (tipoSelect) tipoSelect.value = button.dataset.tipo;
+            }
+        });
+    }
 });
 </script>
 {% endblock %}
