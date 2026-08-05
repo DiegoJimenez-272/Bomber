@@ -112,7 +112,8 @@
                                             data-emergencia-descripcion="{{ emergencia.descripcion }}"
                                             data-emergencia-unidades_despachadas="{{ emergencia.unidades_despachadas }}"
                                             data-emergencia-oficial_a_cargo="{{ emergencia.oficial_a_cargo.id }}"
-                                            data-emergencia-estado="{{ emergencia.estado }}">
+                                            data-emergencia-estado="{{ emergencia.estado }}"
+                                            data-emergencia-asistentes="{% for a in emergencia.asistentes.all %}{{ a.id }}{% if not forloop.last %},{% endif %}{% endfor %}">
                                         <i class="bi bi-pencil-fill"></i>
                                     </button>
                                     <button type="button" class="btn btn-sm btn-outline-danger"
@@ -199,6 +200,18 @@
                                 <div class="invalid-feedback d-block">{{ error }}</div>
                             {% endfor %}
                         </div>
+                        <div class="col-12">
+                            <label class="form-label fw-bold"><i class="bi bi-people-fill me-1 text-danger"></i>Personal Asistente</label>
+                            <div class="border rounded p-2" style="max-height: 200px; overflow-y: auto;">
+                                {% for checkbox in form.asistentes %}
+                                <div class="form-check">
+                                    {{ checkbox.tag }}
+                                    <label class="form-check-label w-100" for="{{ checkbox.id_for_label }}">{{ checkbox.choice_label }}</label>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            <div class="form-text text-muted mt-1"><i class="bi bi-info-circle me-1"></i>Marca los bomberos que participaron en esta emergencia.</div>
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -255,6 +268,18 @@
                         <div class="col-12">
                             <label for="edit_descripcion" class="form-label">Detalles del Incidente</label>
                             <textarea id="edit_descripcion" name="descripcion" class="form-control" rows="4"></textarea>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-bold"><i class="bi bi-people-fill me-1 text-danger"></i>Personal Asistente</label>
+                            <div class="border rounded p-2" style="max-height: 200px; overflow-y: auto;" id="edit-asistentes-list">
+                                {% for checkbox in form.asistentes %}
+                                <div class="form-check">
+                                    {{ checkbox.tag }}
+                                    <label class="form-check-label w-100" for="edit_{{ checkbox.id_for_label }}">{{ checkbox.choice_label }}</label>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            <div class="form-text text-muted mt-1"><i class="bi bi-info-circle me-1"></i>Marca los bomberos que participaron en esta emergencia.</div>
                         </div>
                     </div>
                 </div>
@@ -313,6 +338,23 @@ document.addEventListener('DOMContentLoaded', function () {
         form.querySelector('#edit_unidades_despachadas').value = button.dataset.emergenciaUnidades_despachadas;
         form.querySelector('#edit_oficial_a_cargo').value = button.dataset.emergenciaOficial_a_cargo;
         form.querySelector('#edit_estado').value = button.dataset.emergenciaEstado;
+
+        // Limpiar checkboxes previos
+        var checkboxes = form.querySelectorAll('input[name="asistentes"]');
+        checkboxes.forEach(function(cb) {
+            cb.checked = false;
+        });
+
+        // Marcar checkboxes correspondientes
+        var asistentesData = button.dataset.emergenciaAsistentes;
+        if (asistentesData) {
+            var asistentesIds = asistentesData.split(',');
+            checkboxes.forEach(function(cb) {
+                if (asistentesIds.includes(cb.value)) {
+                    cb.checked = true;
+                }
+            });
+        }
     });
 
     // Lógica para el modal de eliminación

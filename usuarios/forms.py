@@ -389,7 +389,7 @@ class SalidaTerrenoForm(forms.ModelForm):
 class EmergenciaForm(forms.ModelForm):
     class Meta:
         model = Emergencia
-        fields = ['tipo', 'direccion', 'fecha_hora_alarma', 'descripcion', 'unidades_despachadas', 'oficial_a_cargo', 'estado']
+        fields = ['tipo', 'direccion', 'fecha_hora_alarma', 'descripcion', 'unidades_despachadas', 'oficial_a_cargo', 'estado', 'asistentes']
         widgets = {
             'tipo': forms.Select(attrs={'class': 'form-select'}),
             'direccion': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Calle Falsa 123, Comuna'}),
@@ -398,12 +398,15 @@ class EmergenciaForm(forms.ModelForm):
             'unidades_despachadas': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'B-1, R-2...'}),
             'oficial_a_cargo': forms.Select(attrs={'class': 'form-select'}),
             'estado': forms.Select(attrs={'class': 'form-select'}),
+            'asistentes': forms.CheckboxSelectMultiple(attrs={'class': 'form-check-input'}),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['oficial_a_cargo'].queryset = Usuario.objects.filter(is_active=True).order_by('nombre')
         self.fields['oficial_a_cargo'].empty_label = "Seleccionar oficial a cargo"
+        self.fields['asistentes'].queryset = Usuario.objects.filter(is_active=True).order_by('nombre')
+        self.fields['asistentes'].required = False
 
         if self.errors:
             for field_name in self.errors:

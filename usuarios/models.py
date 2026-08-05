@@ -215,6 +215,7 @@ class Emergencia(models.Model):
     unidades_despachadas = models.CharField(max_length=100, help_text="Ej: B-1, R-2, Z-3")
     oficial_a_cargo = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='emergencias_a_cargo')
     estado = models.CharField(max_length=20, choices=ESTADO_CHOICES, default='Activa')
+    asistentes = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name='emergencias_asistidas', blank=True, verbose_name='Personal Asistente')
     creado_por = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='emergencias_creadas')
     creado_en = models.DateTimeField(auto_now_add=True)
 

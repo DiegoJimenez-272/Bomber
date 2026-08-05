@@ -1524,11 +1524,14 @@ def capacitaciones_view(request):
     fecha_fin_filtro = request.GET.get('fecha_fin', '')
     
     base_filter = Q()
+    base_filter_em = Q()
     if fecha_inicio_filtro:
         base_filter &= Q(capacitaciones_asistidas__fecha_inicio__gte=fecha_inicio_filtro)
+        base_filter_em &= Q(emergencias_asistidas__fecha_hora_alarma__gte=fecha_inicio_filtro)
     if fecha_fin_filtro:
         # Añadir un día para incluir todo el día final (si se pasa solo la fecha)
         base_filter &= Q(capacitaciones_asistidas__fecha_inicio__lte=f"{fecha_fin_filtro} 23:59:59")
+        base_filter_em &= Q(emergencias_asistidas__fecha_hora_alarma__lte=f"{fecha_fin_filtro} 23:59:59")
 
     lista_abono = Usuario.objects.filter(is_active=True).annotate(
         total_cursos=Count('capacitaciones_asistidas', filter=base_filter & Q(capacitaciones_asistidas__tipo_actividad='Curso'), distinct=True),
@@ -1537,7 +1540,8 @@ def capacitaciones_view(request):
         total_charlas=Count('capacitaciones_asistidas', filter=base_filter & Q(capacitaciones_asistidas__tipo_actividad='Charla'), distinct=True),
         total_visitas=Count('capacitaciones_asistidas', filter=base_filter & Q(capacitaciones_asistidas__tipo_actividad='Visita'), distinct=True),
         total_otros=Count('capacitaciones_asistidas', filter=base_filter & Q(capacitaciones_asistidas__tipo_actividad='Otro'), distinct=True),
-        total_general=Count('capacitaciones_asistidas', filter=base_filter, distinct=True)
+        total_emergencias=Count('emergencias_asistidas', filter=base_filter_em, distinct=True),
+        total_general=Count('capacitaciones_asistidas', filter=base_filter, distinct=True) + Count('emergencias_asistidas', filter=base_filter_em, distinct=True)
     ).order_by('nombre')
 
     context = {
