@@ -233,8 +233,18 @@ class Capacitacion(models.Model):
         ('Nivel especialidad', 'Nivel especialidad'),
         ('Otros', 'Otros'),
     ]
+    
+    TIPO_ACTIVIDAD_CHOICES = [
+        ('Curso', 'Curso'),
+        ('Reunión', 'Reunión'),
+        ('Taller', 'Taller'),
+        ('Charla', 'Charla'),
+        ('Visita', 'Visita'),
+        ('Otro', 'Otro'),
+    ]
 
     nombre = models.CharField(max_length=200)
+    tipo_actividad = models.CharField(max_length=50, choices=TIPO_ACTIVIDAD_CHOICES, default='Curso', verbose_name='Tipo de Actividad')
     malla = models.CharField(max_length=50, choices=MALLA_CHOICES, default='Otros', verbose_name='Malla/Curso')
     descripcion = models.TextField()
     fecha_inicio = models.DateTimeField()

@@ -431,9 +431,10 @@ class CapacitacionForm(forms.ModelForm):
 
     class Meta:
         model = Capacitacion
-        fields = ['nombre', 'malla', 'descripcion', 'fecha_inicio', 'fecha_fin', 'lugar', 'instructor', 'cupos', 'companias_invitadas', 'asistentes']
+        fields = ['nombre', 'tipo_actividad', 'malla', 'descripcion', 'fecha_inicio', 'fecha_fin', 'lugar', 'instructor', 'cupos', 'companias_invitadas', 'asistentes']
         widgets = {
             'nombre': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej: Curso de Rescate Vehicular Nivel I'}),
+            'tipo_actividad': forms.Select(attrs={'class': 'form-select'}),
             'malla': forms.Select(attrs={'class': 'form-select'}),
             'descripcion': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Objetivos, temas a tratar, etc.'}),
             'fecha_inicio': forms.DateTimeInput(attrs={'class': 'form-control', 'type': 'datetime-local'}),

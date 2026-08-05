@@ -24,6 +24,24 @@
         {% endfor %}
     {% endif %}
 
+    <!-- Navegación por pestañas -->
+    <ul class="nav nav-tabs mb-4" id="capacitacionesTab" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active fw-bold" id="actividades-tab" data-bs-toggle="tab" data-bs-target="#actividades" type="button" role="tab" aria-controls="actividades" aria-selected="true">
+                <i class="bi bi-card-list me-2"></i>Gestión de Actividades
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link fw-bold" id="abono-tab" data-bs-toggle="tab" data-bs-target="#abono" type="button" role="tab" aria-controls="abono" aria-selected="false">
+                <i class="bi bi-award-fill me-2"></i>Lista de Abono (Asistencias)
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content" id="capacitacionesTabContent">
+        <!-- Pestaña de Actividades -->
+        <div class="tab-pane fade show active" id="actividades" role="tabpanel" aria-labelledby="actividades-tab">
+
     {% if not capacitaciones %}
     <div class="card text-center p-5 border-dashed">
         <div class="card-body">
@@ -135,6 +153,7 @@
                                     data-bs-target="#editCapacitacionModal"
                                     data-cap-id="{{ cap.id }}"
                                     data-cap-nombre="{{ cap.nombre }}"
+                                    data-cap-tipo_actividad="{{ cap.tipo_actividad }}"
                                     data-cap-malla="{{ cap.malla }}"
                                     data-cap-descripcion="{{ cap.descripcion }}"
                                     data-cap-fecha_inicio="{{ cap.fecha_inicio|date:'Y-m-d\TH:i' }}"
@@ -158,6 +177,73 @@
             {% endfor %}
         </div>
     {% endif %}
+    </div> <!-- Cierre tab-pane actividades -->
+
+    <!-- Pestaña Lista de Abono -->
+    <div class="tab-pane fade" id="abono" role="tabpanel" aria-labelledby="abono-tab">
+        <div class="card shadow-sm mt-3">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
+                <h5 class="mb-0 fw-bold"><i class="bi bi-award-fill me-2 text-primary"></i>Lista de Abono (Asistencias)</h5>
+                <form method="get" class="d-flex align-items-center gap-2">
+                    <input type="hidden" name="tab" value="abono">
+                    <input type="date" name="fecha_inicio" class="form-control form-control-sm" value="{{ fecha_inicio_filtro }}" title="Fecha Inicio">
+                    <span>-</span>
+                    <input type="date" name="fecha_fin" class="form-control form-control-sm" value="{{ fecha_fin_filtro }}" title="Fecha Fin">
+                    <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-filter"></i></button>
+                    {% if fecha_inicio_filtro or fecha_fin_filtro %}
+                    <a href="?" class="btn btn-sm btn-outline-secondary"><i class="bi bi-x-circle"></i></a>
+                    {% endif %}
+                </form>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover table-striped align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Bombero</th>
+                                <th class="text-center" title="Cursos">Cursos</th>
+                                <th class="text-center" title="Reuniones">Reuniones</th>
+                                <th class="text-center" title="Talleres">Talleres</th>
+                                <th class="text-center" title="Charlas">Charlas</th>
+                                <th class="text-center" title="Visitas">Visitas</th>
+                                <th class="text-center" title="Otros">Otros</th>
+                                <th class="text-center fw-bold text-primary">Total Abono</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for u in lista_abono %}
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center ms-2">
+                                        <div class="bg-secondary rounded-circle text-white d-flex align-items-center justify-content-center me-2" style="width: 32px; height: 32px;">
+                                            {{ u.nombre.0 }}{{ u.apellido.0 }}
+                                        </div>
+                                        <div>
+                                            <div class="fw-bold">{{ u.get_full_name }}</div>
+                                            <div class="small text-muted">{{ u.rut }}</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="text-center">{{ u.total_cursos }}</td>
+                                <td class="text-center">{{ u.total_reuniones }}</td>
+                                <td class="text-center">{{ u.total_talleres }}</td>
+                                <td class="text-center">{{ u.total_charlas }}</td>
+                                <td class="text-center">{{ u.total_visitas }}</td>
+                                <td class="text-center">{{ u.total_otros }}</td>
+                                <td class="text-center fw-bold fs-5 text-primary">{{ u.total_general }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="8" class="text-center text-muted py-4">No hay bomberos activos para mostrar en la lista de abono.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div> <!-- Cierre tab-pane abono -->
+    </div> <!-- Cierre tab-content -->
 </main>
 
 <!-- Modal Crear Curso -->
@@ -197,12 +283,17 @@
                     </div>
 
                     <div class="row g-3 mb-3">
-                        <div class="col-md-8">
-                            <label for="{{ form.nombre.id_for_label }}" class="form-label">Nombre del Curso</label>
+                        <div class="col-md-6">
+                            <label for="{{ form.nombre.id_for_label }}" class="form-label">Nombre de la Actividad</label>
                             {{ form.nombre }}
                             {% for error in form.nombre.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-3">
+                            <label for="{{ form.tipo_actividad.id_for_label }}" class="form-label">Tipo</label>
+                            {{ form.tipo_actividad }}
+                            {% for error in form.tipo_actividad.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                        </div>
+                        <div class="col-md-3">
                             <label for="{{ form.malla.id_for_label }}" class="form-label">Malla / Nivel</label>
                             {{ form.malla }}
                             {% for error in form.malla.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
@@ -323,11 +414,19 @@
                     </div>
 
                     <div class="row g-3 mb-3">
-                        <div class="col-md-8">
-                            <label for="edit_nombre" class="form-label">Nombre del Curso</label>
+                        <div class="col-md-6">
+                            <label for="edit_nombre" class="form-label">Nombre de la Actividad</label>
                             <input type="text" id="edit_nombre" name="nombre" class="form-control">
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-3">
+                            <label for="edit_tipo_actividad" class="form-label">Tipo</label>
+                            <select id="edit_tipo_actividad" name="tipo_actividad" class="form-select">
+                                {% for choice in form.tipo_actividad.field.choices %}
+                                    <option value="{{ choice.0 }}">{{ choice.1 }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3">
                             <label for="edit_malla" class="form-label">Malla / Nivel</label>
                             <select id="edit_malla" name="malla" class="form-select">
                                 {% for choice in form.malla.field.choices %}
@@ -450,6 +549,7 @@ document.addEventListener('DOMContentLoaded', function () {
         var form = document.getElementById('editCapacitacionForm');
         form.action = `/capacitaciones/${button.dataset.capId}/edit/`;
         form.querySelector('#edit_nombre').value = button.dataset.capNombre;
+        form.querySelector('#edit_tipo_actividad').value = button.dataset.capTipo_actividad;
         form.querySelector('#edit_malla').value = button.dataset.capMalla;
         form.querySelector('#edit_descripcion').value = button.dataset.capDescripcion;
         form.querySelector('#edit_fecha_inicio').value = button.dataset.capFecha_inicio;
@@ -477,6 +577,16 @@ document.addEventListener('DOMContentLoaded', function () {
             compCheckboxes[0].dispatchEvent(new Event('change'));
         }
     });
+
+    // Mantener la pestaña activa si hay un filtro de abono
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('tab') === 'abono' || urlParams.has('fecha_inicio')) {
+        const abonoTabTrigger = document.querySelector('#abono-tab');
+        if(abonoTabTrigger) {
+            const abonoTab = new bootstrap.Tab(abonoTabTrigger);
+            abonoTab.show();
+        }
+    }
 
     // Lógica para el modal de eliminación
     var deleteModal = document.getElementById('deleteCapacitacionModal');

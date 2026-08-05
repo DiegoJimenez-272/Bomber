@@ -1518,11 +1518,36 @@ def capacitaciones_view(request):
     usuarios_info = list(Usuario.objects.filter(is_active=True).values('id', 'compania_id'))
     usuarios_companias = {u['id']: u['compania_id'] for u in usuarios_info}
 
+    # --- Lógica de Lista de Abono (Asistencias) ---
+    from django.db.models import Count
+    fecha_inicio_filtro = request.GET.get('fecha_inicio', '')
+    fecha_fin_filtro = request.GET.get('fecha_fin', '')
+    
+    base_filter = Q()
+    if fecha_inicio_filtro:
+        base_filter &= Q(capacitaciones_asistidas__fecha_inicio__gte=fecha_inicio_filtro)
+    if fecha_fin_filtro:
+        # Añadir un día para incluir todo el día final (si se pasa solo la fecha)
+        base_filter &= Q(capacitaciones_asistidas__fecha_inicio__lte=f"{fecha_fin_filtro} 23:59:59")
+
+    lista_abono = Usuario.objects.filter(is_active=True).annotate(
+        total_cursos=Count('capacitaciones_asistidas', filter=base_filter & Q(capacitaciones_asistidas__tipo_actividad='Curso'), distinct=True),
+        total_reuniones=Count('capacitaciones_asistidas', filter=base_filter & Q(capacitaciones_asistidas__tipo_actividad='Reunión'), distinct=True),
+        total_talleres=Count('capacitaciones_asistidas', filter=base_filter & Q(capacitaciones_asistidas__tipo_actividad='Taller'), distinct=True),
+        total_charlas=Count('capacitaciones_asistidas', filter=base_filter & Q(capacitaciones_asistidas__tipo_actividad='Charla'), distinct=True),
+        total_visitas=Count('capacitaciones_asistidas', filter=base_filter & Q(capacitaciones_asistidas__tipo_actividad='Visita'), distinct=True),
+        total_otros=Count('capacitaciones_asistidas', filter=base_filter & Q(capacitaciones_asistidas__tipo_actividad='Otro'), distinct=True),
+        total_general=Count('capacitaciones_asistidas', filter=base_filter, distinct=True)
+    ).order_by('nombre')
+
     context = {
         'form': form, 
         'capacitaciones': capacitaciones,
         'companias': companias,
-        'usuarios_companias_json': json.dumps(usuarios_companias)
+        'usuarios_companias_json': json.dumps(usuarios_companias),
+        'lista_abono': lista_abono,
+        'fecha_inicio_filtro': fecha_inicio_filtro,
+        'fecha_fin_filtro': fecha_fin_filtro
     }
     return render(request, 'usuarios/capacitaciones.html', context)
 
