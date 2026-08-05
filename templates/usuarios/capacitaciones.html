@@ -1,11 +1,11 @@
 {% extends 'base_con_condicion.html' %}
 
-{% block title %}Cursos - {{ block.super }}{% endblock %}
+{% block title %}Cursos y Capacitaciones - {{ block.super }}{% endblock %}
 
 {% block content %}
 <!-- Header del contenido principal -->
 <header class="d-flex align-items-center justify-content-between pb-3 mb-4 border-bottom">
-    <h1 class="h2 mb-0">Gestión de Cursos</h1>
+    <h1 class="h2 mb-0">Gestión de Cursos y Capacitaciones</h1>
     {% if request.user.is_superuser or request.user.rol.editar_capacitaciones %}
     <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#createCapacitacionModal">
         <i class="bi bi-plus-lg me-1"></i> Nuevo Curso

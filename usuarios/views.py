@@ -144,7 +144,7 @@ def dashboard_view(request):
         {'id': 'inventario', 'url_name': 'inventario', 'icon': 'bi-box-seam-fill', 'title': 'Inventario', 'desc': 'Control de equipos y herramientas'},
         {'id': 'salidas', 'url_name': 'salidas_terreno', 'icon': 'bi-truck-front-fill', 'title': 'Salidas a Terreno', 'desc': 'Registro y seguimiento de operaciones'},
         {'id': 'emergencias', 'url_name': 'emergencias', 'icon': 'bi-exclamation-octagon-fill', 'title': 'Emergencias', 'desc': 'Gestión de incidentes y respuesta'},
-        {'id': 'capacitaciones', 'url_name': 'capacitaciones', 'icon': 'bi-mortarboard-fill', 'title': 'Cursos', 'desc': 'Programación y seguimiento de cursos y entrenamientos'},
+        {'id': 'capacitaciones', 'url_name': 'capacitaciones', 'icon': 'bi-mortarboard-fill', 'title': 'Cursos y Capacitaciones', 'desc': 'Programación y seguimiento de cursos y entrenamientos'},
         {'id': 'mantenimiento', 'url_name': 'mantenimiento', 'icon': 'bi-wrench-adjustable-circle-fill', 'title': 'Mantenimiento', 'desc': 'Gestión de la flota vehicular'},
         {'id': 'caja_chica', 'url_name': 'caja_chica', 'icon': 'bi-wallet-fill', 'title': 'Caja Chica', 'desc': 'Control de gastos menores'},
         {'id': 'proyectos', 'url_name': 'proyectos', 'icon': 'bi-graph-up-arrow', 'title': 'Proyectos', 'desc': 'Seguimiento de proyectos y mejoras'},

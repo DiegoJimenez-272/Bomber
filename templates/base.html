@@ -250,7 +250,7 @@
                 {% endif %}
                 
                 {% if request.user.is_superuser or request.user.rol.ver_capacitaciones %}
-                <li class="nav-item"><a href="{% url 'capacitaciones' %}" class="nav-link {% if request.resolver_match.url_name == 'capacitaciones' %}active{% endif %}"><i class="bi bi-mortarboard-fill"></i>Cursos</a></li>
+                <li class="nav-item"><a href="{% url 'capacitaciones' %}" class="nav-link {% if request.resolver_match.url_name == 'capacitaciones' %}active{% endif %}"><i class="bi bi-mortarboard-fill"></i>Cursos y Capacitaciones</a></li>
                 {% endif %}
                 
                 {% if request.user.is_superuser or request.user.rol.ver_mantenimientos %}
