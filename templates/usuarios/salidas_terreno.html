@@ -28,13 +28,22 @@
     <div class="card shadow-sm mb-4">
         <div class="card-body">
             <form method="get" class="row g-3 align-items-end">
-                <div class="col-lg-7">
-                    <label for="q" class="form-label">Buscar por motivo, dirección, unidades...</label>
+                <div class="col-lg-4">
+                    <label for="q" class="form-label">Buscar por dirección, unidades...</label>
                     <input type="text" name="q" id="salidaSearchInput" class="form-control" value="{{ request.GET.q|default:'' }}">
                 </div>
                 <div class="col-lg-3">
+                    <label for="motivo" class="form-label">Tipo de Salida</label>
+                    <select name="motivo" id="salidaMotivoFilter" class="form-select" onchange="this.form.submit()">
+                        <option value="">Todos los tipos</option>
+                        {% for m in motivos_unicos %}
+                            <option value="{{ m }}" {% if request.GET.motivo == m %}selected{% endif %}>{{ m }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-lg-3">
                     <label for="usuario" class="form-label">Personal a Cargo</label>
-                    <select name="usuario" id="salidaUserFilter" class="form-select">
+                    <select name="usuario" id="salidaUserFilter" class="form-select" onchange="this.form.submit()">
                         <option value="">Todos</option>
                         {% for user in usuarios_con_salidas %}<option value="{{ user.id }}" {% if request.GET.usuario == user.id|stringformat:"s" %}selected{% endif %}>{{ user.get_full_name }}</option>{% endfor %}
                     </select>

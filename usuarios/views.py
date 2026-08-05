@@ -1246,6 +1246,7 @@ def salidas_terreno_view(request):
     # --- Lógica de Búsqueda y Filtros ---
     query = request.GET.get('q')
     usuario_id = request.GET.get('usuario')
+    motivo_filtro = request.GET.get('motivo')
     ordenar_por = request.GET.get('ordenar_por', '-fecha_hora_salida')
 
     salidas = SalidaTerreno.objects.select_related('personal_a_cargo').all()
@@ -1262,16 +1263,22 @@ def salidas_terreno_view(request):
 
     if usuario_id:
         salidas = salidas.filter(personal_a_cargo__id=usuario_id)
+        
+    if motivo_filtro:
+        salidas = salidas.filter(motivo=motivo_filtro)
 
     valid_sorts = ['-fecha_hora_salida', 'fecha_hora_salida', 'motivo', '-motivo']
     if ordenar_por in valid_sorts:
         salidas = salidas.order_by(ordenar_por)
 
     usuarios_con_salidas = Usuario.objects.filter(salidas_a_cargo__isnull=False).distinct().order_by('nombre')
+    motivos_unicos = SalidaTerreno.objects.values_list('motivo', flat=True).distinct().order_by('motivo')
+    
     context = {
         'form': form, 
         'salidas': salidas,
-        'usuarios_con_salidas': usuarios_con_salidas
+        'usuarios_con_salidas': usuarios_con_salidas,
+        'motivos_unicos': motivos_unicos
     }
     return render(request, 'usuarios/salidas_terreno.html', context)
 
