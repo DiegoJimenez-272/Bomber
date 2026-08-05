@@ -88,8 +88,56 @@ def logout_view(request):
     messages.info(request, 'Has cerrado sesión exitosamente.')
     return redirect('login')
 
+def verificar_recordatorios_mantenimiento():
+    from django.core.cache import cache
+    from django.utils import timezone
+    from django.urls import reverse
+    from .models import Mantenimiento, Notificacion, Usuario
+    
+    today_date = timezone.now().date()
+    last_run = cache.get('maintenance_reminders_last_run')
+    
+    if last_run == today_date:
+        return
+        
+    pendientes = Mantenimiento.objects.exclude(estado='Finalizado')
+    administradores = Usuario.objects.filter(is_superuser=True)
+    
+    for mant in pendientes:
+        dias_restantes = (mant.fecha - today_date).days
+        
+        if dias_restantes in [7, 4, 2, 0]:
+            if dias_restantes == 0:
+                mensaje = f"Recordatorio: Mantenimiento para '{mant.vehiculo}' es HOY."
+            else:
+                mensaje = f"Recordatorio: Faltan {dias_restantes} días para el mantenimiento de '{mant.vehiculo}'."
+                
+            try:
+                link_url = reverse('mantenimiento')
+            except:
+                link_url = ''
+                
+            for admin in administradores:
+                already_notified = Notificacion.objects.filter(
+                    usuario=admin, 
+                    mensaje=mensaje, 
+                    fecha_creacion__date=today_date
+                ).exists()
+                
+                if not already_notified:
+                    Notificacion.objects.create(
+                        usuario=admin,
+                        mensaje=mensaje,
+                        link=link_url
+                    )
+                    
+    cache.set('maintenance_reminders_last_run', today_date, 60*60*12)
+
 @login_required
 def dashboard_view(request):
+    # Ejecutar la verificación de recordatorios (silencioso y cacheados)
+    verificar_recordatorios_mantenimiento()
+    
     modules = [
         {'id': 'dashboard_summary', 'url_name': 'dashboard_summary', 'icon': 'bi-bar-chart-line-fill', 'title': 'Ver Resumen General', 'desc': 'Visualiza KPIs, gráficos y actividad reciente del sistema.'},
         {'id': 'documentos', 'url_name': 'documentos', 'icon': 'bi-file-earmark-text-fill', 'title': 'Documentos', 'desc': 'Gestión de documentos e informes'},
