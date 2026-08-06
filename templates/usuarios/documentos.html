@@ -3,27 +3,7 @@
 {% block title %}Documentos - {{ block.super }}{% endblock %}
 
 {% block content %}
-<style>
-    /* Limpiar lista de checkboxes de Django y agrandar espacios */
-    .usuarios-permitidos-container ul {
-        list-style-type: none;
-        padding-left: 0;
-        margin-bottom: 0;
-    }
-    .usuarios-permitidos-container li, 
-    .usuarios-permitidos-container .form-check {
-        margin-bottom: 0.8rem;
-        font-size: 1.05rem;
-    }
-    .usuarios-permitidos-container input[type="checkbox"] {
-        transform: scale(1.2);
-        margin-right: 0.5rem;
-        cursor: pointer;
-    }
-    .usuarios-permitidos-container label {
-        cursor: pointer;
-    }
-</style>
+
 <!-- Header del contenido principal -->
 <header class="d-flex align-items-center justify-content-between pb-3 mb-4 border-bottom">
     <div>
@@ -290,21 +270,6 @@
                             Hacer Privado (solo tú y los administradores podrán verlo)
                         </label>
                     </div>
-                    <div class="mb-3 usuarios-permitidos-container" style="display: none;">
-                        <label class="form-label mb-2">Permitir acceso a otros usuarios (Opcional)</label>
-                        <div class="border rounded p-3" style="max-height: 250px; overflow-y: auto;">
-                            {% for choice in carpeta_form.usuarios_permitidos.field.choices %}
-                                {% if choice.0 %}
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" name="usuarios_permitidos" value="{{ choice.0 }}" id="carpeta_user_{{ choice.0 }}">
-                                    <label class="form-check-label" for="carpeta_user_{{ choice.0 }}">
-                                        {{ choice.1 }}
-                                    </label>
-                                </div>
-                                {% endif %}
-                            {% endfor %}
-                        </div>
-                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
@@ -359,21 +324,6 @@
                         <label class="form-check-label" for="{{ form.es_privado.id_for_label }}">
                             Hacer Privado (solo tú y los administradores podrán verlo)
                         </label>
-                    </div>
-                    <div class="mb-3 usuarios-permitidos-container" style="display: none;">
-                        <label class="form-label mb-2">Permitir acceso a otros usuarios (Opcional)</label>
-                        <div class="border rounded p-3" style="max-height: 250px; overflow-y: auto;">
-                            {% for choice in form.usuarios_permitidos.field.choices %}
-                                {% if choice.0 %}
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" name="usuarios_permitidos" value="{{ choice.0 }}" id="doc_user_{{ choice.0 }}">
-                                    <label class="form-check-label" for="doc_user_{{ choice.0 }}">
-                                        {{ choice.1 }}
-                                    </label>
-                                </div>
-                                {% endif %}
-                            {% endfor %}
-                        </div>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -444,21 +394,6 @@
                         <label class="form-check-label" for="es_privado_texto">
                             Hacer Privado (solo tú y los administradores podrán verlo)
                         </label>
-                    </div>
-                    <div class="mb-3 usuarios-permitidos-container" style="display: none;">
-                        <label class="form-label mb-2">Permitir acceso a otros usuarios (Opcional)</label>
-                        <div class="border rounded p-2" style="max-height: 250px; overflow-y: auto;">
-                            {% for choice in form.usuarios_permitidos.field.choices %}
-                                {% if choice.0 %}
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" name="usuarios_permitidos" value="{{ choice.0 }}" id="user_{{ choice.0 }}">
-                                    <label class="form-check-label" for="user_{{ choice.0 }}">
-                                        {{ choice.1 }}
-                                    </label>
-                                </div>
-                                {% endif %}
-                            {% endfor %}
-                        </div>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -654,21 +589,6 @@ document.addEventListener('DOMContentLoaded', function () {
     if (docTypeFilter) docTypeFilter.addEventListener('change', filterDocs);
     if (docUserFilter) docUserFilter.addEventListener('change', filterDocs);
 
-    // Toggle usuarios permitidos select
-    const esPrivadoCheckboxes = document.querySelectorAll('input[type="checkbox"][name="es_privado"]');
-    esPrivadoCheckboxes.forEach(checkbox => {
-        checkbox.addEventListener('change', function() {
-            const container = this.closest('.modal-body').querySelector('.usuarios-permitidos-container');
-            if(container) {
-                container.style.display = this.checked ? 'block' : 'none';
-            }
-        });
-        
-        // Trigger inicial por si recarga la página con el checkbox marcado
-        if(checkbox.checked) {
-            checkbox.dispatchEvent(new Event('change'));
-        }
-    });
 });
 </script>
 {% endblock %}

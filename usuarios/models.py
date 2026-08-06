@@ -145,7 +145,6 @@ class Carpeta(models.Model):
     creado_por = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
     creado_en = models.DateTimeField(auto_now_add=True)
     es_privado = models.BooleanField(default=False)
-    usuarios_permitidos = models.ManyToManyField(settings.AUTH_USER_MODEL, blank=True, related_name='carpetas_permitidas')
 
     def __str__(self):
         return self.nombre
@@ -171,7 +170,6 @@ class Documento(models.Model):
     subido_por = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
     subido_en = models.DateTimeField(auto_now_add=True)
     es_privado = models.BooleanField(default=False)
-    usuarios_permitidos = models.ManyToManyField(settings.AUTH_USER_MODEL, blank=True, related_name='documentos_permitidos')
 
     def __str__(self):
         return self.nombre

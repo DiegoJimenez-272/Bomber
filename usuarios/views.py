@@ -709,7 +709,6 @@ def documentos_view(request):
             tipo_texto = request.POST.get('tipo', 'General')
             carpeta_id = request.POST.get('carpeta')
             es_privado = request.POST.get('es_privado') == 'on'
-            usuarios_permitidos_ids = request.POST.getlist('usuarios_permitidos')
 
             if not nombre or not contenido:
                 messages.error(request, 'El título y el contenido son obligatorios.')
@@ -760,8 +759,6 @@ def documentos_view(request):
                 
             documento.archivo.save(safe_filename, ContentFile(pdf_bytes), save=False)
             documento.save()
-            if usuarios_permitidos_ids:
-                documento.usuarios_permitidos.set(usuarios_permitidos_ids)
             
             messages.success(request, f'Documento "{nombre}" redactado y guardado como PDF exitosamente.')
             return redirect('documentos')
@@ -817,17 +814,15 @@ def documentos_view(request):
             documentos = documentos.filter(compania__isnull=True)
             carpetas = carpetas.filter(compania__isnull=True)
             
-        # Filtro de privacidad: (No es privado) OR (Soy el creador) OR (Estoy en usuarios permitidos)
+        # Filtro de privacidad: (No es privado) OR (Soy el creador)
         documentos = documentos.filter(
             Q(es_privado=False) |
-            Q(subido_por=request.user) |
-            Q(usuarios_permitidos=request.user)
+            Q(subido_por=request.user)
         ).distinct()
         
         carpetas = carpetas.filter(
             Q(es_privado=False) |
-            Q(creado_por=request.user) |
-            Q(usuarios_permitidos=request.user)
+            Q(creado_por=request.user)
         ).distinct()
             
     # Filtrar por carpeta actual
