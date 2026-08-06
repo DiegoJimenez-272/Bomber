@@ -348,7 +348,7 @@ class DocumentoForm(forms.ModelForm):
         else:
             if 'compania' in self.fields:
                 self.fields['compania'].queryset = Compania.objects.all()
-                self.fields['compania'].empty_label = "Solo Administración (Oculto a todos)"
+                self.fields['compania'].empty_label = "General (Visible para todos)"
                 self.fields['compania'].required = False
             self.fields['carpeta'].queryset = Carpeta.objects.all()
         
