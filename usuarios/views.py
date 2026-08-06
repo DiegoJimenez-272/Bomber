@@ -1386,7 +1386,8 @@ def emergencias_view(request):
     # --- Lógica de Búsqueda y Filtros ---
     query = request.GET.get('q')
     tipo_emergencia = request.GET.get('tipo')
-    estado_emergencia = request.GET.get('estado')
+    fecha_inicio = request.GET.get('fecha_inicio')
+    fecha_fin = request.GET.get('fecha_fin')
     usuario_id = request.GET.get('usuario')
     ordenar_por = request.GET.get('ordenar_por', '-fecha_hora_alarma')
 
@@ -1402,8 +1403,11 @@ def emergencias_view(request):
     if tipo_emergencia:
         emergencias = emergencias.filter(tipo=tipo_emergencia)
     
-    if estado_emergencia:
-        emergencias = emergencias.filter(estado=estado_emergencia)
+    if fecha_inicio:
+        emergencias = emergencias.filter(fecha_hora_alarma__gte=fecha_inicio)
+        
+    if fecha_fin:
+        emergencias = emergencias.filter(fecha_hora_alarma__lte=f"{fecha_fin} 23:59:59")
 
     if usuario_id:
         emergencias = emergencias.filter(oficial_a_cargo__id=usuario_id)

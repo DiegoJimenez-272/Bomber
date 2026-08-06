@@ -40,11 +40,12 @@
                     </select>
                 </div>
                 <div class="col-lg-2">
-                    <label for="estado" class="form-label">Estado</label>
-                    <select name="estado" id="emStatusFilter" class="form-select">
-                        <option value="">Todos</option>
-                        {% for value, text in form.fields.estado.choices %}<option value="{{ value }}" {% if request.GET.estado == value %}selected{% endif %}>{{ text }}</option>{% endfor %}
-                    </select>
+                    <label for="fecha_inicio" class="form-label">Desde</label>
+                    <input type="date" name="fecha_inicio" id="emFechaInicioFilter" class="form-control" value="{{ request.GET.fecha_inicio }}" onchange="this.form.submit()">
+                </div>
+                <div class="col-lg-2">
+                    <label for="fecha_fin" class="form-label">Hasta</label>
+                    <input type="date" name="fecha_fin" id="emFechaFinFilter" class="form-control" value="{{ request.GET.fecha_fin }}" onchange="this.form.submit()">
                 </div>
                 <div class="col-lg-2">
                     <label for="usuario" class="form-label">Oficial a Cargo</label>
@@ -369,7 +370,6 @@ document.addEventListener('DOMContentLoaded', function () {
     // --- Lógica de Filtrado en Tiempo Real para Emergencias ---
     const emSearchInput = document.getElementById('emSearchInput');
     const emTypeFilter = document.getElementById('emTypeFilter');
-    const emStatusFilter = document.getElementById('emStatusFilter');
     const emUserFilter = document.getElementById('emUserFilter');
     const emsTableBody = document.getElementById('emergenciasTableBody');
     const noEmsRow = document.getElementById('no-ems-found');
@@ -378,7 +378,6 @@ document.addEventListener('DOMContentLoaded', function () {
         if (!emsTableBody) return;
         const searchText = emSearchInput.value.toLowerCase();
         const selectedType = emTypeFilter.value.toLowerCase(); 
-        const selectedStatus = emStatusFilter.value.toLowerCase();
         const isUserSelected = emUserFilter.value !== "";
         const selectedUserText = emUserFilter.options[emUserFilter.selectedIndex].text.toLowerCase();
 
@@ -389,17 +388,14 @@ document.addEventListener('DOMContentLoaded', function () {
             if (row.children.length === 1 && row.textContent.includes('No hay emergencias registradas todavía')) return;
 
             const textContent = row.textContent.toLowerCase();
-            const statusCell = row.cells[4] ? row.cells[4].textContent.trim().toLowerCase() : "";
-            const userCell = row.cells[3] ? row.cells[3].textContent.toLowerCase() : "";
-            const editBtn = row.querySelector('button[data-emergencia-tipo]');
-            let typeKey = editBtn ? editBtn.getAttribute('data-emergencia-tipo').toLowerCase() : "";
+            const typeCell = row.children[0].textContent.toLowerCase();
+            const userCell = row.children[3].textContent.toLowerCase();
 
             const matchesSearch = searchText === "" || textContent.includes(searchText);
-            const matchesType = selectedType === "" || typeKey === selectedType;
-            const matchesStatus = selectedStatus === "" || statusCell === selectedStatus;
+            const matchesType = selectedType === "" || typeCell.includes(selectedType);
             const matchesUser = !isUserSelected || userCell.includes(selectedUserText) || selectedUserText === "todos";
 
-            if (matchesSearch && matchesType && matchesStatus && matchesUser) { row.style.display = ""; visibleRows++; } 
+            if (matchesSearch && matchesType && matchesUser) { row.style.display = ""; visibleRows++; } 
             else { row.style.display = "none"; }
         });
         if (noEmsRow) noEmsRow.style.display = visibleRows === 0 && rows.length > 0 ? "" : "none";
@@ -407,7 +403,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
     if (emSearchInput) emSearchInput.addEventListener('keyup', filterEms);
     if (emTypeFilter) emTypeFilter.addEventListener('change', filterEms);
-    if (emStatusFilter) emStatusFilter.addEventListener('change', filterEms);
     if (emUserFilter) emUserFilter.addEventListener('change', filterEms);
 });
 </script>
