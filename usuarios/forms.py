@@ -1,7 +1,7 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm, PasswordChangeForm as AuthPasswordChangeForm
 from django.db.models import Sum, Case, When, DecimalField, F
-from .models import Usuario, Compania, Rol, Proyecto, Documento, SalidaTerreno, Emergencia, Capacitacion, Mantenimiento, Inventario, CajaChica, Aviso, PasswordResetCode, Vehiculo
+from .models import Usuario, Compania, Rol, Proyecto, Documento, Carpeta, SalidaTerreno, Emergencia, Capacitacion, Mantenimiento, Inventario, CajaChica, Aviso, PasswordResetCode, Vehiculo
 
 class RegistroForm(UserCreationForm):
     email = forms.EmailField(
@@ -293,14 +293,37 @@ class ArchivoProyectoForm(forms.Form):
         required=False
     )
 
+class CarpetaForm(forms.ModelForm):
+    class Meta:
+        model = Carpeta
+        fields = ['nombre', 'compania']
+        widgets = {
+            'nombre': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Nombre de la carpeta'}),
+            'compania': forms.Select(attrs={'class': 'form-select'}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        self.user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+        
+        if self.user and not self.user.is_superuser:
+            if 'compania' in self.fields:
+                del self.fields['compania']
+        elif 'compania' in self.fields:
+            self.fields['compania'].queryset = Compania.objects.all()
+            self.fields['compania'].empty_label = "General (Visible para todos)"
+            self.fields['compania'].required = False
+
 class DocumentoForm(forms.ModelForm):
     class Meta:
         model = Documento
-        fields = ['nombre', 'descripcion', 'archivo', 'compania']
+        fields = ['nombre', 'descripcion', 'archivo', 'tipo', 'carpeta', 'compania']
         widgets = {
             'nombre': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Nombre del documento'}),
             'descripcion': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Descripción breve (opcional)'}),
             'archivo': forms.FileInput(attrs={'class': 'form-control'}),
+            'tipo': forms.Select(attrs={'class': 'form-select'}),
+            'carpeta': forms.Select(attrs={'class': 'form-select'}),
             'compania': forms.Select(attrs={'class': 'form-select'}),
         }
 
@@ -312,10 +335,23 @@ class DocumentoForm(forms.ModelForm):
         if self.user and not self.user.is_superuser:
             if 'compania' in self.fields:
                 del self.fields['compania']
-        elif 'compania' in self.fields:
-            self.fields['compania'].queryset = Compania.objects.all()
-            self.fields['compania'].empty_label = "Solo Administración (Oculto a todos)"
-            self.fields['compania'].required = False
+            
+            # Filtrar carpetas a las de su compañía o generales
+            if self.user.compania:
+                self.fields['carpeta'].queryset = Carpeta.objects.filter(
+                    models.Q(compania=self.user.compania) | models.Q(compania__isnull=True)
+                )
+            else:
+                self.fields['carpeta'].queryset = Carpeta.objects.filter(compania__isnull=True)
+        else:
+            if 'compania' in self.fields:
+                self.fields['compania'].queryset = Compania.objects.all()
+                self.fields['compania'].empty_label = "Solo Administración (Oculto a todos)"
+                self.fields['compania'].required = False
+            self.fields['carpeta'].queryset = Carpeta.objects.all()
+        
+        self.fields['carpeta'].empty_label = "Sin Carpeta (Raíz)"
+        self.fields['carpeta'].required = False
 class PerfilForm(forms.ModelForm):
     foto_perfil = forms.ImageField(
         label="Cambiar foto de perfil",

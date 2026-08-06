@@ -139,10 +139,32 @@ class ArchivoProyecto(models.Model):
     archivo = models.FileField(upload_to='proyectos_archivos/')
     subido_en = models.DateTimeField(auto_now_add=True)
 
+class Carpeta(models.Model):
+    nombre = models.CharField(max_length=100)
+    compania = models.ForeignKey(Compania, on_delete=models.CASCADE, null=True, blank=True, related_name='carpetas')
+    creado_por = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
+    creado_en = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.nombre
+
+    class Meta:
+        ordering = ['-creado_en']
+
 class Documento(models.Model):
+    TIPO_DOCUMENTO_CHOICES = [
+        ('General', 'Documento General'),
+        ('Orden del Día', 'Orden del Día'),
+        ('Circular', 'Circular'),
+        ('Formulario', 'Formulario'),
+        ('Otro', 'Otro'),
+    ]
+
     nombre = models.CharField(max_length=200)
     descripcion = models.TextField(blank=True)
     archivo = models.FileField(upload_to='documentos/')
+    tipo = models.CharField(max_length=50, choices=TIPO_DOCUMENTO_CHOICES, default='General')
+    carpeta = models.ForeignKey(Carpeta, on_delete=models.CASCADE, null=True, blank=True, related_name='documentos')
     compania = models.ForeignKey(Compania, on_delete=models.CASCADE, null=True, blank=True, related_name='documentos')
     subido_por = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
     subido_en = models.DateTimeField(auto_now_add=True)

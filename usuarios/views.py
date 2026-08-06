@@ -22,8 +22,8 @@ from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter
 import openpyxl
 from reportlab.lib.units import inch
-from .forms import RegistroForm, LoginForm, ProyectoForm, ArchivoProyectoForm, DocumentoForm, SalidaTerrenoForm, EmergenciaForm, PerfilForm, PasswordChangeForm, CapacitacionForm, MantenimientoForm, ArchivoMantenimientoForm, InventarioForm, CajaChicaForm, AdminUserCreationForm, AdminUserChangeForm, RolForm, CompaniaForm, InventarioEditForm, InventarioGroupEditForm, AvisoForm, PasswordResetRequestForm, PasswordResetVerifyForm, PasswordResetNewPasswordForm, VehiculoForm
-from .models import Rol, Compania, Proyecto, ArchivoProyecto, Documento, SalidaTerreno, Emergencia, Usuario, Capacitacion, Mantenimiento, ArchivoMantenimiento, Inventario, CajaChica, Notificacion, Aviso, AvisoDestinatario, PasswordResetCode, Vehiculo
+from .forms import RegistroForm, LoginForm, ProyectoForm, ArchivoProyectoForm, DocumentoForm, CarpetaForm, SalidaTerrenoForm, EmergenciaForm, PerfilForm, PasswordChangeForm, CapacitacionForm, MantenimientoForm, ArchivoMantenimientoForm, InventarioForm, CajaChicaForm, AdminUserCreationForm, AdminUserChangeForm, RolForm, CompaniaForm, InventarioEditForm, InventarioGroupEditForm, AvisoForm, PasswordResetRequestForm, PasswordResetVerifyForm, PasswordResetNewPasswordForm, VehiculoForm
+from .models import Rol, Compania, Proyecto, ArchivoProyecto, Documento, Carpeta, SalidaTerreno, Emergencia, Usuario, Capacitacion, Mantenimiento, ArchivoMantenimiento, Inventario, CajaChica, Notificacion, Aviso, AvisoDestinatario, PasswordResetCode, Vehiculo
 
 def registro_view(request):
     if request.method == 'POST':
@@ -706,6 +706,8 @@ def documentos_view(request):
             descripcion = request.POST.get('descripcion_texto', '')
             contenido = request.POST.get('contenido_texto', '')
             compania_id = request.POST.get('compania')
+            tipo_texto = request.POST.get('tipo', 'General')
+            carpeta_id = request.POST.get('carpeta')
 
             if not nombre or not contenido:
                 messages.error(request, 'El título y el contenido son obligatorios.')
@@ -735,8 +737,15 @@ def documentos_view(request):
             documento = Documento(
                 nombre=nombre,
                 descripcion=descripcion,
+                tipo=tipo_texto,
                 subido_por=request.user
             )
+            
+            if carpeta_id:
+                try:
+                    documento.carpeta = Carpeta.objects.get(id=carpeta_id)
+                except Carpeta.DoesNotExist:
+                    pass
             
             if request.user.is_superuser and compania_id:
                 try:
@@ -751,6 +760,18 @@ def documentos_view(request):
             
             messages.success(request, f'Documento "{nombre}" redactado y guardado como PDF exitosamente.')
             return redirect('documentos')
+        elif accion == 'crear_carpeta':
+            carpeta_form = CarpetaForm(request.POST, user=request.user)
+            if carpeta_form.is_valid():
+                carpeta = carpeta_form.save(commit=False)
+                carpeta.creado_por = request.user
+                if not request.user.is_superuser and request.user.compania:
+                    carpeta.compania = request.user.compania
+                carpeta.save()
+                messages.success(request, f'Carpeta "{carpeta.nombre}" creada exitosamente.')
+                return redirect('documentos')
+            else:
+                messages.error(request, 'Error al crear la carpeta. Revisa el formulario.')
         else:
             form = DocumentoForm(request.POST, request.FILES, user=request.user)
             if form.is_valid():
@@ -768,20 +789,38 @@ def documentos_view(request):
     else:
         form = DocumentoForm(user=request.user)
     
+    carpeta_form = CarpetaForm(user=request.user)
+    
     # --- Lógica de Búsqueda y Filtros ---
     query = request.GET.get('q')
     tipo_archivo = request.GET.get('tipo_archivo')
+    tipo_documento = request.GET.get('tipo_documento')
     usuario_id = request.GET.get('usuario')
     ordenar_por = request.GET.get('ordenar_por', '-subido_en') # Por defecto, los más nuevos primero
+    carpeta_id = request.GET.get('carpeta')
 
-    documentos = Documento.objects.select_related('subido_por', 'compania').all()
+    documentos = Documento.objects.select_related('subido_por', 'compania', 'carpeta').all()
+    carpetas = Carpeta.objects.select_related('compania', 'creado_por').all()
 
     if not request.user.is_superuser:
         if request.user.compania:
-            # Mostrar los de su compañía o los que son generales (compania=None)
             documentos = documentos.filter(Q(compania=request.user.compania) | Q(compania__isnull=True))
+            carpetas = carpetas.filter(Q(compania=request.user.compania) | Q(compania__isnull=True))
         else:
             documentos = documentos.filter(compania__isnull=True)
+            carpetas = carpetas.filter(compania__isnull=True)
+            
+    # Filtrar por carpeta actual
+    carpeta_actual = None
+    if carpeta_id:
+        try:
+            carpeta_actual = carpetas.get(id=carpeta_id)
+            documentos = documentos.filter(carpeta=carpeta_actual)
+            carpetas = Carpeta.objects.none() # No mostramos subcarpetas por ahora
+        except Carpeta.DoesNotExist:
+            documentos = documentos.filter(carpeta__isnull=True)
+    else:
+        documentos = documentos.filter(carpeta__isnull=True)
 
     # Filtrar por término de búsqueda
     if query:
@@ -801,6 +840,10 @@ def documentos_view(request):
         elif tipo_archivo == 'imagen':
             documentos = documentos.filter(Q(archivo__iendswith='.jpg') | Q(archivo__iendswith='.jpeg') | Q(archivo__iendswith='.png'))
 
+    # Filtrar por tipo de documento
+    if tipo_documento:
+        documentos = documentos.filter(tipo=tipo_documento)
+
     # Filtrar por usuario
     if usuario_id:
         documentos = documentos.filter(subido_por__id=usuario_id)
@@ -815,7 +858,15 @@ def documentos_view(request):
     else:
         usuarios_con_docs = Usuario.objects.filter(documento__isnull=False).distinct().order_by('nombre')
 
-    context = {'form': form, 'documentos': documentos, 'usuarios_con_docs': usuarios_con_docs}
+    context = {
+        'form': form, 
+        'carpeta_form': carpeta_form,
+        'documentos': documentos, 
+        'carpetas': carpetas,
+        'carpeta_actual': carpeta_actual,
+        'usuarios_con_docs': usuarios_con_docs,
+        'tipos_documento': Documento.TIPO_DOCUMENTO_CHOICES
+    }
     return render(request, 'usuarios/documentos.html', context)
 
 @login_required

@@ -15,7 +15,10 @@
         {% endif %}
     </div>
     {% if request.user.is_superuser or request.user.rol.editar_documentacion %}
-        <div class="d-flex gap-2">
+        <div class="d-flex gap-2 flex-wrap justify-content-end">
+            <button class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#createCarpetaModal">
+                <i class="bi bi-folder-plus me-1"></i> Crear Carpeta
+            </button>
             <button class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#writeDocumentModal">
                 <i class="bi bi-pencil-square me-1"></i> Redactar Documento
             </button>
@@ -41,13 +44,25 @@
     <div class="card shadow-sm mb-4">
         <div class="card-body">
             <form method="get" class="row g-3 align-items-end">
-                <div class="col-lg-6">
-                    <label for="q" class="form-label">Buscar por nombre o descripción</label>
-                    <input type="text" name="q" id="docSearchInput" class="form-control" value="{{ request.GET.q|default:'' }}">
+                {% if carpeta_actual %}
+                    <input type="hidden" name="carpeta" value="{{ carpeta_actual.id }}">
+                {% endif %}
+                <div class="col-lg-4">
+                    <label for="q" class="form-label">Buscar por nombre...</label>
+                    <input type="text" name="q" id="docSearchInput" class="form-control" value="{{ request.GET.q|default:'' }}" onchange="this.form.submit()">
                 </div>
                 <div class="col-lg-2">
-                    <label for="tipo_archivo" class="form-label">Tipo de archivo</label>
-                    <select name="tipo_archivo" id="docTypeFilter" class="form-select">
+                    <label for="tipo_documento" class="form-label">Clasificación</label>
+                    <select name="tipo_documento" id="docClaseFilter" class="form-select" onchange="this.form.submit()">
+                        <option value="">Todos</option>
+                        {% for value, text in tipos_documento %}
+                        <option value="{{ value }}" {% if request.GET.tipo_documento == value %}selected{% endif %}>{{ text }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-lg-2">
+                    <label for="tipo_archivo" class="form-label">Formato</label>
+                    <select name="tipo_archivo" id="docTypeFilter" class="form-select" onchange="this.form.submit()">
                         <option value="">Todos</option>
                         <option value="pdf" {% if request.GET.tipo_archivo == 'pdf' %}selected{% endif %}>PDF</option>
                         <option value="word" {% if request.GET.tipo_archivo == 'word' %}selected{% endif %}>Word</option>
@@ -75,13 +90,54 @@
         </div>
     </div>
 
+    <!-- Navegación de Carpetas -->
+    {% if carpeta_actual or carpetas %}
+    <div class="mb-4">
+        <div class="d-flex align-items-center mb-3">
+            <h5 class="mb-0 me-3">
+                {% if carpeta_actual %}
+                    <a href="{% url 'documentos' %}" class="text-decoration-none text-dark"><i class="bi bi-folder-fill me-2 text-warning"></i>Raíz</a> 
+                    <i class="bi bi-chevron-right mx-2 text-muted"></i> 
+                    <i class="bi bi-folder2-open me-2 text-warning"></i>{{ carpeta_actual.nombre }}
+                {% else %}
+                    <i class="bi bi-folder-fill me-2 text-warning"></i>Raíz
+                {% endif %}
+            </h5>
+            {% if carpeta_actual %}
+                <a href="{% url 'documentos' %}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-left"></i> Volver a la Raíz</a>
+            {% endif %}
+        </div>
+        
+        {% if carpetas %}
+        <div class="row row-cols-1 row-cols-md-3 row-cols-lg-4 g-3">
+            {% for carpeta in carpetas %}
+            <div class="col">
+                <a href="?carpeta={{ carpeta.id }}" class="text-decoration-none">
+                    <div class="card h-100 shadow-sm border-0 folder-card" style="transition: transform 0.2s;">
+                        <div class="card-body d-flex align-items-center">
+                            <i class="bi bi-folder-fill text-warning fs-3 me-3"></i>
+                            <div>
+                                <h6 class="card-title mb-0 text-dark">{{ carpeta.nombre }}</h6>
+                                <small class="text-muted">{{ carpeta.documentos.count }} documento(s)</small>
+                            </div>
+                        </div>
+                    </div>
+                </a>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
     <div class="card shadow-sm">
         <div class="card-body">
-            <h5 class="card-title">Documentos Recientes</h5>
+            <h5 class="card-title">{% if carpeta_actual %}Documentos en {{ carpeta_actual.nombre }}{% else %}Documentos en Raíz{% endif %}</h5>
             <table class="table table-hover">
                 <thead>
                     <tr>
                         <th scope="col">Nombre</th>
+                        <th scope="col">Clasificación</th>
                         <th scope="col">Subido por</th>
                         {% if request.user.is_superuser %}
                         <th scope="col">Compañía</th>
@@ -106,8 +162,9 @@
                                     {% endif %}
                                 {% endwith %}
                                 <strong>{{ doc.nombre }}</strong>
-                                <p class="text-muted small mb-0">{{ doc.descripcion|truncatewords:15 }}</p>
+                                {% if doc.descripcion %}<p class="text-muted small mb-0">{{ doc.descripcion|truncatewords:15 }}</p>{% endif %}
                             </td>
+                            <td><span class="badge bg-secondary">{{ doc.get_tipo_display }}</span></td>
                             <td>{{ doc.subido_por.get_full_name|default:"N/A" }}</td>
                             {% if request.user.is_superuser %}
                             <td>
@@ -162,6 +219,39 @@
     </div>
 </main>
 
+<!-- Modal Crear Carpeta -->
+<div class="modal fade" id="createCarpetaModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Crear Nueva Carpeta</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="crear_carpeta">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="{{ carpeta_form.nombre.id_for_label }}" class="form-label">Nombre de la Carpeta *</label>
+                        {{ carpeta_form.nombre }}
+                    </div>
+                    {% if request.user.is_superuser %}
+                    <div class="mb-3">
+                        <label for="{{ carpeta_form.compania.id_for_label }}" class="form-label">Asignar a Compañía</label>
+                        {{ carpeta_form.compania }}
+                        <div class="form-text">Si seleccionas "General", la carpeta será visible para todas las compañías.</div>
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Crear</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <!-- Modal Subir Documento -->
 <div class="modal fade" id="uploadDocumentModal" tabindex="-1" aria-labelledby="uploadDocumentModalLabel" aria-hidden="true">
     <div class="modal-dialog">
@@ -180,6 +270,16 @@
                     <div class="mb-3">
                         <label for="{{ form.descripcion.id_for_label }}" class="form-label">Descripción (Opcional)</label>
                         {{ form.descripcion }}
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="{{ form.tipo.id_for_label }}" class="form-label">Clasificación</label>
+                            {{ form.tipo }}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="{{ form.carpeta.id_for_label }}" class="form-label">Carpeta</label>
+                            {{ form.carpeta }}
+                        </div>
                     </div>
                     <div class="mb-3">
                         <label for="{{ form.archivo.id_for_label }}" class="form-label">Archivo</label>
@@ -220,6 +320,25 @@
                     <div class="mb-3">
                         <label for="descripcion_texto" class="form-label">Descripción (Opcional)</label>
                         <textarea class="form-control" id="descripcion_texto" name="descripcion_texto" rows="2" placeholder="Resumen del documento..."></textarea>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="tipo_texto" class="form-label">Clasificación</label>
+                            <select class="form-select" id="tipo_texto" name="tipo">
+                                {% for value, text in tipos_documento %}
+                                <option value="{{ value }}">{{ text }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="carpeta_texto" class="form-label">Carpeta</label>
+                            <select class="form-select" id="carpeta_texto" name="carpeta">
+                                <option value="">Sin Carpeta (Raíz)</option>
+                                {% for carpeta in carpetas %}
+                                <option value="{{ carpeta.id }}">{{ carpeta.nombre }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
                     </div>
                     <div class="mb-3">
                         <label for="contenido_texto" class="form-label">Contenido *</label>
