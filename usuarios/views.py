@@ -708,6 +708,8 @@ def documentos_view(request):
             compania_id = request.POST.get('compania')
             tipo_texto = request.POST.get('tipo', 'General')
             carpeta_id = request.POST.get('carpeta')
+            es_privado = request.POST.get('es_privado') == 'on'
+            usuarios_permitidos_ids = request.POST.getlist('usuarios_permitidos')
 
             if not nombre or not contenido:
                 messages.error(request, 'El título y el contenido son obligatorios.')
@@ -738,7 +740,8 @@ def documentos_view(request):
                 nombre=nombre,
                 descripcion=descripcion,
                 tipo=tipo_texto,
-                subido_por=request.user
+                subido_por=request.user,
+                es_privado=es_privado
             )
             
             if carpeta_id:
@@ -757,6 +760,8 @@ def documentos_view(request):
                 
             documento.archivo.save(safe_filename, ContentFile(pdf_bytes), save=False)
             documento.save()
+            if usuarios_permitidos_ids:
+                documento.usuarios_permitidos.set(usuarios_permitidos_ids)
             
             messages.success(request, f'Documento "{nombre}" redactado y guardado como PDF exitosamente.')
             return redirect('documentos')
@@ -768,6 +773,7 @@ def documentos_view(request):
                 if not request.user.is_superuser and request.user.compania:
                     carpeta.compania = request.user.compania
                 carpeta.save()
+                carpeta_form.save_m2m()
                 messages.success(request, f'Carpeta "{carpeta.nombre}" creada exitosamente.')
                 return redirect('documentos')
             else:
@@ -782,6 +788,7 @@ def documentos_view(request):
                     documento.compania = request.user.compania
                     
                 documento.save()
+                form.save_m2m()
                 messages.success(request, f'Documento "{documento.nombre}" subido exitosamente.')
                 return redirect('documentos')
             else:
@@ -809,6 +816,19 @@ def documentos_view(request):
         else:
             documentos = documentos.filter(compania__isnull=True)
             carpetas = carpetas.filter(compania__isnull=True)
+            
+        # Filtro de privacidad: (No es privado) OR (Soy el creador) OR (Estoy en usuarios permitidos)
+        documentos = documentos.filter(
+            Q(es_privado=False) |
+            Q(subido_por=request.user) |
+            Q(usuarios_permitidos=request.user)
+        ).distinct()
+        
+        carpetas = carpetas.filter(
+            Q(es_privado=False) |
+            Q(creado_por=request.user) |
+            Q(usuarios_permitidos=request.user)
+        ).distinct()
             
     # Filtrar por carpeta actual
     carpeta_actual = None

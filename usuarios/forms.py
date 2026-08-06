@@ -296,10 +296,12 @@ class ArchivoProyectoForm(forms.Form):
 class CarpetaForm(forms.ModelForm):
     class Meta:
         model = Carpeta
-        fields = ['nombre', 'compania']
+        fields = ['nombre', 'compania', 'es_privado', 'usuarios_permitidos']
         widgets = {
             'nombre': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Nombre de la carpeta'}),
             'compania': forms.Select(attrs={'class': 'form-select'}),
+            'es_privado': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'usuarios_permitidos': forms.SelectMultiple(attrs={'class': 'form-select select2', 'size': '4'}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -309,15 +311,20 @@ class CarpetaForm(forms.ModelForm):
         if self.user and not self.user.is_superuser:
             if 'compania' in self.fields:
                 del self.fields['compania']
+            if self.user.compania:
+                self.fields['usuarios_permitidos'].queryset = Usuario.objects.filter(is_active=True, compania=self.user.compania).exclude(id=self.user.id).order_by('nombre')
+            else:
+                self.fields['usuarios_permitidos'].queryset = Usuario.objects.none()
         elif 'compania' in self.fields:
             self.fields['compania'].queryset = Compania.objects.all()
             self.fields['compania'].empty_label = "General (Visible para todos)"
             self.fields['compania'].required = False
+            self.fields['usuarios_permitidos'].queryset = Usuario.objects.filter(is_active=True).order_by('nombre')
 
 class DocumentoForm(forms.ModelForm):
     class Meta:
         model = Documento
-        fields = ['nombre', 'descripcion', 'archivo', 'tipo', 'carpeta', 'compania']
+        fields = ['nombre', 'descripcion', 'archivo', 'tipo', 'carpeta', 'compania', 'es_privado', 'usuarios_permitidos']
         widgets = {
             'nombre': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Nombre del documento'}),
             'descripcion': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Descripción breve (opcional)'}),
@@ -325,6 +332,8 @@ class DocumentoForm(forms.ModelForm):
             'tipo': forms.Select(attrs={'class': 'form-select'}),
             'carpeta': forms.Select(attrs={'class': 'form-select'}),
             'compania': forms.Select(attrs={'class': 'form-select'}),
+            'es_privado': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'usuarios_permitidos': forms.SelectMultiple(attrs={'class': 'form-select select2', 'size': '4'}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -335,6 +344,11 @@ class DocumentoForm(forms.ModelForm):
         if self.user and not self.user.is_superuser:
             if 'compania' in self.fields:
                 del self.fields['compania']
+            
+            if self.user.compania:
+                self.fields['usuarios_permitidos'].queryset = Usuario.objects.filter(is_active=True, compania=self.user.compania).exclude(id=self.user.id).order_by('nombre')
+            else:
+                self.fields['usuarios_permitidos'].queryset = Usuario.objects.none()
             
             # Filtrar carpetas a las de su compañía o generales
             if self.user.compania:
