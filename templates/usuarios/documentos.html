@@ -279,7 +279,7 @@
                     </div>
                     <div class="mb-3 usuarios-permitidos-container" style="display: none;">
                         <label class="form-label mb-2">Permitir acceso a otros usuarios (Opcional)</label>
-                        <div class="border rounded p-2" style="max-height: 180px; overflow-y: auto; background-color: #f8f9fa;">
+                        <div class="border rounded p-2" style="max-height: 180px; overflow-y: auto;">
                             {{ carpeta_form.usuarios_permitidos }}
                         </div>
                     </div>
@@ -340,7 +340,7 @@
                     </div>
                     <div class="mb-3 usuarios-permitidos-container" style="display: none;">
                         <label class="form-label mb-2">Permitir acceso a otros usuarios (Opcional)</label>
-                        <div class="border rounded p-2" style="max-height: 180px; overflow-y: auto; background-color: #f8f9fa;">
+                        <div class="border rounded p-2" style="max-height: 180px; overflow-y: auto;">
                             {{ form.usuarios_permitidos }}
                         </div>
                     </div>
@@ -416,7 +416,7 @@
                     </div>
                     <div class="mb-3 usuarios-permitidos-container" style="display: none;">
                         <label class="form-label mb-2">Permitir acceso a otros usuarios (Opcional)</label>
-                        <div class="border rounded p-2" style="max-height: 180px; overflow-y: auto; background-color: #f8f9fa;">
+                        <div class="border rounded p-2" style="max-height: 180px; overflow-y: auto;">
                             {% for choice in form.usuarios_permitidos.field.choices %}
                                 {% if choice.0 %}
                                 <div class="form-check">
