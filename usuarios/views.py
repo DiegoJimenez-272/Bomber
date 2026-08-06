@@ -814,16 +814,16 @@ def documentos_view(request):
             documentos = documentos.filter(compania__isnull=True)
             carpetas = carpetas.filter(compania__isnull=True)
             
-        # Filtro de privacidad: (No es privado) OR (Soy el creador)
-        documentos = documentos.filter(
-            Q(es_privado=False) |
-            Q(subido_por=request.user)
-        ).distinct()
-        
-        carpetas = carpetas.filter(
-            Q(es_privado=False) |
-            Q(creado_por=request.user)
-        ).distinct()
+    # Filtro de privacidad: (No es privado) OR (Soy el creador)
+    documentos = documentos.filter(
+        Q(es_privado=False) |
+        Q(subido_por=request.user)
+    ).distinct()
+    
+    carpetas = carpetas.filter(
+        Q(es_privado=False) |
+        Q(creado_por=request.user)
+    ).distinct()
             
     # Filtrar por carpeta actual
     carpeta_actual = None
