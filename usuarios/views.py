@@ -178,8 +178,14 @@ def dashboard_view(request):
                 elif m['id'] == 'scan_qr' and rol.ver_escanear_qr: filtered_modules.append(m)
                 elif m['id'] == 'proyectos' and rol.ver_proyectos: filtered_modules.append(m)
 
+    # Obtener los avisos para el usuario actual
+    avisos_usuario = AvisoDestinatario.objects.filter(
+        usuario=request.user
+    ).select_related('aviso', 'aviso__creado_por').order_by('-aviso__fecha_creacion')[:10]
+
     context = {
         'modules': filtered_modules,
+        'avisos_usuario': avisos_usuario,
     }
     return render(request, 'usuarios/inicio.html', context)
 

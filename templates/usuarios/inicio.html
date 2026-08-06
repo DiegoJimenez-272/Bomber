@@ -13,6 +13,42 @@
         
     </div>
 
+    <!-- Sección de Avisos -->
+    {% if avisos_usuario %}
+    <div class="mb-4">
+        <h2 class="h5 mb-3 text-dark"><i class="bi bi-bell-fill text-warning me-2"></i>Avisos Recientes</h2>
+        <div class="row g-3">
+            {% for dest in avisos_usuario %}
+            <div class="col-md-6 col-lg-4">
+                <div class="card h-100 {% if not dest.leido %}border-danger border-2 shadow-sm{% else %}border-light-subtle bg-light{% endif %}">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <h5 class="card-title fs-6 mb-0">{{ dest.aviso.titulo }}</h5>
+                            {% if not dest.leido %}
+                                <span class="badge bg-danger">Nuevo</span>
+                            {% endif %}
+                        </div>
+                        <p class="card-text small text-muted mb-3 text-truncate" style="max-height: 40px;">
+                            {{ dest.aviso.mensaje|striptags }}
+                        </p>
+                        <div class="d-flex justify-content-between align-items-center mt-auto">
+                            <small class="text-muted" style="font-size: 0.75rem;">
+                                {{ dest.aviso.fecha_creacion|date:"d M Y, H:i" }}
+                            </small>
+                            <a href="{% url 'aviso_leer' dest.id %}" class="btn btn-sm {% if not dest.leido %}btn-danger{% else %}btn-outline-secondary{% endif %}">
+                                {% if not dest.leido %}Leer{% else %}Ver{% endif %}
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    <hr class="mb-4">
+    {% endif %}
+
+    <h2 class="h5 mb-3 text-dark">Módulos Disponibles</h2>
     <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
         {% for module in modules %}
             <div class="col">
