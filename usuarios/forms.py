@@ -301,7 +301,7 @@ class CarpetaForm(forms.ModelForm):
             'nombre': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Nombre de la carpeta'}),
             'compania': forms.Select(attrs={'class': 'form-select'}),
             'es_privado': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
-            'usuarios_permitidos': forms.SelectMultiple(attrs={'class': 'form-select select2', 'size': '4'}),
+            'usuarios_permitidos': forms.CheckboxSelectMultiple(attrs={'class': 'form-check-input'}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -333,7 +333,7 @@ class DocumentoForm(forms.ModelForm):
             'carpeta': forms.Select(attrs={'class': 'form-select'}),
             'compania': forms.Select(attrs={'class': 'form-select'}),
             'es_privado': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
-            'usuarios_permitidos': forms.SelectMultiple(attrs={'class': 'form-select select2', 'size': '4'}),
+            'usuarios_permitidos': forms.CheckboxSelectMultiple(attrs={'class': 'form-check-input'}),
         }
 
     def __init__(self, *args, **kwargs):
