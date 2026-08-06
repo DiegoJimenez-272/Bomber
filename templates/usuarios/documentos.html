@@ -292,8 +292,17 @@
                     </div>
                     <div class="mb-3 usuarios-permitidos-container" style="display: none;">
                         <label class="form-label mb-2">Permitir acceso a otros usuarios (Opcional)</label>
-                        <div class="border rounded p-2" style="max-height: 250px; overflow-y: auto;">
-                            {{ carpeta_form.usuarios_permitidos }}
+                        <div class="border rounded p-3" style="max-height: 250px; overflow-y: auto;">
+                            {% for choice in carpeta_form.usuarios_permitidos.field.choices %}
+                                {% if choice.0 %}
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="usuarios_permitidos" value="{{ choice.0 }}" id="carpeta_user_{{ choice.0 }}">
+                                    <label class="form-check-label" for="carpeta_user_{{ choice.0 }}">
+                                        {{ choice.1 }}
+                                    </label>
+                                </div>
+                                {% endif %}
+                            {% endfor %}
                         </div>
                     </div>
                 </div>
@@ -353,8 +362,17 @@
                     </div>
                     <div class="mb-3 usuarios-permitidos-container" style="display: none;">
                         <label class="form-label mb-2">Permitir acceso a otros usuarios (Opcional)</label>
-                        <div class="border rounded p-2" style="max-height: 250px; overflow-y: auto;">
-                            {{ form.usuarios_permitidos }}
+                        <div class="border rounded p-3" style="max-height: 250px; overflow-y: auto;">
+                            {% for choice in form.usuarios_permitidos.field.choices %}
+                                {% if choice.0 %}
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="usuarios_permitidos" value="{{ choice.0 }}" id="doc_user_{{ choice.0 }}">
+                                    <label class="form-check-label" for="doc_user_{{ choice.0 }}">
+                                        {{ choice.1 }}
+                                    </label>
+                                </div>
+                                {% endif %}
+                            {% endfor %}
                         </div>
                     </div>
                 </div>
