@@ -113,13 +113,24 @@
             {% for carpeta in carpetas %}
             <div class="col">
                 <a href="?carpeta={{ carpeta.id }}" class="text-decoration-none">
-                    <div class="card h-100 shadow-sm border-0 folder-card" style="transition: transform 0.2s;">
+                    <div class="card h-100 shadow-sm border-0 folder-card position-relative" style="transition: transform 0.2s;">
                         <div class="card-body d-flex align-items-center">
                             <i class="bi bi-folder-fill text-warning fs-3 me-3"></i>
-                            <div>
+                            <div class="flex-grow-1">
                                 <h6 class="card-title mb-0 text-dark">{{ carpeta.nombre }}</h6>
                                 <small class="text-muted">{{ carpeta.documentos.count }} documento(s)</small>
                             </div>
+                            {% if request.user.is_superuser or request.user.rol.editar_documentacion %}
+                            <button type="button" class="btn btn-sm btn-outline-danger position-absolute top-0 end-0 m-2 delete-carpeta-btn" 
+                                    onclick="event.preventDefault();"
+                                    data-bs-toggle="modal" 
+                                    data-bs-target="#deleteCarpetaModal" 
+                                    data-carpeta-url="{% url 'carpeta_delete' carpeta.id %}" 
+                                    data-carpeta-name="{{ carpeta.nombre }}"
+                                    title="Eliminar Carpeta">
+                                <i class="bi bi-trash-fill"></i>
+                            </button>
+                            {% endif %}
                         </div>
                     </div>
                 </a>
@@ -409,6 +420,31 @@
     </div>
 </div>
 
+<!-- Modal Eliminar Carpeta -->
+<div class="modal fade" id="deleteCarpetaModal" tabindex="-1" aria-labelledby="deleteCarpetaModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteCarpetaModalLabel">Confirmar Eliminación de Carpeta</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Estás seguro de que quieres eliminar la carpeta "<strong id="carpetaNameToDelete"></strong>"?</p>
+                <div class="alert alert-danger">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i> <strong>¡Advertencia!</strong> Esta acción también eliminará permanentemente todos los documentos que estén dentro de esta carpeta.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form id="deleteCarpetaForm" method="post" action="">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">Sí, Eliminar Carpeta y su Contenido</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const fileViewerModal = document.getElementById('fileViewerModal');
@@ -463,6 +499,20 @@ document.addEventListener('DOMContentLoaded', function () {
         deleteForm.action = docUrl;
         docNameSpan.textContent = docName;
     });
+
+    const deleteCarpetaModal = document.getElementById('deleteCarpetaModal');
+    if(deleteCarpetaModal) {
+        deleteCarpetaModal.addEventListener('show.bs.modal', function (event) {
+            const button = event.relatedTarget;
+            const carpetaUrl = button.getAttribute('data-carpeta-url');
+            const carpetaName = button.getAttribute('data-carpeta-name');
+
+            const deleteForm = deleteCarpetaModal.querySelector('#deleteCarpetaForm');
+            const carpetaNameSpan = deleteCarpetaModal.querySelector('#carpetaNameToDelete');
+            deleteForm.action = carpetaUrl;
+            carpetaNameSpan.textContent = carpetaName;
+        });
+    }
 
     // --- Lógica de Filtrado en Tiempo Real para Documentos ---
     const docSearchInput = document.getElementById('docSearchInput');

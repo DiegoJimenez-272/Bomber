@@ -883,6 +883,19 @@ def documento_delete_view(request, doc_id):
     return redirect('documentos')
 
 @login_required
+def carpeta_delete_view(request, carpeta_id):
+    carpeta = get_object_or_404(Carpeta, id=carpeta_id)
+    if not request.user.is_superuser and not (request.user.rol and request.user.rol.editar_documentacion):
+        messages.error(request, 'No tienes permiso para eliminar carpetas.')
+        return redirect('documentos')
+
+    if request.method == 'POST':
+        nombre = carpeta.nombre
+        carpeta.delete()
+        messages.success(request, f'Carpeta "{nombre}" y todo su contenido eliminados exitosamente.')
+    return redirect('documentos')
+
+@login_required
 def inventario_view(request):
     if not request.user.is_superuser and not (request.user.rol and request.user.rol.ver_inventario):
         messages.error(request, 'No tienes permiso para acceder al Inventario.')
