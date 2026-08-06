@@ -4,11 +4,24 @@
 
 {% block content %}
 <style>
-    /* Limpiar lista de checkboxes de Django */
+    /* Limpiar lista de checkboxes de Django y agrandar espacios */
     .usuarios-permitidos-container ul {
         list-style-type: none;
         padding-left: 0;
         margin-bottom: 0;
+    }
+    .usuarios-permitidos-container li, 
+    .usuarios-permitidos-container .form-check {
+        margin-bottom: 0.8rem;
+        font-size: 1.05rem;
+    }
+    .usuarios-permitidos-container input[type="checkbox"] {
+        transform: scale(1.2);
+        margin-right: 0.5rem;
+        cursor: pointer;
+    }
+    .usuarios-permitidos-container label {
+        cursor: pointer;
     }
 </style>
 <!-- Header del contenido principal -->
@@ -279,7 +292,7 @@
                     </div>
                     <div class="mb-3 usuarios-permitidos-container" style="display: none;">
                         <label class="form-label mb-2">Permitir acceso a otros usuarios (Opcional)</label>
-                        <div class="border rounded p-2" style="max-height: 180px; overflow-y: auto;">
+                        <div class="border rounded p-2" style="max-height: 250px; overflow-y: auto;">
                             {{ carpeta_form.usuarios_permitidos }}
                         </div>
                     </div>
@@ -340,7 +353,7 @@
                     </div>
                     <div class="mb-3 usuarios-permitidos-container" style="display: none;">
                         <label class="form-label mb-2">Permitir acceso a otros usuarios (Opcional)</label>
-                        <div class="border rounded p-2" style="max-height: 180px; overflow-y: auto;">
+                        <div class="border rounded p-2" style="max-height: 250px; overflow-y: auto;">
                             {{ form.usuarios_permitidos }}
                         </div>
                     </div>
@@ -416,7 +429,7 @@
                     </div>
                     <div class="mb-3 usuarios-permitidos-container" style="display: none;">
                         <label class="form-label mb-2">Permitir acceso a otros usuarios (Opcional)</label>
-                        <div class="border rounded p-2" style="max-height: 180px; overflow-y: auto;">
+                        <div class="border rounded p-2" style="max-height: 250px; overflow-y: auto;">
                             {% for choice in form.usuarios_permitidos.field.choices %}
                                 {% if choice.0 %}
                                 <div class="form-check">
