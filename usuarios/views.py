@@ -155,7 +155,9 @@ def dashboard_view(request):
 
     # Filtrar módulos basados en los permisos del usuario
     if request.user.is_superuser:
-        filtered_modules = modules
+        filtered_modules = list(modules)
+        if not (hasattr(request.user, 'rol') and request.user.rol and request.user.rol.ver_inspectores):
+            filtered_modules = [m for m in filtered_modules if m['id'] != 'inspectores']
     else:
         filtered_modules = []
         rol = request.user.rol
@@ -902,7 +904,7 @@ def documento_delete_view(request, doc_id):
     is_inspector = documento.es_de_inspector
     
     if is_inspector:
-        if not request.user.is_superuser and not (request.user.rol and request.user.rol.editar_inspectores):
+        if not (hasattr(request.user, 'rol') and request.user.rol and request.user.rol.editar_inspectores):
             messages.error(request, 'No tienes permiso para eliminar documentos de inspectores.')
             return redirect('inspectores')
     else:
@@ -923,7 +925,7 @@ def carpeta_delete_view(request, carpeta_id):
     is_inspector = carpeta.es_de_inspector
 
     if is_inspector:
-        if not request.user.is_superuser and not (request.user.rol and request.user.rol.editar_inspectores):
+        if not (hasattr(request.user, 'rol') and request.user.rol and request.user.rol.editar_inspectores):
             messages.error(request, 'No tienes permiso para eliminar carpetas de inspectores.')
             return redirect('inspectores')
     else:
@@ -2388,12 +2390,12 @@ def password_reset_new_password_view(request):
     return render(request, 'usuarios/password_reset_new_password.html', {'form': form})@login_required
 def inspectores_view(request):
     from .forms import InspectorDocumentoForm, InspectorCarpetaForm
-    if not request.user.is_superuser and not (request.user.rol and request.user.rol.ver_inspectores):
+    if not (hasattr(request.user, 'rol') and request.user.rol and request.user.rol.ver_inspectores):
         messages.error(request, 'No tienes permiso para acceder a Inspectores.')
         return redirect('dashboard')
 
     if request.method == 'POST':
-        if not request.user.is_superuser and not (request.user.rol and request.user.rol.editar_inspectores):
+        if not (hasattr(request.user, 'rol') and request.user.rol and request.user.rol.editar_inspectores):
             messages.error(request, 'No tienes permiso para modificar documentos de inspectores.')
             return redirect('inspectores')
             
