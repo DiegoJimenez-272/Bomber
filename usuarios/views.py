@@ -977,19 +977,12 @@ def inventario_view(request):
             messages.error(request, 'Error al agregar el ítem. Por favor, revisa el formulario.')
 
     # --- Lógica de visualización ---
-    class DummyCompania:
-        def __init__(self, id, nombre):
-            self.id = id
-            self.nombre = nombre
-
     inventario_por_compania = {}
-    companias_a_mostrar = list(Compania.objects.all())
+    companias_a_mostrar = Compania.objects.all()
 
     # Si el usuario no es superusuario, solo mostramos su compañía
     if not request.user.is_superuser and request.user.compania:
-        companias_a_mostrar = list(Compania.objects.filter(pk=request.user.compania.pk))
-    elif request.user.is_superuser:
-        companias_a_mostrar.insert(0, DummyCompania('general', 'Inventario General'))
+        companias_a_mostrar = Compania.objects.filter(pk=request.user.compania.pk)
 
     # Búsqueda general
     query = request.GET.get('q')
@@ -997,22 +990,13 @@ def inventario_view(request):
 
     # Si se está buscando en una compañía específica, filtramos la lista de compañías a mostrar
     if query and compania_activa_id:
-        if compania_activa_id == 'general':
-            companias_a_mostrar = [DummyCompania('general', 'Inventario General')]
-        else:
-            try:
-                compania_activa_id_int = int(compania_activa_id)
-                companias_a_mostrar = [c for c in companias_a_mostrar if getattr(c, 'id', None) == compania_activa_id_int]
-            except (ValueError, TypeError):
-                pass # Si el ID no es válido, simplemente mostramos todo como antes
+        try:
+            companias_a_mostrar = companias_a_mostrar.filter(id=int(compania_activa_id))
+        except (ValueError, TypeError):
+            pass # Si el ID no es válido, simplemente mostramos todo como antes
 
     for compania in companias_a_mostrar:
-        if isinstance(compania, Compania):
-            base_queryset = Inventario.objects.filter(compania=compania).select_related('asignado_a', 'compania', 'asignado_a_vehiculo')
-            vehiculos_compania = Vehiculo.objects.filter(compania=compania).order_by('nombre')
-        else:
-            base_queryset = Inventario.objects.filter(compania__isnull=True).select_related('asignado_a', 'compania', 'asignado_a_vehiculo')
-            vehiculos_compania = Vehiculo.objects.none()
+        base_queryset = Inventario.objects.filter(compania=compania).select_related('asignado_a', 'compania', 'asignado_a_vehiculo')
 
         if query:
             base_queryset = base_queryset.filter(
@@ -1034,6 +1018,7 @@ def inventario_view(request):
         items_asignados = [{'usuario': u, 'items': items} for u, items in user_groups.items()]
         
         # Procesar los carros y sus ítems asignados para esta compañía (los carros se muestran primero)
+        vehiculos_compania = Vehiculo.objects.filter(compania=compania).order_by('nombre')
         items_asignados_vehiculo_qs = base_queryset.filter(asignado_a_vehiculo__isnull=False).order_by('asignado_a_vehiculo__nombre', 'nombre')
         
         vehiculo_groups = {v: [] for v in vehiculos_compania}
