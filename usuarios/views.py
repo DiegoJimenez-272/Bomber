@@ -1060,6 +1060,24 @@ def inventario_view(request):
         item['nombre_completo'] = Inventario.get_nombre_completo(item['nombre'])
         items_disponibles_para_asignar.append(item)
 
+    resumen_general = None
+    if request.user.is_superuser:
+        resumen_general_qs = Inventario.objects.values('nombre').annotate(
+            total=Count('id'),
+            buenos=Count('id', filter=Q(estado='Bueno')),
+            regulares=Count('id', filter=Q(estado='Regular')),
+            malos=Count('id', filter=Q(estado='Malo')),
+            reparacion=Count('id', filter=Q(estado='En Reparación')),
+            baja=Count('id', filter=Q(estado='De Baja')),
+            asignados=Count('id', filter=Q(asignado_a__isnull=False) | Q(asignado_a_vehiculo__isnull=False)),
+            disponibles=Count('id', filter=Q(asignado_a__isnull=True, asignado_a_vehiculo__isnull=True))
+        ).order_by('nombre')
+        
+        resumen_general = []
+        for item in resumen_general_qs:
+            item['nombre_completo'] = Inventario.get_nombre_completo(item['nombre'])
+            resumen_general.append(item)
+
     context = {
         'form': InventarioForm(user=request.user), 
         'edit_form': InventarioEditForm(user=request.user), # Para el modal de edición
@@ -1069,6 +1087,7 @@ def inventario_view(request):
         'items_disponibles_para_asignar': items_disponibles_para_asignar,
         'usuarios_activos': usuarios_activos,
         'vehiculos_activos': vehiculos_activos,
+        'resumen_general': resumen_general,
         'first_compania_id': list(inventario_por_compania.keys())[0].id if inventario_por_compania else None,
     }
     return render(request, 'usuarios/inventario.html', context)
