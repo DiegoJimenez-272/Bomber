@@ -233,6 +233,10 @@
                 <li class="nav-item"><a href="{% url 'documentos' %}" class="nav-link {% if request.resolver_match.url_name == 'documentos' %}active{% endif %}"><i class="bi bi-file-earmark-text-fill"></i>Documentos</a></li>
                 {% endif %}
                 
+                {% if request.user.is_superuser or request.user.rol.ver_inspectores %}
+                <li class="nav-item"><a href="{% url 'inspectores' %}" class="nav-link {% if request.resolver_match.url_name == 'inspectores' %}active{% endif %}"><i class="bi bi-search"></i>Inspectores</a></li>
+                {% endif %}
+                
                 {% if request.user.is_superuser or request.user.rol.ver_escanear_qr %}
                 <li class="nav-item"><a href="{% url 'scan_qr_page' %}" class="nav-link {% if request.resolver_match.url_name == 'scan_qr_page' %}active{% endif %}"><i class="bi bi-qr-code-scan"></i>Escanear QR</a></li>
                 {% endif %}

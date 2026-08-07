@@ -171,8 +171,8 @@ class RolForm(forms.ModelForm):
             'nombre', 'descripcion',
             'ver_resumen_general', 'ver_documentacion', 'ver_escanear_qr', 'ver_inventario',
             'ver_salidas_terreno', 'ver_emergencias', 'ver_capacitaciones', 'ver_mantenimientos', 'ver_proyectos', 'ver_caja_chica',
-            'ver_avisos', 'editar_documentacion', 'editar_inventario', 'editar_salidas_terreno',
-            'editar_emergencias', 'editar_capacitaciones', 'editar_mantenimientos', 'editar_proyectos', 'editar_caja_chica', 'editar_avisos'
+            'ver_avisos', 'ver_inspectores', 'editar_documentacion', 'editar_inventario', 'editar_salidas_terreno',
+            'editar_emergencias', 'editar_capacitaciones', 'editar_mantenimientos', 'editar_proyectos', 'editar_caja_chica', 'editar_avisos', 'editar_inspectores'
         ]
         widgets = {
             'nombre': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej: Capitán', 'list': 'roles-sugeridos'}),
@@ -185,8 +185,8 @@ class RolForm(forms.ModelForm):
         permisos_fields = [
             'ver_resumen_general', 'ver_documentacion', 'ver_escanear_qr', 'ver_inventario',
             'ver_salidas_terreno', 'ver_emergencias', 'ver_capacitaciones', 'ver_mantenimientos', 'ver_proyectos', 'ver_caja_chica',
-            'ver_avisos', 'editar_documentacion', 'editar_inventario', 'editar_salidas_terreno',
-            'editar_emergencias', 'editar_capacitaciones', 'editar_mantenimientos', 'editar_proyectos', 'editar_caja_chica', 'editar_avisos'
+            'ver_avisos', 'ver_inspectores', 'editar_documentacion', 'editar_inventario', 'editar_salidas_terreno',
+            'editar_emergencias', 'editar_capacitaciones', 'editar_mantenimientos', 'editar_proyectos', 'editar_caja_chica', 'editar_avisos', 'editar_inspectores'
         ]
         for field in permisos_fields:
             self.fields[field].widget.attrs.update({'class': 'form-check-input'})
@@ -728,3 +728,22 @@ class PasswordResetNewPasswordForm(forms.Form):
         if p1 and p2 and p1 != p2:
             self.add_error('password_confirm', 'Las contraseñas no coinciden.')
         return cleaned_data
+class InspectorDocumentoForm(DocumentoForm):
+    class Meta(DocumentoForm.Meta):
+        fields = ['nombre', 'descripcion', 'archivo', 'tipo', 'carpeta', 'es_privado']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if 'compania' in self.fields:
+            del self.fields['compania']
+        if 'carpeta' in self.fields:
+            self.fields['carpeta'].queryset = Carpeta.objects.filter(es_de_inspector=True)
+
+class InspectorCarpetaForm(CarpetaForm):
+    class Meta(CarpetaForm.Meta):
+        fields = ['nombre', 'es_privado']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if 'compania' in self.fields:
+            del self.fields['compania']

@@ -1,10 +1,10 @@
 {% extends 'base_con_condicion.html' %}
 
-{% block title %}Administración - {{ block.super }}{% endblock %}
+{% block title %}AdministraciÃ³n - {{ block.super }}{% endblock %}
 
 {% block content %}
 <style>
-    /* Diseño de bloques para el Panel de Administración */
+    /* DiseÃ±o de bloques para el Panel de AdministraciÃ³n */
     .admin-nav-blocks {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -106,12 +106,12 @@
 <!-- Header del contenido principal -->
 <header class="d-flex align-items-center justify-content-between pb-3 mb-4 border-bottom">
     <div>
-        <h1 class="h2 mb-0"><i class="bi bi-gear-fill text-danger me-2"></i>Panel de Administración.</h1>
-        <p class="text-muted small mb-0 mt-1">Configuración global del sistema, usuarios, roles y compañías.</p>
+        <h1 class="h2 mb-0"><i class="bi bi-gear-fill text-danger me-2"></i>Panel de AdministraciÃ³n.</h1>
+        <p class="text-muted small mb-0 mt-1">ConfiguraciÃ³n global del sistema, usuarios, roles y compaÃ±Ã­as.</p>
     </div>
 </header>
 
-<!-- Contenido de Administración -->
+<!-- Contenido de AdministraciÃ³n -->
 <main>
     {% if messages %}
         {% for message in messages %}
@@ -148,7 +148,7 @@
         <li class="nav-item" role="presentation">
             <button class="nav-link" id="companias-tab" data-bs-toggle="tab" data-bs-target="#companias" type="button" role="tab" aria-controls="companias" aria-selected="false">
                 <i class="bi bi-building-fill"></i>
-                <span>Compañías</span>
+                <span>CompaÃ±Ã­as</span>
             </button>
         </li>
         {% endif %}
@@ -164,11 +164,11 @@
 
     <div class="tab-content" id="adminTabContent">
         {% if request.user.is_superuser %}
-        <!-- Pestaña de Solicitudes de Registro -->
+        <!-- PestaÃ±a de Solicitudes de Registro -->
         <div class="tab-pane fade show active" id="requests" role="tabpanel" aria-labelledby="requests-tab">
             <div class="card shadow-sm mt-3">
                 <div class="card-header">
-                    <span>Usuarios pendientes de aprobación</span>
+                    <span>Usuarios pendientes de aprobaciÃ³n</span>
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
@@ -179,7 +179,7 @@
                                     <th>Email</th>
                                     <th>RUT</th>
                                     <th>Clave Radial</th>
-                                    <th>Compañía</th>
+                                    <th>CompaÃ±Ã­a</th>
                                     <th>Fecha de Solicitud</th>
                                     <th>Acciones</th>
                                 </tr>
@@ -223,7 +223,7 @@
             </div>
         </div>
 
-        <!-- Pestaña de Usuarios Activos -->
+        <!-- PestaÃ±a de Usuarios Activos -->
         <div class="tab-pane fade" id="users" role="tabpanel" aria-labelledby="users-tab">
             <div class="card shadow-sm mt-3">
                 <div class="card-header d-flex justify-content-between align-items-center">
@@ -239,7 +239,7 @@
                             {% endfor %}
                         </select>
                         <select id="companyFilter" class="form-select" style="max-width: 200px;">
-                            <option value="">Filtrar por Compañía</option>
+                            <option value="">Filtrar por CompaÃ±Ã­a</option>
                             {% for compania in companias %}
                             <option value="{{ compania.nombre }}">{{ compania.nombre }}</option>
                             {% endfor %}
@@ -260,7 +260,7 @@
                                     <th>Email</th>
                                     <th>Clave Radial</th>
                                     <th>Rol</th>
-                                    <th>Compañía</th>
+                                    <th>CompaÃ±Ã­a</th>
                                     <th>Estado</th>
                                     <th>Admin</th>
                                     <th>Acciones</th>
@@ -283,7 +283,7 @@
                                     </td>
                                     <td>
                                         {% if user.is_superuser %}
-                                            <span class="badge bg-danger">Sí</span>
+                                            <span class="badge bg-danger">SÃ­</span>
                                         {% endif %}
                                     </td>
                                     <td>
@@ -314,7 +314,7 @@
                                     </td>
                                 </tr>
                                 {% empty %}
-                                <!-- Este TR se mostrará si no hay usuarios, o si el filtro no encuentra resultados -->
+                                <!-- Este TR se mostrarÃ¡ si no hay usuarios, o si el filtro no encuentra resultados -->
                                 <tr id="no-users-found-row" style="display: none;"><td colspan="8" class="text-center text-muted py-4">No se encontraron usuarios con los filtros aplicados.</td></tr>
                                 {% endfor %}
                             </tbody>
@@ -324,7 +324,7 @@
             </div>
         </div>
 
-        <!-- Pestaña de Roles -->
+        <!-- PestaÃ±a de Roles -->
         <div class="tab-pane fade" id="roles" role="tabpanel" aria-labelledby="roles-tab">
             <div class="card shadow-sm mt-3">
                 <div class="card-header d-flex justify-content-between align-items-center">
@@ -339,7 +339,7 @@
                             <thead>
                                 <tr>
                                     <th>Nombre del Rol</th>
-                                    <th>Descripción</th>
+                                    <th>DescripciÃ³n</th>
                                     <th>Acciones</th>
                                 </tr>
                             </thead>
@@ -367,13 +367,13 @@
             </div>
         </div>
 
-        <!-- Pestaña de Compañías -->
+        <!-- PestaÃ±a de CompaÃ±Ã­as -->
         <div class="tab-pane fade" id="companias" role="tabpanel" aria-labelledby="companias-tab">
             <div class="card shadow-sm mt-3">
                 <div class="card-header d-flex justify-content-between align-items-center">
-                    <span>Listado de Compañías</span>
+                    <span>Listado de CompaÃ±Ã­as</span>
                     <button class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#createCompaniaModal">
-                        <i class="bi bi-plus-lg me-1"></i> Nueva Compañía
+                        <i class="bi bi-plus-lg me-1"></i> Nueva CompaÃ±Ã­a
                     </button>
                 </div>
                 <div class="card-body">
@@ -382,8 +382,8 @@
                             <thead>
                                 <tr>
                                     <th>Logo</th>
-                                    <th>Nombre de la Compañía</th>
-                                    <th>Ubicación</th>
+                                    <th>Nombre de la CompaÃ±Ã­a</th>
+                                    <th>UbicaciÃ³n</th>
                                     <th>Acciones</th>
                                 </tr>
                             </thead>
@@ -422,7 +422,7 @@
         {% endif %}
 
         {% if request.user.is_superuser or request.user.rol.ver_avisos %}
-        <!-- Pestaña de Avisos -->
+        <!-- PestaÃ±a de Avisos -->
         <div class="tab-pane fade {% if not request.user.is_superuser %}show active{% endif %}" id="avisos" role="tabpanel" aria-labelledby="avisos-tab">
             <div class="card shadow-sm mt-3">
                 <div class="card-header d-flex justify-content-between align-items-center">
@@ -474,9 +474,9 @@
                                                     <td class="text-start">{{ dest.usuario.get_full_name }}</td>
                                                     <td>
                                                         {% if dest.leido %}
-                                                            <span class="badge bg-success">Leído</span>
+                                                            <span class="badge bg-success">LeÃ­do</span>
                                                         {% else %}
-                                                            <span class="badge bg-secondary">No Leído</span>
+                                                            <span class="badge bg-secondary">No LeÃ­do</span>
                                                         {% endif %}
                                                     </td>
                                                     <td>
@@ -497,7 +497,7 @@
                         {% empty %}
                         <div class="text-center text-muted py-4">No hay avisos enviados.</div>
                         {% endfor %}
-                        <div class="text-center text-muted py-4" id="no-avisos-found-msg" style="display: none;">No se encontraron avisos que coincidan con la búsqueda.</div>
+                        <div class="text-center text-muted py-4" id="no-avisos-found-msg" style="display: none;">No se encontraron avisos que coincidan con la bÃºsqueda.</div>
                     </div>
                 </div>
             </div>
@@ -526,10 +526,10 @@
                         <div class="col-md-6 mb-3"><label class="form-label">RUT</label>{{ user_creation_form.rut }}</div>
                         <div class="col-md-6 mb-3"><label class="form-label">Clave Radial</label>{{ user_creation_form.clave_radial }}</div>
                     </div>
-                    <div class="mb-3"><label class="form-label">Contraseña</label>{{ user_creation_form.password }}</div>
+                    <div class="mb-3"><label class="form-label">ContraseÃ±a</label>{{ user_creation_form.password }}</div>
                     <div class="row">
                         <div class="col-md-6 mb-3"><label class="form-label">Rol</label>{{ user_creation_form.rol }}</div>
-                        <div class="col-md-6 mb-3"><label class="form-label">Compañía</label>{{ user_creation_form.compania }}</div>
+                        <div class="col-md-6 mb-3"><label class="form-label">CompaÃ±Ã­a</label>{{ user_creation_form.compania }}</div>
                     </div>
                     <div class="form-check form-switch mb-2">{{ user_creation_form.is_active }} <label class="form-check-label">Usuario Activo</label></div>
                     <div class="form-check form-switch">{{ user_creation_form.is_superuser }} <label class="form-check-label">Superusuario</label></div>
@@ -543,8 +543,8 @@
     </div>
 </div>
 
-<!-- Modales genéricos para Edición y Eliminación de Usuarios -->
-<!-- Modal Editar Usuario (Genérico) -->
+<!-- Modales genÃ©ricos para EdiciÃ³n y EliminaciÃ³n de Usuarios -->
+<!-- Modal Editar Usuario (GenÃ©rico) -->
 <div class="modal fade" id="editUserModal" tabindex="-1" aria-labelledby="editUserModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
@@ -566,7 +566,7 @@
                     </div>
                     <div class="row">
                         <div class="col-md-6 mb-3"><label class="form-label">Rol</label>{{ user_change_form.rol }}</div>
-                        <div class="col-md-6 mb-3"><label class="form-label">Compañía</label>{{ user_change_form.compania }}</div>
+                        <div class="col-md-6 mb-3"><label class="form-label">CompaÃ±Ã­a</label>{{ user_change_form.compania }}</div>
                     </div>
                     <div class="form-check form-switch mb-2">{{ user_change_form.is_active }} <label class="form-check-label" for="{{ user_change_form.is_active.id_for_label }}">Usuario Activo</label></div>
                     <div class="form-check form-switch">{{ user_change_form.is_superuser }} <label class="form-check-label" for="{{ user_change_form.is_superuser.id_for_label }}">Superusuario (Administrador)</label></div>
@@ -580,23 +580,23 @@
     </div>
 </div>
 
-<!-- Modal Eliminar Usuario (Genérico) -->
+<!-- Modal Eliminar Usuario (GenÃ©rico) -->
 <div class="modal fade" id="deleteUserModal" tabindex="-1" aria-labelledby="deleteUserModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="deleteUserModalLabel">Confirmar Eliminación</h5>
+                <h5 class="modal-title" id="deleteUserModalLabel">Confirmar EliminaciÃ³n</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <p>¿Estás seguro de que quieres eliminar al usuario "<strong id="userNameToDelete"></strong>"?</p>
-                <p class="text-danger small">Esta acción no se puede deshacer.</p>
+                <p>Â¿EstÃ¡s seguro de que quieres eliminar al usuario "<strong id="userNameToDelete"></strong>"?</p>
+                <p class="text-danger small">Esta acciÃ³n no se puede deshacer.</p>
             </div>
             <div class="modal-footer">
                 <form id="deleteUserForm" method="post">
                     {% csrf_token %}
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-danger">Sí, eliminar</button>
+                    <button type="submit" class="btn btn-danger">SÃ­, eliminar</button>
                 </form>
             </div>
         </div>
@@ -617,18 +617,18 @@
                         <datalist id="roles-sugeridos">
                             <option value="Bombero"></option>
                             <option value="Teniente"></option>
-                            <option value="Capitán"></option>
+                            <option value="CapitÃ¡n"></option>
                             <option value="Comandante"></option>
                             <option value="Maquinista"></option>
                             <option value="Secretario"></option>
                             <option value="Tesorero"></option>
                         </datalist>
                     </div>
-                    <div class="mb-3"><label class="form-label">Descripción</label>{{ rol_form.descripcion }}</div>
+                    <div class="mb-3"><label class="form-label">DescripciÃ³n</label>{{ rol_form.descripcion }}</div>
                     
                     <hr class="my-4 text-muted">
                     <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h6 class="mb-0 fw-bold">Permisos de Acceso a Módulos</h6>
+                        <h6 class="mb-0 fw-bold">Permisos de Acceso a MÃ³dulos</h6>
                         <button type="button" class="btn btn-sm btn-outline-secondary" onclick="toggleAllPermisos('createRolForm')" title="Seleccionar / Desmarcar todo">
                             <i class="bi bi-check-all fs-5" style="line-height: 1;"></i>
                         </button>
@@ -637,7 +637,7 @@
                     <div class="border rounded bg-body-tertiary shadow-sm overflow-hidden">
                         <!-- Encabezados de la Matriz -->
                         <div class="row g-0 py-2 border-bottom fw-bold text-center small text-muted">
-                            <div class="col-6 text-start px-3">MÓDULO</div>
+                            <div class="col-6 text-start px-3">MÃ“DULO</div>
                             <div class="col-3">VER</div>
                             <div class="col-3">EDITAR</div>
                         </div>
@@ -653,10 +653,10 @@
                         </div>
                         <div class="row g-0 py-2 border-bottom align-items-center permission-row">
                             <div class="col-6 px-3">
-                                <i class="bi bi-file-earmark-text-fill text-secondary me-2"></i> <strong>Documentación</strong>
+                                <i class="bi bi-file-earmark-text-fill text-secondary me-2"></i> <strong>DocumentaciÃ³n</strong>
                             </div>
                             <div class="col-3 d-flex justify-content-center">
-                                <div class="form-check form-switch mb-0 fs-5 view-toggle" title="Permite acceder al módulo">{{ rol_form.ver_documentacion }}</div>
+                                <div class="form-check form-switch mb-0 fs-5 view-toggle" title="Permite acceder al mÃ³dulo">{{ rol_form.ver_documentacion }}</div>
                             </div>
                             <div class="col-3 d-flex justify-content-center">
                                 <div class="form-check form-switch mb-0 fs-5 edit-toggle" title="Permite subir o eliminar documentos">{{ rol_form.editar_documentacion }}</div>
@@ -664,10 +664,21 @@
                         </div>
                         <div class="row g-0 py-2 border-bottom align-items-center permission-row">
                             <div class="col-6 px-3">
+                                <i class="bi bi-search text-secondary me-2"></i> <strong>Inspectores</strong>
+                            </div>
+                            <div class="col-3 d-flex justify-content-center">
+                                <div class="form-check form-switch mb-0 fs-5 view-toggle" title="Permite acceder al mÃ³dulo">{{ rol_form.ver_inspectores }}</div>
+                            </div>
+                            <div class="col-3 d-flex justify-content-center">
+                                <div class="form-check form-switch mb-0 fs-5 edit-toggle" title="Permite subir o eliminar documentos de inspectores">{{ rol_form.editar_inspectores }}</div>
+                            </div>
+                        </div>
+                        <div class="row g-0 py-2 border-bottom align-items-center permission-row">
+                            <div class="col-6 px-3">
                                 <i class="bi bi-qr-code-scan text-secondary me-2"></i> <strong>Escanear QR</strong>
                             </div>
                             <div class="col-3 d-flex justify-content-center">
-                                <div class="form-check form-switch mb-0 fs-5 view-toggle" title="Permite usar la herramienta de Escáner QR">{{ rol_form.ver_escanear_qr }}</div>
+                                <div class="form-check form-switch mb-0 fs-5 view-toggle" title="Permite usar la herramienta de EscÃ¡ner QR">{{ rol_form.ver_escanear_qr }}</div>
                             </div>
                             <div class="col-3 d-flex justify-content-center"></div>
                         </div>
@@ -778,11 +789,11 @@
                     {% csrf_token %}
                     <div class="modal-body">
                         <div class="mb-3"><label class="form-label">Nombre del Rol</label><input type="text" name="nombre" value="{{ rol.nombre }}" class="form-control" required list="roles-sugeridos"></div>
-                        <div class="mb-3"><label class="form-label">Descripción</label><textarea name="descripcion" class="form-control" rows="3">{{ rol.descripcion }}</textarea></div>
+                        <div class="mb-3"><label class="form-label">DescripciÃ³n</label><textarea name="descripcion" class="form-control" rows="3">{{ rol.descripcion }}</textarea></div>
                         
                         <hr class="my-4 text-muted">
                         <div class="d-flex justify-content-between align-items-center mb-3">
-                            <h6 class="mb-0 fw-bold">Permisos de Acceso a Módulos</h6>
+                            <h6 class="mb-0 fw-bold">Permisos de Acceso a MÃ³dulos</h6>
                             <button type="button" class="btn btn-sm btn-outline-secondary" onclick="toggleAllPermisos('editRolForm-{{ rol.id }}')" title="Seleccionar / Desmarcar todo">
                                 <i class="bi bi-check-all fs-5" style="line-height: 1;"></i>
                             </button>
@@ -790,7 +801,7 @@
                         
                     <div class="border rounded bg-body-tertiary shadow-sm overflow-hidden">
                         <div class="row g-0 py-2 border-bottom fw-bold text-center small text-muted">
-                            <div class="col-6 text-start px-3">MÓDULO</div>
+                            <div class="col-6 text-start px-3">MÃ“DULO</div>
                             <div class="col-3">VER</div>
                             <div class="col-3">EDITAR</div>
                         </div>
@@ -806,13 +817,24 @@
                         </div>
                         <div class="row g-0 py-2 border-bottom align-items-center permission-row">
                             <div class="col-6 px-3">
-                                <i class="bi bi-file-earmark-text-fill text-secondary me-2"></i> <strong>Documentación</strong>
+                                <i class="bi bi-file-earmark-text-fill text-secondary me-2"></i> <strong>DocumentaciÃ³n</strong>
                             </div>
                             <div class="col-3 d-flex justify-content-center">
                                 <div class="form-check form-switch mb-0 fs-5 view-toggle"><input type="checkbox" class="form-check-input mt-0" name="ver_documentacion" {% if rol.ver_documentacion %}checked{% endif %}></div>
                             </div>
                             <div class="col-3 d-flex justify-content-center">
                                 <div class="form-check form-switch mb-0 fs-5 edit-toggle"><input type="checkbox" class="form-check-input mt-0" name="editar_documentacion" {% if rol.editar_documentacion %}checked{% endif %}></div>
+                            </div>
+                        </div>
+                        <div class="row g-0 py-2 border-bottom align-items-center permission-row">
+                            <div class="col-6 px-3">
+                                <i class="bi bi-search text-secondary me-2"></i> <strong>Inspectores</strong>
+                            </div>
+                            <div class="col-3 d-flex justify-content-center">
+                                <div class="form-check form-switch mb-0 fs-5 view-toggle"><input type="checkbox" class="form-check-input mt-0" name="ver_inspectores" {% if rol.ver_inspectores %}checked{% endif %}></div>
+                            </div>
+                            <div class="col-3 d-flex justify-content-center">
+                                <div class="form-check form-switch mb-0 fs-5 edit-toggle"><input type="checkbox" class="form-check-input mt-0" name="editar_inspectores" {% if rol.editar_inspectores %}checked{% endif %}></div>
                             </div>
                         </div>
                         <div class="row g-0 py-2 border-bottom align-items-center permission-row">
@@ -923,15 +945,15 @@
     <div class="modal fade" id="deleteRolModal-{{ rol.id }}" tabindex="-1" aria-labelledby="deleteRolModalLabel-{{ rol.id }}" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
-                <div class="modal-header"><h5 class="modal-title" id="deleteRolModalLabel-{{ rol.id }}">Confirmar Eliminación</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+                <div class="modal-header"><h5 class="modal-title" id="deleteRolModalLabel-{{ rol.id }}">Confirmar EliminaciÃ³n</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
                 <div class="modal-body">
-                    <p>¿Estás seguro de que quieres eliminar el rol "<strong>{{ rol.nombre }}</strong>"?</p>
-                    <p class="text-danger small">Esta acción no se puede deshacer.</p>
+                    <p>Â¿EstÃ¡s seguro de que quieres eliminar el rol "<strong>{{ rol.nombre }}</strong>"?</p>
+                    <p class="text-danger small">Esta acciÃ³n no se puede deshacer.</p>
                 </div>
                 <div class="modal-footer">
                     <form action="{% url 'rol_delete' rol.id %}" method="post">
                         {% csrf_token %}
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button><button type="submit" class="btn btn-danger">Sí, eliminar</button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button><button type="submit" class="btn btn-danger">SÃ­, eliminar</button>
                     </form>
                 </div>
             </div>
@@ -939,36 +961,36 @@
     </div>
 {% endfor %}
 
-<!-- Modal Crear Compañía -->
+<!-- Modal Crear CompaÃ±Ã­a -->
 <div class="modal fade" id="createCompaniaModal" tabindex="-1" aria-labelledby="createCompaniaModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
-            <div class="modal-header"><h5 class="modal-title" id="createCompaniaModalLabel">Crear Nueva Compañía</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+            <div class="modal-header"><h5 class="modal-title" id="createCompaniaModalLabel">Crear Nueva CompaÃ±Ã­a</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
             <form action="{% url 'compania_create' %}" method="post" enctype="multipart/form-data">
                 {% csrf_token %}
                 <div class="modal-body">
-                    <div class="mb-3"><label class="form-label">Nombre de la Compañía</label>{{ compania_form.nombre }}</div>
-                    <div class="mb-3"><label class="form-label">Ubicación</label>{{ compania_form.ubicacion }}</div>
-                    <div class="mb-3"><label class="form-label">Logo de la Compañía</label>{{ compania_form.logo }}</div>
+                    <div class="mb-3"><label class="form-label">Nombre de la CompaÃ±Ã­a</label>{{ compania_form.nombre }}</div>
+                    <div class="mb-3"><label class="form-label">UbicaciÃ³n</label>{{ compania_form.ubicacion }}</div>
+                    <div class="mb-3"><label class="form-label">Logo de la CompaÃ±Ã­a</label>{{ compania_form.logo }}</div>
                 </div>
-                <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button><button type="submit" class="btn btn-danger">Crear Compañía</button></div>
+                <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button><button type="submit" class="btn btn-danger">Crear CompaÃ±Ã­a</button></div>
             </form>
         </div>
     </div>
 </div>
 
-<!-- Modales para Compañías -->
+<!-- Modales para CompaÃ±Ã­as -->
 {% for compania in companias %}
-    <!-- Modal Editar Compañía -->
+    <!-- Modal Editar CompaÃ±Ã­a -->
     <div class="modal fade" id="editCompaniaModal-{{ compania.id }}" tabindex="-1" aria-labelledby="editCompaniaModalLabel-{{ compania.id }}" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
-                <div class="modal-header"><h5 class="modal-title" id="editCompaniaModalLabel-{{ compania.id }}">Editar Compañía</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+                <div class="modal-header"><h5 class="modal-title" id="editCompaniaModalLabel-{{ compania.id }}">Editar CompaÃ±Ã­a</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
                 <form action="{% url 'compania_edit' compania.id %}" method="post" enctype="multipart/form-data">
                     {% csrf_token %}
                     <div class="modal-body">
-                        <div class="mb-3"><label class="form-label">Nombre de la Compañía</label><input type="text" name="nombre" value="{{ compania.nombre }}" class="form-control" required></div>
-                        <div class="mb-3"><label class="form-label">Ubicación</label><input type="text" name="ubicacion" value="{{ compania.ubicacion }}" class="form-control" required></div>
+                        <div class="mb-3"><label class="form-label">Nombre de la CompaÃ±Ã­a</label><input type="text" name="nombre" value="{{ compania.nombre }}" class="form-control" required></div>
+                        <div class="mb-3"><label class="form-label">UbicaciÃ³n</label><input type="text" name="ubicacion" value="{{ compania.ubicacion }}" class="form-control" required></div>
                         <div class="mb-3"><label class="form-label">Actualizar Logo (Opcional)</label><input type="file" name="logo" class="form-control" accept="image/*"></div>
                         {% if compania.logo %}<div class="mb-2 text-center"><img src="{{ compania.logo.url }}" alt="Logo {{ compania.nombre }}" class="img-thumbnail" style="max-height: 100px;"></div>{% endif %}
                     </div>
@@ -977,19 +999,19 @@
             </div>
         </div>
     </div>
-    <!-- Modal Eliminar Compañía -->
+    <!-- Modal Eliminar CompaÃ±Ã­a -->
     <div class="modal fade" id="deleteCompaniaModal-{{ compania.id }}" tabindex="-1" aria-labelledby="deleteCompaniaModalLabel-{{ compania.id }}" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
-                <div class="modal-header"><h5 class="modal-title" id="deleteCompaniaModalLabel-{{ compania.id }}">Confirmar Eliminación</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+                <div class="modal-header"><h5 class="modal-title" id="deleteCompaniaModalLabel-{{ compania.id }}">Confirmar EliminaciÃ³n</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
                 <div class="modal-body">
-                    <p>¿Estás seguro de que quieres eliminar la compañía "<strong>{{ compania.nombre }}</strong>"?</p>
-                    <p class="text-danger small">Esta acción no se puede deshacer.</p>
+                    <p>Â¿EstÃ¡s seguro de que quieres eliminar la compaÃ±Ã­a "<strong>{{ compania.nombre }}</strong>"?</p>
+                    <p class="text-danger small">Esta acciÃ³n no se puede deshacer.</p>
                 </div>
                 <div class="modal-footer">
                     <form action="{% url 'compania_delete' compania.id %}" method="post">
                         {% csrf_token %}
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button><button type="submit" class="btn btn-danger">Sí, eliminar</button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button><button type="submit" class="btn btn-danger">SÃ­, eliminar</button>
                     </form>
                 </div>
             </div>
@@ -1003,16 +1025,16 @@
     <div class="modal fade" id="deleteAvisoModal-{{ aviso.id }}" tabindex="-1" aria-labelledby="deleteAvisoModalLabel-{{ aviso.id }}" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
-                <div class="modal-header"><h5 class="modal-title" id="deleteAvisoModalLabel-{{ aviso.id }}">Confirmar Eliminación</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+                <div class="modal-header"><h5 class="modal-title" id="deleteAvisoModalLabel-{{ aviso.id }}">Confirmar EliminaciÃ³n</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
                 <div class="modal-body">
-                    <p>¿Estás seguro de que quieres eliminar el aviso "<strong>{{ aviso.titulo }}</strong>"?</p>
-                    <p class="text-danger small">Esta acción no se puede deshacer. Se eliminarán los registros de lectura y notificaciones asociadas.</p>
+                    <p>Â¿EstÃ¡s seguro de que quieres eliminar el aviso "<strong>{{ aviso.titulo }}</strong>"?</p>
+                    <p class="text-danger small">Esta acciÃ³n no se puede deshacer. Se eliminarÃ¡n los registros de lectura y notificaciones asociadas.</p>
                 </div>
                 <div class="modal-footer">
                     <form action="{% url 'aviso_delete' aviso.id %}" method="post">
                         {% csrf_token %}
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                        <button type="submit" class="btn btn-danger">Sí, eliminar</button>
+                        <button type="submit" class="btn btn-danger">SÃ­, eliminar</button>
                     </form>
                 </div>
             </div>
@@ -1032,7 +1054,7 @@
                 {% csrf_token %}
                 <div class="modal-body">
                     <div class="mb-3">
-                        <label class="form-label fw-bold">Título del Aviso</label>
+                        <label class="form-label fw-bold">TÃ­tulo del Aviso</label>
                         {{ aviso_form.titulo }}
                     </div>
                     <div class="mb-3">
@@ -1074,7 +1096,7 @@
 {{ block.super }}
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    // Permite que las pestañas recuerden su estado al recargar la página o al volver
+    // Permite que las pestaÃ±as recuerden su estado al recargar la pÃ¡gina o al volver
     var triggerTabList = [].slice.call(document.querySelectorAll('#adminTab button'));
     triggerTabList.forEach(function (triggerEl) {
         var tabTrigger = new bootstrap.Tab(triggerEl);
@@ -1083,7 +1105,7 @@ document.addEventListener('DOMContentLoaded', function () {
             event.preventDefault();
             tabTrigger.show();
             
-            // Guardar la pestaña activa en la memoria del navegador
+            // Guardar la pestaÃ±a activa en la memoria del navegador
             const target = triggerEl.getAttribute('data-bs-target');
             localStorage.setItem('activeAdminTab', target);
 
@@ -1093,10 +1115,10 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
-    // Leer la pestaña activa desde la URL o desde la memoria local
+    // Leer la pestaÃ±a activa desde la URL o desde la memoria local
     const urlParams = new URLSearchParams(window.location.search);
     const activeTabParam = urlParams.get('tab');
-    let activeTab = '{% if request.user.is_superuser %}#requests{% else %}#avisos{% endif %}'; // Pestaña por defecto
+    let activeTab = '{% if request.user.is_superuser %}#requests{% else %}#avisos{% endif %}'; // PestaÃ±a por defecto
 
     if (activeTabParam) {
         activeTab = '#' + activeTabParam;
@@ -1113,20 +1135,20 @@ document.addEventListener('DOMContentLoaded', function () {
         if(firstTab) new bootstrap.Tab(firstTab).show(); 
     }
 
-    // --- Lógica para Modales Genéricos de Usuario ---
+    // --- LÃ³gica para Modales GenÃ©ricos de Usuario ---
     const editUserModal = document.getElementById('editUserModal');
     if (editUserModal) {
         editUserModal.addEventListener('show.bs.modal', function (event) {
             const button = event.relatedTarget;
-            // Si el modal se activó mediante JS (p. ej., por un error de validación),
-            // `button` será nulo. En ese caso, no repoblamos el formulario,
-            // ya que Django lo renderizó con los datos y errores.
+            // Si el modal se activÃ³ mediante JS (p. ej., por un error de validaciÃ³n),
+            // `button` serÃ¡ nulo. En ese caso, no repoblamos el formulario,
+            // ya que Django lo renderizÃ³ con los datos y errores.
             if (!button) return;
 
             const form = document.getElementById('editUserForm');
             const userId = button.dataset.userId;
             
-            // Actualizar la acción del formulario
+            // Actualizar la acciÃ³n del formulario
             form.action = `/administracion/user/${userId}/edit/`;
 
             // Poblar el formulario con los datos del usuario
@@ -1140,7 +1162,7 @@ document.addEventListener('DOMContentLoaded', function () {
             form.querySelector('#id_is_active').checked = button.dataset.userIs_active === 'true';
             form.querySelector('#id_is_superuser').checked = button.dataset.userIs_superuser === 'true';
 
-            // Actualizar el título del modal
+            // Actualizar el tÃ­tulo del modal
             const modalTitle = editUserModal.querySelector('.modal-title');
             modalTitle.textContent = `Editar Usuario: ${button.dataset.userNombre} ${button.dataset.userApellido}`;
         });
@@ -1154,23 +1176,23 @@ document.addEventListener('DOMContentLoaded', function () {
             const userId = button.dataset.userId;
             const userName = button.dataset.userName;
 
-            // Actualizar la acción del formulario
+            // Actualizar la acciÃ³n del formulario
             form.action = `/administracion/user/${userId}/delete/`;
 
-            // Actualizar el nombre en el texto de confirmación
+            // Actualizar el nombre en el texto de confirmaciÃ³n
             const nameSpan = document.getElementById('userNameToDelete');
             nameSpan.textContent = userName;
         });
     }
 
-    // Si hubo un error al editar un usuario, la vista vuelve a renderizar esta página
-    // con el ID del usuario. Usamos ese ID para reabrir el modal de edición correcto.
+    // Si hubo un error al editar un usuario, la vista vuelve a renderizar esta pÃ¡gina
+    // con el ID del usuario. Usamos ese ID para reabrir el modal de ediciÃ³n correcto.
     {% if edit_form_user_id %}
         const editModalInstance = new bootstrap.Modal(document.getElementById('editUserModal'));
         const editForm = document.getElementById('editUserForm');
         
         // El formulario ya fue renderizado por Django con los datos del error.
-        // Solo necesitamos establecer la URL de acción correcta y el título.
+        // Solo necesitamos establecer la URL de acciÃ³n correcta y el tÃ­tulo.
         editForm.action = `/administracion/user/{{ edit_form_user_id }}/edit/`;
         
         const modalTitle = document.querySelector('#editUserModal .modal-title');
@@ -1178,7 +1200,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const apellido = editForm.querySelector('#id_apellido').value;
         modalTitle.textContent = `Editar Usuario: ${nombre} ${apellido}`;
 
-        // Asegurarse de que la pestaña "Usuarios Activos" esté visible
+        // Asegurarse de que la pestaÃ±a "Usuarios Activos" estÃ© visible
         const usersTab = document.getElementById('users-tab');
         if (usersTab) {
             new bootstrap.Tab(usersTab).show();
@@ -1188,14 +1210,14 @@ document.addEventListener('DOMContentLoaded', function () {
         editModalInstance.show();
     {% endif %}
 
-    // Si hubo un error en el formulario de creación de usuario, reabrimos el modal
+    // Si hubo un error en el formulario de creaciÃ³n de usuario, reabrimos el modal
     {% if user_creation_form.errors %}
         new bootstrap.Modal(document.getElementById('createUserModal')).show();
         new bootstrap.Tab(document.querySelector('#users-tab')).show();
         localStorage.setItem('activeAdminTab', '#users');
     {% endif %}
 
-    // Si hubo un error en el formulario de creación de rol/compañía, reabrimos el modal correspondiente
+    // Si hubo un error en el formulario de creaciÃ³n de rol/compaÃ±Ã­a, reabrimos el modal correspondiente
     {% if rol_form.errors %}
         new bootstrap.Modal(document.getElementById('createRolModal')).show();
         new bootstrap.Tab(document.querySelector('#roles-tab')).show();
@@ -1207,7 +1229,7 @@ document.addEventListener('DOMContentLoaded', function () {
         localStorage.setItem('activeAdminTab', '#companias');
     {% endif %}
 
-    // --- Lógica de Filtrado en Tiempo Real para Usuarios Activos ---
+    // --- LÃ³gica de Filtrado en Tiempo Real para Usuarios Activos ---
     const searchInput = document.getElementById('userSearchInput');
     const roleFilter = document.getElementById('roleFilter');
     const companyFilter = document.getElementById('companyFilter');
@@ -1249,12 +1271,12 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    // Añadir los listeners a los inputs de filtro
+    // AÃ±adir los listeners a los inputs de filtro
     searchInput.addEventListener('keyup', filterUsers);
     roleFilter.addEventListener('change', filterUsers);
     companyFilter.addEventListener('change', filterUsers);
 
-    // --- Lógica para seleccionar/desmarcar todos los permisos ---
+    // --- LÃ³gica para seleccionar/desmarcar todos los permisos ---
     window.toggleAllPermisos = function(formId) {
         const form = document.getElementById(formId);
         if (!form) return;
@@ -1266,7 +1288,7 @@ document.addEventListener('DOMContentLoaded', function () {
         checkboxes.forEach(cb => { cb.checked = turnOn; });
     };
 
-    // --- Lógica de Interacción para Permisos Ver/Editar ---
+    // --- LÃ³gica de InteracciÃ³n para Permisos Ver/Editar ---
     document.querySelectorAll('.permission-row').forEach(row => {
         const viewCheckbox = row.querySelector('.view-toggle input[type="checkbox"]');
         const editCheckbox = row.querySelector('.edit-toggle input[type="checkbox"]');
@@ -1282,7 +1304,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-    // Lógica para seleccionar/desmarcar todos los destinatarios del aviso
+    // LÃ³gica para seleccionar/desmarcar todos los destinatarios del aviso
     const btnSelectAllAviso = document.getElementById('selectAllAvisoUsers');
     const btnDeselectAllAviso = document.getElementById('deselectAllAvisoUsers');
     const avisoUserCheckboxes = document.querySelectorAll('#aviso-users-list input[type="checkbox"]');
@@ -1294,7 +1316,7 @@ document.addEventListener('DOMContentLoaded', function () {
         avisoUserCheckboxes.forEach(cb => cb.checked = false);
     });
 
-    // --- Lógica de Filtrado en Tiempo Real para Avisos ---
+    // --- LÃ³gica de Filtrado en Tiempo Real para Avisos ---
     const avisoSearchInput = document.getElementById('avisoSearchInput');
     const avisoItems = document.querySelectorAll('.aviso-item');
     const noAvisosMsg = document.getElementById('no-avisos-found-msg');

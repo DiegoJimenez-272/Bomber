@@ -25,6 +25,7 @@ class Rol(models.Model):
     ver_proyectos = models.BooleanField(default=False, verbose_name="Proyectos")
     ver_caja_chica = models.BooleanField(default=False, verbose_name="Caja Chica")
     ver_avisos = models.BooleanField(default=False, verbose_name="Avisos")
+    ver_inspectores = models.BooleanField(default=False, verbose_name="Inspectores")
 
     # --- Permisos de Edición / Creación / Eliminación ---
     editar_documentacion = models.BooleanField(default=False, verbose_name="Editar Documentación")
@@ -36,6 +37,7 @@ class Rol(models.Model):
     editar_proyectos = models.BooleanField(default=False, verbose_name="Editar Proyectos")
     editar_caja_chica = models.BooleanField(default=False, verbose_name="Editar Caja Chica")
     editar_avisos = models.BooleanField(default=False, verbose_name="Editar Avisos")
+    editar_inspectores = models.BooleanField(default=False, verbose_name="Editar Inspectores")
 
     def __str__(self):
         return self.nombre
@@ -145,6 +147,7 @@ class Carpeta(models.Model):
     creado_por = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
     creado_en = models.DateTimeField(auto_now_add=True)
     es_privado = models.BooleanField(default=False)
+    es_de_inspector = models.BooleanField(default=False)
 
     def __str__(self):
         return self.nombre
@@ -170,6 +173,7 @@ class Documento(models.Model):
     subido_por = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
     subido_en = models.DateTimeField(auto_now_add=True)
     es_privado = models.BooleanField(default=False)
+    es_de_inspector = models.BooleanField(default=False)
 
     def __str__(self):
         return self.nombre

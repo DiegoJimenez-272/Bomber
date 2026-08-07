@@ -149,6 +149,7 @@ def dashboard_view(request):
         {'id': 'caja_chica', 'url_name': 'caja_chica', 'icon': 'bi-wallet-fill', 'title': 'Caja Chica', 'desc': 'Control de gastos menores'},
         {'id': 'proyectos', 'url_name': 'proyectos', 'icon': 'bi-graph-up-arrow', 'title': 'Proyectos', 'desc': 'Seguimiento de proyectos y mejoras'},
         {'id': 'scan_qr', 'url_name': 'scan_qr_page', 'icon': 'bi-qr-code-scan', 'title': 'Escanear QR', 'desc': 'Identifica un ítem de inventario usando su código QR.'},
+        {'id': 'inspectores', 'url_name': 'inspectores', 'icon': 'bi-search', 'title': 'Inspectores', 'desc': 'Documentos y archivos exclusivos de inspectores'},
         {'id': 'administracion', 'url_name': 'administracion', 'icon': 'bi-gear-fill', 'title': 'Administración', 'desc': 'Configuración y gestión de usuarios'},
     ]
 
@@ -162,6 +163,11 @@ def dashboard_view(request):
             # Modulos estrictamente para superusuario
             if m['id'] in ['administracion']:
                 if rol and rol.ver_avisos:
+                    filtered_modules.append(m)
+                continue
+            
+            if m['id'] == 'inspectores':
+                if rol and rol.ver_inspectores:
                     filtered_modules.append(m)
                 continue
             
@@ -809,8 +815,8 @@ def documentos_view(request):
     ordenar_por = request.GET.get('ordenar_por', '-subido_en') # Por defecto, los más nuevos primero
     carpeta_id = request.GET.get('carpeta')
 
-    documentos = Documento.objects.select_related('subido_por', 'compania', 'carpeta').all()
-    carpetas = Carpeta.objects.select_related('compania', 'creado_por').all()
+    documentos = Documento.objects.select_related('subido_por', 'compania', 'carpeta').filter(es_de_inspector=False)
+    carpetas = Carpeta.objects.select_related('compania', 'creado_por').filter(es_de_inspector=False)
 
     if not request.user.is_superuser:
         if request.user.compania:
@@ -875,9 +881,9 @@ def documentos_view(request):
         documentos = documentos.order_by(ordenar_por)
 
     if not request.user.is_superuser and request.user.compania:
-        usuarios_con_docs = Usuario.objects.filter(Q(documento__compania=request.user.compania) | Q(documento__compania__isnull=True), documento__isnull=False).distinct().order_by('nombre')
+        usuarios_con_docs = Usuario.objects.filter(Q(documento__compania=request.user.compania) | Q(documento__compania__isnull=True), documento__isnull=False, documento__es_de_inspector=False).distinct().order_by('nombre')
     else:
-        usuarios_con_docs = Usuario.objects.filter(documento__isnull=False).distinct().order_by('nombre')
+        usuarios_con_docs = Usuario.objects.filter(documento__isnull=False, documento__es_de_inspector=False).distinct().order_by('nombre')
 
     context = {
         'form': form, 
@@ -893,28 +899,43 @@ def documentos_view(request):
 @login_required
 def documento_delete_view(request, doc_id):
     documento = get_object_or_404(Documento, id=doc_id)
-    if not request.user.is_superuser and not (request.user.rol and request.user.rol.editar_documentacion):
-        messages.error(request, 'No tienes permiso para eliminar este documento.')
-        return redirect('documentos')
+    is_inspector = documento.es_de_inspector
+    
+    if is_inspector:
+        if not request.user.is_superuser and not (request.user.rol and request.user.rol.editar_inspectores):
+            messages.error(request, 'No tienes permiso para eliminar documentos de inspectores.')
+            return redirect('inspectores')
+    else:
+        if not request.user.is_superuser and not (request.user.rol and request.user.rol.editar_documentacion):
+            messages.error(request, 'No tienes permiso para eliminar este documento.')
+            return redirect('documentos')
 
     if request.method == 'POST':
         doc_name = documento.nombre
         documento.delete()
         messages.success(request, f'Documento "{doc_name}" eliminado exitosamente.')
-    return redirect('documentos')
+    
+    return redirect('inspectores' if is_inspector else 'documentos')
 
 @login_required
 def carpeta_delete_view(request, carpeta_id):
     carpeta = get_object_or_404(Carpeta, id=carpeta_id)
-    if not request.user.is_superuser and not (request.user.rol and request.user.rol.editar_documentacion):
-        messages.error(request, 'No tienes permiso para eliminar carpetas.')
-        return redirect('documentos')
+    is_inspector = carpeta.es_de_inspector
+
+    if is_inspector:
+        if not request.user.is_superuser and not (request.user.rol and request.user.rol.editar_inspectores):
+            messages.error(request, 'No tienes permiso para eliminar carpetas de inspectores.')
+            return redirect('inspectores')
+    else:
+        if not request.user.is_superuser and not (request.user.rol and request.user.rol.editar_documentacion):
+            messages.error(request, 'No tienes permiso para eliminar carpetas.')
+            return redirect('documentos')
 
     if request.method == 'POST':
         nombre = carpeta.nombre
         carpeta.delete()
         messages.success(request, f'Carpeta "{nombre}" y todo su contenido eliminados exitosamente.')
-    return redirect('documentos')
+    return redirect('inspectores' if is_inspector else 'documentos')
 
 @login_required
 def inventario_view(request):
@@ -2364,4 +2385,176 @@ def password_reset_new_password_view(request):
     else:
         form = PasswordResetNewPasswordForm()
         
-    return render(request, 'usuarios/password_reset_new_password.html', {'form': form})
+    return render(request, 'usuarios/password_reset_new_password.html', {'form': form})@login_required
+def inspectores_view(request):
+    from .forms import InspectorDocumentoForm, InspectorCarpetaForm
+    if not request.user.is_superuser and not (request.user.rol and request.user.rol.ver_inspectores):
+        messages.error(request, 'No tienes permiso para acceder a Inspectores.')
+        return redirect('dashboard')
+
+    if request.method == 'POST':
+        if not request.user.is_superuser and not (request.user.rol and request.user.rol.editar_inspectores):
+            messages.error(request, 'No tienes permiso para modificar documentos de inspectores.')
+            return redirect('inspectores')
+            
+        accion = request.POST.get('action')
+        if accion == 'crear_texto':
+            nombre = request.POST.get('nombre_texto')
+            descripcion = request.POST.get('descripcion_texto', '')
+            contenido = request.POST.get('contenido_texto', '')
+            tipo_texto = request.POST.get('tipo', 'General')
+            carpeta_id = request.POST.get('carpeta')
+            es_privado = request.POST.get('es_privado') == 'on'
+
+            if not nombre or not contenido:
+                messages.error(request, 'El título y el contenido son obligatorios.')
+                return redirect('inspectores')
+
+            from io import BytesIO
+            from reportlab.lib.pagesizes import letter
+            from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+            from reportlab.lib.styles import getSampleStyleSheet
+            import re
+            from django.core.files.base import ContentFile
+            
+            buffer = BytesIO()
+            doc_pdf = SimpleDocTemplate(buffer, pagesize=letter)
+            styles = getSampleStyleSheet()
+            story = []
+            
+            story.append(Paragraph(nombre, styles['Title']))
+            story.append(Spacer(1, 12))
+            
+            for line in contenido.split('\n'):
+                if line.strip():
+                    clean_line = line.strip().replace('<', '&lt;').replace('>', '&gt;')
+                    story.append(Paragraph(clean_line, styles['Normal']))
+                else:
+                    story.append(Spacer(1, 12))
+                    
+            doc_pdf.build(story)
+            pdf_bytes = buffer.getvalue()
+            buffer.close()
+
+            safe_filename = re.sub(r'[^a-zA-Z0-9_\-]', '_', nombre) + '.pdf'
+
+            documento = Documento(
+                nombre=nombre,
+                descripcion=descripcion,
+                tipo=tipo_texto,
+                subido_por=request.user,
+                es_privado=es_privado,
+                es_de_inspector=True
+            )
+            
+            if carpeta_id:
+                try:
+                    documento.carpeta = Carpeta.objects.get(id=carpeta_id, es_de_inspector=True)
+                except Carpeta.DoesNotExist:
+                    pass
+                
+            documento.archivo.save(safe_filename, ContentFile(pdf_bytes), save=False)
+            documento.save()
+            
+            messages.success(request, f'Documento "{nombre}" redactado y guardado como PDF exitosamente.')
+            return redirect('inspectores')
+        elif accion == 'crear_carpeta':
+            carpeta_form = InspectorCarpetaForm(request.POST, user=request.user)
+            if carpeta_form.is_valid():
+                carpeta = carpeta_form.save(commit=False)
+                carpeta.creado_por = request.user
+                carpeta.es_de_inspector = True
+                carpeta.save()
+                carpeta_form.save_m2m()
+                messages.success(request, f'Carpeta "{carpeta.nombre}" creada exitosamente.')
+                return redirect('inspectores')
+            else:
+                messages.error(request, 'Error al crear la carpeta. Revisa el formulario.')
+        else:
+            form = InspectorDocumentoForm(request.POST, request.FILES, user=request.user)
+            if form.is_valid():
+                documento = form.save(commit=False)
+                documento.subido_por = request.user
+                documento.es_de_inspector = True
+                documento.save()
+                form.save_m2m()
+                messages.success(request, f'Documento "{documento.nombre}" subido exitosamente.')
+                return redirect('inspectores')
+            else:
+                messages.error(request, 'Error al subir el documento. Revisa el formulario.')
+    else:
+        form = InspectorDocumentoForm(user=request.user)
+    
+    carpeta_form = InspectorCarpetaForm(user=request.user)
+    
+    query = request.GET.get('q')
+    tipo_archivo = request.GET.get('tipo_archivo')
+    tipo_documento = request.GET.get('tipo_documento')
+    usuario_id = request.GET.get('usuario')
+    ordenar_por = request.GET.get('ordenar_por', '-subido_en')
+    carpeta_id = request.GET.get('carpeta')
+
+    documentos = Documento.objects.select_related('subido_por', 'carpeta').filter(es_de_inspector=True)
+    carpetas = Carpeta.objects.select_related('creado_por').filter(es_de_inspector=True)
+
+    # Filtro de privacidad: (No es privado) OR (Soy el creador)
+    from django.db.models import Q
+    documentos = documentos.filter(
+        Q(es_privado=False) |
+        Q(subido_por=request.user)
+    ).distinct()
+    
+    carpetas = carpetas.filter(
+        Q(es_privado=False) |
+        Q(creado_por=request.user)
+    ).distinct()
+            
+    carpeta_actual = None
+    if carpeta_id:
+        try:
+            carpeta_actual = carpetas.get(id=carpeta_id)
+            documentos = documentos.filter(carpeta=carpeta_actual)
+            carpetas = Carpeta.objects.none()
+        except Carpeta.DoesNotExist:
+            documentos = documentos.filter(carpeta__isnull=True)
+    else:
+        documentos = documentos.filter(carpeta__isnull=True)
+
+    if query:
+        documentos = documentos.filter(
+            Q(nombre__icontains=query) |
+            Q(descripcion__icontains=query)
+        )
+
+    if tipo_archivo:
+        if tipo_archivo == 'pdf':
+            documentos = documentos.filter(archivo__iendswith='.pdf')
+        elif tipo_archivo == 'word':
+            documentos = documentos.filter(Q(archivo__iendswith='.doc') | Q(archivo__iendswith='.docx'))
+        elif tipo_archivo == 'excel':
+            documentos = documentos.filter(Q(archivo__iendswith='.xls') | Q(archivo__iendswith='.xlsx'))
+        elif tipo_archivo == 'imagen':
+            documentos = documentos.filter(Q(archivo__iendswith='.jpg') | Q(archivo__iendswith='.jpeg') | Q(archivo__iendswith='.png'))
+
+    if tipo_documento:
+        documentos = documentos.filter(tipo=tipo_documento)
+
+    if usuario_id:
+        documentos = documentos.filter(subido_por__id=usuario_id)
+
+    valid_sorts = ['-subido_en', 'subido_en', 'nombre', '-nombre']
+    if ordenar_por in valid_sorts:
+        documentos = documentos.order_by(ordenar_por)
+
+    usuarios_con_docs = Usuario.objects.filter(documento__es_de_inspector=True).distinct().order_by('nombre')
+
+    context = {
+        'form': form, 
+        'carpeta_form': carpeta_form,
+        'documentos': documentos, 
+        'carpetas': carpetas,
+        'carpeta_actual': carpeta_actual,
+        'usuarios_con_docs': usuarios_con_docs,
+        'tipos_documento': Documento.TIPO_DOCUMENTO_CHOICES
+    }
+    return render(request, 'usuarios/inspectores.html', context)
