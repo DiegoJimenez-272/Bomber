@@ -7,11 +7,11 @@
 <!-- Header del contenido principal -->
 <header class="d-flex align-items-center justify-content-between pb-3 mb-4 border-bottom">
     <div>
-        <h1 class="h2 mb-0">GestiÃ³n de Inspectores</h1>
+        <h1 class="h2 mb-0">Gestión de Inspectores</h1>
         {% if not request.user.is_superuser %}
         <p class="text-muted mb-0 mt-1">
             {% if request.user.compania %}<i class="bi bi-building-fill me-2"></i>{{ request.user.compania.nombre }}
-            {% else %}Sin CompaÃ±Ã­a{% endif %}
+            {% else %}Sin Compañía{% endif %}
         </p>
         {% endif %}
     </div>
@@ -41,7 +41,7 @@
         {% endfor %}
     {% endif %}
 
-    <!-- Formulario de BÃºsqueda y Filtros -->
+    <!-- Formulario de Búsqueda y Filtros -->
     <div class="card shadow-sm mb-4">
         <div class="card-body">
             <form method="get" class="row g-3 align-items-end">
@@ -53,7 +53,7 @@
                     <input type="text" name="q" id="docSearchInput" class="form-control" value="{{ request.GET.q|default:'' }}" onchange="this.form.submit()">
                 </div>
                 <div class="col-lg-2">
-                    <label for="tipo_documento" class="form-label">ClasificaciÃ³n</label>
+                    <label for="tipo_documento" class="form-label">Clasificación</label>
                     <select name="tipo_documento" id="docClaseFilter" class="form-select" onchange="this.form.submit()">
                         <option value="">Todos</option>
                         {% for value, text in tipos_documento %}
@@ -81,8 +81,8 @@
                 <div class="col-lg-2">
                     <label for="ordenar_por" class="form-label">Ordenar por</label>
                     <select name="ordenar_por" id="ordenar_por" class="form-select" onchange="this.form.submit()">
-                        <option value="-subido_en" {% if request.GET.ordenar_por == '-subido_en' %}selected{% endif %}>MÃ¡s nuevos</option>
-                        <option value="subido_en" {% if request.GET.ordenar_por == 'subido_en' %}selected{% endif %}>MÃ¡s antiguos</option>
+                        <option value="-subido_en" {% if request.GET.ordenar_por == '-subido_en' %}selected{% endif %}>Más nuevos</option>
+                        <option value="subido_en" {% if request.GET.ordenar_por == 'subido_en' %}selected{% endif %}>Más antiguos</option>
                         <option value="nombre" {% if request.GET.ordenar_por == 'nombre' %}selected{% endif %}>Nombre (A-Z)</option>
                         <option value="-nombre" {% if request.GET.ordenar_por == '-nombre' %}selected{% endif %}>Nombre (Z-A)</option>
                     </select>
@@ -91,21 +91,21 @@
         </div>
     </div>
 
-    <!-- NavegaciÃ³n de Carpetas -->
+    <!-- Navegación de Carpetas -->
     {% if carpeta_actual or carpetas %}
     <div class="mb-4">
         <div class="d-flex align-items-center mb-3">
             <h5 class="mb-0 me-3">
                 {% if carpeta_actual %}
-                    <a href="{% url 'Inspectores' %}" class="text-decoration-none text-dark"><i class="bi bi-folder-fill me-2 text-warning"></i>RaÃ­z</a> 
+                    <a href="{% url 'Inspectores' %}" class="text-decoration-none text-dark"><i class="bi bi-folder-fill me-2 text-warning"></i>Raíz</a> 
                     <i class="bi bi-chevron-right mx-2 text-muted"></i> 
                     <i class="bi bi-folder2-open me-2 text-warning"></i>{{ carpeta_actual.nombre }}
                 {% else %}
-                    <i class="bi bi-folder-fill me-2 text-warning"></i>RaÃ­z
+                    <i class="bi bi-folder-fill me-2 text-warning"></i>Raíz
                 {% endif %}
             </h5>
             {% if carpeta_actual %}
-                <a href="{% url 'Inspectores' %}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-left"></i> Volver a la RaÃ­z</a>
+                <a href="{% url 'Inspectores' %}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-left"></i> Volver a la Raíz</a>
             {% endif %}
         </div>
         
@@ -147,15 +147,15 @@
 
     <div class="card shadow-sm">
         <div class="card-body">
-            <h5 class="card-title">{% if carpeta_actual %}Inspectores en {{ carpeta_actual.nombre }}{% else %}Inspectores en RaÃ­z{% endif %}</h5>
+            <h5 class="card-title">{% if carpeta_actual %}Inspectores en {{ carpeta_actual.nombre }}{% else %}Inspectores en Raíz{% endif %}</h5>
             <table class="table table-hover">
                 <thead>
                     <tr>
                         <th scope="col">Nombre</th>
-                        <th scope="col">ClasificaciÃ³n</th>
+                        <th scope="col">Clasificación</th>
                         <th scope="col">Subido por</th>
                         <th scope="col">Fecha de subida</th>
-                        <th scope="col">TamaÃ±o</th>
+                        <th scope="col">Tamaño</th>
                         <th scope="col">Acciones</th>
                     </tr>
                 </thead>
@@ -224,7 +224,7 @@
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="{% if request.user.is_superuser %}6{% else %}5{% endif %}" class="text-center text-muted py-4">No hay Inspectores subidos todavÃ­a.</td>
+                        <td colspan="{% if request.user.is_superuser %}6{% else %}5{% endif %}" class="text-center text-muted py-4">No hay Inspectores subidos todavía.</td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -252,7 +252,7 @@
                     <div class="mb-3 form-check">
                         {{ carpeta_form.es_privado }}
                         <label class="form-check-label" for="{{ carpeta_form.es_privado.id_for_label }}">
-                            Hacer Privado (solo tÃº podrÃ¡s verlo)
+                            Hacer Privado (solo tú podrás verlo)
                         </label>
                     </div>
                 </div>
@@ -281,12 +281,12 @@
                         {{ form.nombre }}
                     </div>
                     <div class="mb-3">
-                        <label for="{{ form.descripcion.id_for_label }}" class="form-label">DescripciÃ³n (Opcional)</label>
+                        <label for="{{ form.descripcion.id_for_label }}" class="form-label">Descripción (Opcional)</label>
                         {{ form.descripcion }}
                     </div>
                     <div class="row mb-3">
                         <div class="col-md-6">
-                            <label for="{{ form.tipo.id_for_label }}" class="form-label">ClasificaciÃ³n</label>
+                            <label for="{{ form.tipo.id_for_label }}" class="form-label">Clasificación</label>
                             {{ form.tipo }}
                         </div>
                         <div class="col-md-6">
@@ -301,7 +301,7 @@
                     <div class="mb-3 form-check">
                         {{ form.es_privado }}
                         <label class="form-check-label" for="{{ form.es_privado.id_for_label }}">
-                            Hacer Privado (solo tÃº podrÃ¡s verlo)
+                            Hacer Privado (solo tú podrás verlo)
                         </label>
                     </div>
                 </div>
@@ -327,16 +327,16 @@
                 <input type="hidden" name="action" value="crear_texto">
                 <div class="modal-body">
                     <div class="mb-3">
-                        <label for="nombre_texto" class="form-label">TÃ­tulo del Documento *</label>
-                        <input type="text" class="form-control" id="nombre_texto" name="nombre_texto" required placeholder="Ej: Minuta de reuniÃ³n">
+                        <label for="nombre_texto" class="form-label">Título del Documento *</label>
+                        <input type="text" class="form-control" id="nombre_texto" name="nombre_texto" required placeholder="Ej: Minuta de reunión">
                     </div>
                     <div class="mb-3">
-                        <label for="descripcion_texto" class="form-label">DescripciÃ³n (Opcional)</label>
+                        <label for="descripcion_texto" class="form-label">Descripción (Opcional)</label>
                         <textarea class="form-control" id="descripcion_texto" name="descripcion_texto" rows="2" placeholder="Resumen del documento..."></textarea>
                     </div>
                     <div class="row mb-3">
                         <div class="col-md-6">
-                            <label for="tipo_texto" class="form-label">ClasificaciÃ³n</label>
+                            <label for="tipo_texto" class="form-label">Clasificación</label>
                             <select class="form-select" id="tipo_texto" name="tipo">
                                 {% for value, text in tipos_documento %}
                                 <option value="{{ value }}">{{ text }}</option>
@@ -346,7 +346,7 @@
                         <div class="col-md-6">
                             <label for="carpeta_texto" class="form-label">Carpeta</label>
                             <select class="form-select" id="carpeta_texto" name="carpeta">
-                                <option value="">Sin Carpeta (RaÃ­z)</option>
+                                <option value="">Sin Carpeta (Raíz)</option>
                                 {% for carpeta in carpetas %}
                                 <option value="{{ carpeta.id }}">{{ carpeta.nombre }}</option>
                                 {% endfor %}
@@ -355,12 +355,12 @@
                     </div>
                     <div class="mb-3">
                         <label for="contenido_texto" class="form-label">Contenido *</label>
-                        <textarea class="form-control" id="contenido_texto" name="contenido_texto" rows="12" required placeholder="Redacta aquÃ­ el contenido del documento. El sistema generarÃ¡ y guardarÃ¡ un archivo PDF automÃ¡ticamente con este texto."></textarea>
+                        <textarea class="form-control" id="contenido_texto" name="contenido_texto" rows="12" required placeholder="Redacta aquí el contenido del documento. El sistema generará y guardará un archivo PDF automáticamente con este texto."></textarea>
                     </div>
                     <div class="mb-3 form-check">
                         <input type="checkbox" class="form-check-input es-privado-checkbox" id="es_privado_texto" name="es_privado">
                         <label class="form-check-label" for="es_privado_texto">
-                            Hacer Privado (solo tÃº podrÃ¡s verlo)
+                            Hacer Privado (solo tú podrás verlo)
                         </label>
                     </div>
                 </div>
@@ -388,7 +388,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body p-0" style="height: 75vh;" id="fileViewerBody">
-                <!-- El contenido se inyectarÃ¡ aquÃ­ con JavaScript -->
+                <!-- El contenido se inyectará aquí con JavaScript -->
             </div>
         </div>
     </div>
@@ -399,18 +399,18 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="deleteDocumentModalLabel">Confirmar EliminaciÃ³n</h5>
+                <h5 class="modal-title" id="deleteDocumentModalLabel">Confirmar Eliminación</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <p>Â¿EstÃ¡s seguro de que quieres eliminar el documento "<strong id="docNameToDelete"></strong>"?</p>
-                <p class="text-danger small">Esta acciÃ³n no se puede deshacer.</p>
+                <p>¿Estás seguro de que quieres eliminar el documento "<strong id="docNameToDelete"></strong>"?</p>
+                <p class="text-danger small">Esta acción no se puede deshacer.</p>
             </div>
             <div class="modal-footer">
                 <form id="deleteForm" method="post">
                     {% csrf_token %}
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-danger">SÃ­, eliminar</button>
+                    <button type="submit" class="btn btn-danger">Sí, eliminar</button>
                 </form>
             </div>
         </div>
@@ -422,20 +422,20 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="deleteCarpetaModalLabel">Confirmar EliminaciÃ³n de Carpeta</h5>
+                <h5 class="modal-title" id="deleteCarpetaModalLabel">Confirmar Eliminación de Carpeta</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <p>Â¿EstÃ¡s seguro de que quieres eliminar la carpeta "<strong id="carpetaNameToDelete"></strong>"?</p>
+                <p>¿Estás seguro de que quieres eliminar la carpeta "<strong id="carpetaNameToDelete"></strong>"?</p>
                 <div class="alert alert-danger">
-                    <i class="bi bi-exclamation-triangle-fill me-2"></i> <strong>Â¡Advertencia!</strong> Esta acciÃ³n tambiÃ©n eliminarÃ¡ permanentemente todos los Inspectores que estÃ©n dentro de esta carpeta.
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i> <strong>¡Advertencia!</strong> Esta acción también eliminará permanentemente todos los Inspectores que estén dentro de esta carpeta.
                 </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
                 <form id="deleteCarpetaForm" method="post" action="">
                     {% csrf_token %}
-                    <button type="submit" class="btn btn-danger">SÃ­, Eliminar Carpeta y su Contenido</button>
+                    <button type="submit" class="btn btn-danger">Sí, Eliminar Carpeta y su Contenido</button>
                 </form>
             </div>
         </div>
@@ -446,10 +446,10 @@
 document.addEventListener('DOMContentLoaded', function () {
     const fileViewerModal = document.getElementById('fileViewerModal');
     fileViewerModal.addEventListener('show.bs.modal', function (event) {
-        // BotÃ³n que activÃ³ el modal
+        // Botón que activó el modal
         const button = event.relatedTarget;
 
-        // Extraer informaciÃ³n de los atributos data-*
+        // Extraer información de los atributos data-*
         const fileUrl = button.getAttribute('data-file-url');
         const fileName = button.getAttribute('data-file-name');
         const fileInfo = button.getAttribute('data-file-info');
@@ -462,7 +462,7 @@ document.addEventListener('DOMContentLoaded', function () {
         modalTitle.textContent = fileName;
         modalInfo.textContent = fileInfo;
 
-        // Determinar el tipo de archivo para la previsualizaciÃ³n
+        // Determinar el tipo de archivo para la previsualización
         const fileExtension = fileUrl.split('.').pop().toLowerCase();
         
         if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(fileExtension)) {
@@ -511,7 +511,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // --- LÃ³gica de Filtrado en Tiempo Real para Inspectores ---
+    // --- Lógica de Filtrado en Tiempo Real para Inspectores ---
     const docSearchInput = document.getElementById('docSearchInput');
     const docTypeFilter = document.getElementById('docTypeFilter');
     const docUserFilter = document.getElementById('docUserFilter');
@@ -529,7 +529,7 @@ document.addEventListener('DOMContentLoaded', function () {
         let visibleRows = 0;
 
         rows.forEach(row => {
-            if (row.children.length === 1 && row.textContent.includes('No hay Inspectores subidos todavÃ­a')) return;
+            if (row.children.length === 1 && row.textContent.includes('No hay Inspectores subidos todavía')) return;
 
             const textContent = row.textContent.toLowerCase();
             const userCell = row.cells[1] ? row.cells[1].textContent.toLowerCase() : "";
