@@ -97,7 +97,7 @@
         <div class="d-flex align-items-center mb-3">
             <h5 class="mb-0 me-3">
                 {% if carpeta_actual %}
-                    <a href="{% url 'Inspectores' %}" class="text-decoration-none text-dark"><i class="bi bi-folder-fill me-2 text-warning"></i>Raíz</a> 
+                    <a href="{% url 'inspectores' %}" class="text-decoration-none text-dark"><i class="bi bi-folder-fill me-2 text-warning"></i>Raíz</a> 
                     <i class="bi bi-chevron-right mx-2 text-muted"></i> 
                     <i class="bi bi-folder2-open me-2 text-warning"></i>{{ carpeta_actual.nombre }}
                 {% else %}
@@ -105,7 +105,7 @@
                 {% endif %}
             </h5>
             {% if carpeta_actual %}
-                <a href="{% url 'Inspectores' %}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-left"></i> Volver a la Raíz</a>
+                <a href="{% url 'inspectores' %}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-left"></i> Volver a la Raíz</a>
             {% endif %}
         </div>
         
