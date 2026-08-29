@@ -402,6 +402,7 @@ class Inventario(models.Model):
     qr_code = models.ImageField(upload_to='qr_codes/', blank=True)
     agregado_por = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='inventario_agregado')
     agregado_en = models.DateTimeField(auto_now_add=True)
+    valor = models.IntegerField(null=True, blank=True, verbose_name="Valor ($)", help_text="Valor estimado o de compra")
 
     class Meta:
         ordering = ['nombre']

@@ -961,6 +961,7 @@ def inventario_view(request):
                     ubicacion=form.cleaned_data['ubicacion'],
                     estado=form.cleaned_data['estado'],
                     fecha_adquisicion=form.cleaned_data.get('fecha_adquisicion'),
+                    valor=form.cleaned_data.get('valor'),
                     agregado_por=request.user
                 )
                 # Asignación Automática de Compañía

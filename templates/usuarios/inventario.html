@@ -534,6 +534,14 @@
                             {{ form.fecha_adquisicion }}
                             {% for error in form.fecha_adquisicion.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
                         </div>
+                        <div class="col-md-6">
+                            <label for="{{ form.valor.id_for_label }}" class="form-label">Valor del ítem (Opcional)</label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                {{ form.valor }}
+                            </div>
+                            {% for error in form.valor.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                        </div>
                     </div>
                     
                     <div class="modal-footer mt-4">
@@ -566,6 +574,7 @@
                                     <th class="ps-4">Ítem</th>
                                     <th>Ubicación</th>
                                     <th>Estado</th>
+                                    <th>Valor</th>
                                     <th class="text-end pe-4">Opciones</th>
                                 </tr>
                             </thead>
@@ -581,6 +590,7 @@
                                         {% else %}<span class="badge bg-danger">{{ item.estado }}</span>
                                         {% endif %}
                                     </td>
+                                    <td>{% if item.valor %}${{ item.valor }}{% else %}-{% endif %}</td>
                                     <td class="text-end pe-4">
                                         {% if request.user.is_superuser or request.user.rol.editar_inventario %}
                                         <div class="btn-group" role="group">
@@ -593,7 +603,8 @@
                                                     data-item-asignado_a_vehiculo=""
                                                     data-item-ubicacion="{{ item.ubicacion }}"
                                                     data-item-estado="{{ item.estado }}"
-                                                    data-item-fecha_adquisicion="{{ item.fecha_adquisicion|date:'Y-m-d' }}">
+                                                    data-item-fecha_adquisicion="{{ item.fecha_adquisicion|date:'Y-m-d' }}"
+                                                    data-item-valor="{{ item.valor|default_if_none:'' }}">
                                                 <i class="bi bi-pencil-fill"></i>
                                             </button>
                                             <button type="button" class="btn btn-sm btn-outline-warning" title="Devolver a bodega"
@@ -658,6 +669,7 @@
                                     <th class="ps-4">Ítem</th>
                                     <th>Ubicación</th>
                                     <th>Estado</th>
+                                    <th>Valor</th>
                                     <th class="text-end pe-4">Opciones</th>
                                 </tr>
                             </thead>
@@ -673,6 +685,7 @@
                                         {% else %}<span class="badge bg-danger">{{ item.estado }}</span>
                                         {% endif %}
                                     </td>
+                                    <td>{% if item.valor %}${{ item.valor }}{% else %}-{% endif %}</td>
                                     <td class="text-end pe-4">
                                         {% if request.user.is_superuser or request.user.rol.editar_inventario %}
                                         <div class="btn-group" role="group">
@@ -685,7 +698,8 @@
                                                     data-item-asignado_a_vehiculo="{{ item.asignado_a_vehiculo.id|default:'' }}"
                                                     data-item-ubicacion="{{ item.ubicacion }}"
                                                     data-item-estado="{{ item.estado }}"
-                                                    data-item-fecha_adquisicion="{{ item.fecha_adquisicion|date:'Y-m-d' }}">
+                                                    data-item-fecha_adquisicion="{{ item.fecha_adquisicion|date:'Y-m-d' }}"
+                                                    data-item-valor="{{ item.valor|default_if_none:'' }}">
                                                 <i class="bi bi-pencil-fill"></i>
                                             </button>
                                             <button type="button" class="btn btn-sm btn-outline-warning" title="Devolver a bodega"
@@ -954,6 +968,13 @@
                             <label for="edit_fecha_adquisicion" class="form-label">Fecha de Adquisición (Opcional)</label>
                             <input type="date" id="edit_fecha_adquisicion" name="fecha_adquisicion" class="form-control">
                         </div>
+                        <div class="col-md-6">
+                            <label for="edit_valor" class="form-label">Valor del ítem (Opcional)</label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input type="number" id="edit_valor" name="valor" class="form-control">
+                            </div>
+                        </div>
                     </div>
                     
                     <div class="modal-footer mt-4">
@@ -1054,6 +1075,7 @@ document.addEventListener('DOMContentLoaded', function () {
         form.querySelector('#edit_ubicacion').value = button.dataset.itemUbicacion;
         form.querySelector('#edit_estado').value = button.dataset.itemEstado;
         form.querySelector('#edit_fecha_adquisicion').value = button.dataset.itemFecha_adquisicion;
+        form.querySelector('#edit_valor').value = button.dataset.itemValor || '';
     });
 
     // Lógica para el modal de edición de vehículo

@@ -587,13 +587,14 @@ class InventarioForm(forms.ModelForm):
     class Meta:
         model = Inventario
         # 'cantidad' del formulario no es el del modelo, lo sacamos de fields
-        fields = ['nombre', 'compania', 'ubicacion', 'estado', 'fecha_adquisicion']
+        fields = ['nombre', 'compania', 'ubicacion', 'estado', 'fecha_adquisicion', 'valor']
         widgets = {
             'nombre': forms.TextInput(attrs={'class': 'form-control', 'list': 'datalist-items', 'placeholder': 'Ej: Casco de bombero, Motosierra...'}),
             'compania': forms.Select(attrs={'class': 'form-select'}),
             'ubicacion': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej: Bodega 1, Carro B-2'}),
             'estado': forms.Select(attrs={'class': 'form-select'}),
             'fecha_adquisicion': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'valor': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Ej: 50000'}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -635,7 +636,7 @@ class VehiculoForm(forms.ModelForm):
 class InventarioEditForm(forms.ModelForm):
     class Meta:
         model = Inventario
-        fields = ['nombre', 'compania', 'asignado_a', 'asignado_a_vehiculo', 'ubicacion', 'estado', 'fecha_adquisicion']
+        fields = ['nombre', 'compania', 'asignado_a', 'asignado_a_vehiculo', 'ubicacion', 'estado', 'fecha_adquisicion', 'valor']
         widgets = {
             'nombre': forms.TextInput(attrs={'class': 'form-control', 'list': 'datalist-items', 'placeholder': 'Ej: Casco de bombero, Motosierra...'}),
             'compania': forms.Select(attrs={'class': 'form-select'}),
@@ -644,6 +645,7 @@ class InventarioEditForm(forms.ModelForm):
             'ubicacion': forms.TextInput(attrs={'class': 'form-control'}),
             'estado': forms.Select(attrs={'class': 'form-select'}),
             'fecha_adquisicion': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'valor': forms.NumberInput(attrs={'class': 'form-control'}),
         }
 
     def __init__(self, *args, **kwargs):
