@@ -444,33 +444,31 @@
                 <div class="modal-body">
                     <p>Estás editando todos los ítems del tipo <strong id="edit_group_nombre_text"></strong> que se encuentran en <strong id="edit_group_ubicacion_text"></strong> con estado <strong id="edit_group_estado_text"></strong>.</p>
                     <hr>
-                    <div class="row g-3">
-                        <div class="col-12">
-                            <label for="{{ group_edit_form.nombre.id_for_label }}" class="form-label">{{ group_edit_form.nombre.label }}</label>
-                            {{ group_edit_form.nombre }}
-                        </div>
-                        <div class="col-12">
-                            <label for="{{ group_edit_form.compania.id_for_label }}" class="form-label">{{ group_edit_form.compania.label }}</label>
-                            {{ group_edit_form.compania }}
-                        </div>
-                        <div class="col-md-6">
-                            <label for="{{ group_edit_form.ubicacion.id_for_label }}" class="form-label">{{ group_edit_form.ubicacion.label }}</label>
-                            {{ group_edit_form.ubicacion }}
-                        </div>
-                        <div class="col-md-6">
-                            <label for="{{ group_edit_form.estado.id_for_label }}" class="form-label">{{ group_edit_form.estado.label }}</label>
-                            {{ group_edit_form.estado }}
-                        </div>
-                        <div class="col-md-6">
-                            <label for="{{ group_edit_form.fecha_adquisicion.id_for_label }}" class="form-label">{{ group_edit_form.fecha_adquisicion.label }}</label>
-                            {{ group_edit_form.fecha_adquisicion }}
-                        </div>
-                        <div class="col-md-6">
-                            <label for="{{ group_edit_form.valor.id_for_label }}" class="form-label">{{ group_edit_form.valor.label }}</label>
-                            <div class="input-group">
-                                <span class="input-group-text">$</span>
-                                {{ group_edit_form.valor }}
-                            </div>
+                    <div class="mb-3">
+                        <label for="{{ group_edit_form.nombre.id_for_label }}" class="form-label">{{ group_edit_form.nombre.label }}</label>
+                        {{ group_edit_form.nombre }}
+                    </div>
+                    <div class="mb-3">
+                        <label for="{{ group_edit_form.compania.id_for_label }}" class="form-label">{{ group_edit_form.compania.label }}</label>
+                        {{ group_edit_form.compania }}
+                    </div>
+                    <div class="mb-3">
+                        <label for="{{ group_edit_form.ubicacion.id_for_label }}" class="form-label">{{ group_edit_form.ubicacion.label }}</label>
+                        {{ group_edit_form.ubicacion }}
+                    </div>
+                    <div class="mb-3">
+                        <label for="{{ group_edit_form.estado.id_for_label }}" class="form-label">{{ group_edit_form.estado.label }}</label>
+                        {{ group_edit_form.estado }}
+                    </div>
+                    <div class="mb-3">
+                        <label for="{{ group_edit_form.fecha_adquisicion.id_for_label }}" class="form-label">{{ group_edit_form.fecha_adquisicion.label }}</label>
+                        {{ group_edit_form.fecha_adquisicion }}
+                    </div>
+                    <div class="mb-3">
+                        <label for="{{ group_edit_form.valor.id_for_label }}" class="form-label">{{ group_edit_form.valor.label }}</label>
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            {{ group_edit_form.valor }}
                         </div>
                     </div>
                 </div>
