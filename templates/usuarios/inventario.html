@@ -306,14 +306,20 @@
                                                                     data-bs-toggle="modal" data-bs-target="#editGroupModal"
                                                                     data-group-nombre="{{ item_agrupado.nombre }}"
                                                                     data-group-ubicacion="{{ item_agrupado.ubicacion }}"
-                                                                    data-group-estado="{{ item_agrupado.estado }}">
+                                                                    data-group-estado="{{ item_agrupado.estado }}"
+                                                                    data-group-compania="{{ item_agrupado.compania|default_if_none:'' }}"
+                                                                    data-group-fecha_adquisicion="{{ item_agrupado.fecha_adquisicion|date:'Y-m-d'|default_if_none:'' }}"
+                                                                    data-group-valor="{{ item_agrupado.valor|default_if_none:'' }}">
                                                                 <i class="bi bi-pencil-fill"></i>
                                                             </button>
                                                             <button type="button" class="btn btn-sm btn-outline-danger" title="Eliminar grupo"
                                                                     data-bs-toggle="modal" data-bs-target="#deleteGroupModal"
                                                                     data-group-nombre="{{ item_agrupado.nombre }}"
                                                                     data-group-ubicacion="{{ item_agrupado.ubicacion }}"
-                                                                    data-group-estado="{{ item_agrupado.estado }}">
+                                                                    data-group-estado="{{ item_agrupado.estado }}"
+                                                                    data-group-compania="{{ item_agrupado.compania|default_if_none:'' }}"
+                                                                    data-group-fecha_adquisicion="{{ item_agrupado.fecha_adquisicion|date:'Y-m-d'|default_if_none:'' }}"
+                                                                    data-group-valor="{{ item_agrupado.valor|default_if_none:'' }}">
                                                                 <i class="bi bi-trash-fill"></i>
                                                             </button>
                                                         </div>
@@ -494,6 +500,9 @@
                 <input type="hidden" name="group_nombre" id="delete_group_nombre">
                 <input type="hidden" name="group_ubicacion" id="delete_group_ubicacion">
                 <input type="hidden" name="group_estado" id="delete_group_estado">
+                <input type="hidden" name="group_compania" id="delete_group_compania">
+                <input type="hidden" name="group_fecha_adquisicion" id="delete_group_fecha_adquisicion">
+                <input type="hidden" name="group_valor" id="delete_group_valor">
                 <div class="modal-body">
                     <p>¿Estás seguro de que quieres eliminar <strong>todos</strong> los ítems del grupo <strong id="delete_group_nombre_text"></strong> que se encuentran en <strong id="delete_group_ubicacion_text"></strong> con estado <strong id="delete_group_estado_text"></strong>?</p>
                     <p class="text-danger small">Esta acción no se puede deshacer.</p>
@@ -1348,20 +1357,52 @@ document.addEventListener('DOMContentLoaded', function () {
             const ubicacion = button.dataset.groupUbicacion;
             const estado = button.dataset.groupEstado;
 
+            const compania = button.dataset.groupCompania;
+            const fecha_adquisicion = button.dataset.groupFecha_adquisicion;
+            const valor = button.dataset.groupValor;
+
             // Rellenar los campos ocultos del formulario (para ubicar los ítems a actualizar)
             editGroupModal.querySelector('#edit_group_nombre').value = nombre;
             editGroupModal.querySelector('#edit_group_ubicacion_actual').value = ubicacion;
             editGroupModal.querySelector('#edit_group_estado_actual').value = estado;
+            
+            let hiddenCompania = editGroupModal.querySelector('#edit_group_compania');
+            if(!hiddenCompania){
+                hiddenCompania = document.createElement('input');
+                hiddenCompania.type = 'hidden';
+                hiddenCompania.name = 'group_compania';
+                hiddenCompania.id = 'edit_group_compania';
+                editGroupModal.querySelector('form').appendChild(hiddenCompania);
+            }
+            hiddenCompania.value = compania;
+            
+            let hiddenFecha = editGroupModal.querySelector('#edit_group_fecha_adquisicion');
+            if(!hiddenFecha){
+                hiddenFecha = document.createElement('input');
+                hiddenFecha.type = 'hidden';
+                hiddenFecha.name = 'group_fecha_adquisicion';
+                hiddenFecha.id = 'edit_group_fecha_adquisicion';
+                editGroupModal.querySelector('form').appendChild(hiddenFecha);
+            }
+            hiddenFecha.value = fecha_adquisicion;
+            
+            let hiddenValor = editGroupModal.querySelector('#edit_group_valor');
+            if(!hiddenValor){
+                hiddenValor = document.createElement('input');
+                hiddenValor.type = 'hidden';
+                hiddenValor.name = 'group_valor';
+                hiddenValor.id = 'edit_group_valor';
+                editGroupModal.querySelector('form').appendChild(hiddenValor);
+            }
+            hiddenValor.value = valor;
 
             // Rellenar los inputs visibles para que puedan ser editados
             editGroupModal.querySelector('#id_nombre').value = nombre;
             editGroupModal.querySelector('#id_ubicacion').value = ubicacion;
             editGroupModal.querySelector('#id_estado').value = estado;
-
-            // Limpiar campos que puedan variar
-            editGroupModal.querySelector('#id_compania').value = '';
-            editGroupModal.querySelector('#id_fecha_adquisicion').value = '';
-            editGroupModal.querySelector('#id_valor').value = '';
+            editGroupModal.querySelector('#id_compania').value = compania;
+            editGroupModal.querySelector('#id_fecha_adquisicion').value = fecha_adquisicion;
+            editGroupModal.querySelector('#id_valor').value = valor;
 
             // Rellenar los textos informativos
             editGroupModal.querySelector('#edit_group_nombre_text').textContent = nombre;
@@ -1378,10 +1419,16 @@ document.addEventListener('DOMContentLoaded', function () {
             const nombre = button.dataset.groupNombre;
             const ubicacion = button.dataset.groupUbicacion;
             const estado = button.dataset.groupEstado;
+            const compania = button.dataset.groupCompania;
+            const fecha_adquisicion = button.dataset.groupFecha_adquisicion;
+            const valor = button.dataset.groupValor;
 
             deleteGroupModal.querySelector('#delete_group_nombre').value = nombre;
             deleteGroupModal.querySelector('#delete_group_ubicacion').value = ubicacion;
             deleteGroupModal.querySelector('#delete_group_estado').value = estado;
+            deleteGroupModal.querySelector('#delete_group_compania').value = compania;
+            deleteGroupModal.querySelector('#delete_group_fecha_adquisicion').value = fecha_adquisicion;
+            deleteGroupModal.querySelector('#delete_group_valor').value = valor;
 
             deleteGroupModal.querySelector('#delete_group_nombre_text').textContent = nombre;
             deleteGroupModal.querySelector('#delete_group_ubicacion_text').textContent = ubicacion;

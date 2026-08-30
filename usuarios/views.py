@@ -1030,7 +1030,7 @@ def inventario_view(request):
         items_asignados_vehiculos = [{'vehiculo': v, 'items': items} for v, items in vehiculo_groups.items()]
         
         # Procesamos los ítems disponibles para añadir el nombre completo
-        items_disponibles_agrupados_qs = base_queryset.filter(asignado_a__isnull=True, asignado_a_vehiculo__isnull=True).values('nombre', 'ubicacion', 'estado').annotate(cantidad=Count('id')).order_by('nombre', 'ubicacion', 'estado')
+        items_disponibles_agrupados_qs = base_queryset.filter(asignado_a__isnull=True, asignado_a_vehiculo__isnull=True).values('nombre', 'ubicacion', 'estado', 'compania', 'fecha_adquisicion', 'valor').annotate(cantidad=Count('id')).order_by('nombre', 'ubicacion', 'estado')
         items_disponibles_agrupados = []
         for item in items_disponibles_agrupados_qs:
             item['nombre_completo'] = Inventario.get_nombre_completo(item['nombre'])
@@ -1321,7 +1321,10 @@ def inventario_group_edit_view(request):
             asignado_a__isnull=True,
             nombre=nombre,
             ubicacion=ubicacion_actual,
-            estado=estado_actual
+            estado=estado_actual,
+            compania_id=request.POST.get('group_compania') or None,
+            fecha_adquisicion=request.POST.get('group_fecha_adquisicion') or None,
+            valor=request.POST.get('group_valor') or None
         )
         
         update_data = {
@@ -1349,7 +1352,15 @@ def inventario_group_delete_view(request):
         messages.error(request, 'Acción no permitida.')
         return redirect('inventario')
 
-    Inventario.objects.filter(asignado_a__isnull=True, nombre=request.POST.get('group_nombre'), ubicacion=request.POST.get('group_ubicacion'), estado=request.POST.get('group_estado')).delete()
+    Inventario.objects.filter(
+        asignado_a__isnull=True, 
+        nombre=request.POST.get('group_nombre'), 
+        ubicacion=request.POST.get('group_ubicacion'), 
+        estado=request.POST.get('group_estado'),
+        compania_id=request.POST.get('group_compania') or None,
+        fecha_adquisicion=request.POST.get('group_fecha_adquisicion') or None,
+        valor=request.POST.get('group_valor') or None
+    ).delete()
     messages.success(request, f'El grupo de ítems "{request.POST.get("group_nombre")}" ha sido eliminado.')
     return redirect('inventario')
 
