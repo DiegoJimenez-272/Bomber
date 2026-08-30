@@ -683,6 +683,16 @@ class InventarioEditForm(forms.ModelForm):
         return cleaned_data
 
 class InventarioGroupEditForm(forms.Form):
+    nombre = forms.CharField(
+        label="Nuevo Nombre del Ítem",
+        widget=forms.TextInput(attrs={'class': 'form-control', 'list': 'datalist-items'})
+    )
+    compania = forms.ModelChoiceField(
+        queryset=Compania.objects.all(),
+        label="Nueva Compañía",
+        widget=forms.Select(attrs={'class': 'form-select'}),
+        empty_label="Sin cambiar"
+    )
     ubicacion = forms.CharField(
         label="Nueva Ubicación",
         widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej: Bodega 2, Carro B-1'})
@@ -691,6 +701,16 @@ class InventarioGroupEditForm(forms.Form):
         label="Nuevo Estado",
         choices=Inventario.ESTADO_CHOICES,
         widget=forms.Select(attrs={'class': 'form-select'})
+    )
+    fecha_adquisicion = forms.DateField(
+        label="Nueva Fecha de Adquisición",
+        required=False,
+        widget=forms.DateInput(attrs={'class': 'form-control', 'type': 'date'})
+    )
+    valor = forms.IntegerField(
+        label="Nuevo Valor ($)",
+        required=False,
+        widget=forms.NumberInput(attrs={'class': 'form-control'})
     )
 
 class AvisoForm(forms.ModelForm):

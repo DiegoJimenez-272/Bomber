@@ -1324,10 +1324,19 @@ def inventario_group_edit_view(request):
             estado=estado_actual
         )
         
-        count = items_a_actualizar.update(
-            ubicacion=form.cleaned_data['ubicacion'],
-            estado=form.cleaned_data['estado']
-        )
+        update_data = {
+            'nombre': form.cleaned_data['nombre'],
+            'ubicacion': form.cleaned_data['ubicacion'],
+            'estado': form.cleaned_data['estado']
+        }
+        if form.cleaned_data.get('compania'):
+            update_data['compania'] = form.cleaned_data['compania']
+        if form.cleaned_data.get('fecha_adquisicion'):
+            update_data['fecha_adquisicion'] = form.cleaned_data['fecha_adquisicion']
+        if form.cleaned_data.get('valor') is not None:
+            update_data['valor'] = form.cleaned_data['valor']
+            
+        count = items_a_actualizar.update(**update_data)
         messages.success(request, f'{count} ítems del grupo "{nombre}" han sido actualizados.')
     else:
         messages.error(request, 'Error al actualizar el grupo de ítems. Revisa el formulario.')
