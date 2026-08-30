@@ -583,6 +583,11 @@ class ArchivoMantenimientoForm(forms.Form):
 
 class InventarioForm(forms.ModelForm):
     cantidad = forms.IntegerField(min_value=1, initial=1, label="Cantidad a registrar", widget=forms.NumberInput(attrs={'class': 'form-control'}))
+    valor = forms.CharField(
+        label="Valor ($)",
+        required=False,
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej: 50.000 o 50000', 'inputmode': 'numeric'})
+    )
 
     class Meta:
         model = Inventario
@@ -594,8 +599,17 @@ class InventarioForm(forms.ModelForm):
             'ubicacion': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej: Bodega 1, Carro B-2'}),
             'estado': forms.Select(attrs={'class': 'form-select'}),
             'fecha_adquisicion': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
-            'valor': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Ej: 50000'}),
         }
+
+    def clean_valor(self):
+        val = self.cleaned_data.get('valor')
+        if val:
+            val = str(val).replace('.', '').replace(',', '')
+            if val.isdigit():
+                return int(val)
+            else:
+                raise forms.ValidationError("Ingrese un valor numérico válido.")
+        return None
 
     def __init__(self, *args, **kwargs):
         self.user = kwargs.pop('user', None)
@@ -634,6 +648,12 @@ class VehiculoForm(forms.ModelForm):
                 del self.fields['compania']
 
 class InventarioEditForm(forms.ModelForm):
+    valor = forms.CharField(
+        label="Valor ($)",
+        required=False,
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej: 50.000', 'inputmode': 'numeric'})
+    )
+
     class Meta:
         model = Inventario
         fields = ['nombre', 'compania', 'asignado_a', 'asignado_a_vehiculo', 'ubicacion', 'estado', 'fecha_adquisicion', 'valor']
@@ -645,8 +665,17 @@ class InventarioEditForm(forms.ModelForm):
             'ubicacion': forms.TextInput(attrs={'class': 'form-control'}),
             'estado': forms.Select(attrs={'class': 'form-select'}),
             'fecha_adquisicion': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
-            'valor': forms.NumberInput(attrs={'class': 'form-control'}),
         }
+        
+    def clean_valor(self):
+        val = self.cleaned_data.get('valor')
+        if val:
+            val = str(val).replace('.', '').replace(',', '')
+            if val.isdigit():
+                return int(val)
+            else:
+                raise forms.ValidationError("Ingrese un valor numérico válido.")
+        return None
 
     def __init__(self, *args, **kwargs):
         self.user = kwargs.pop('user', None)
@@ -707,11 +736,21 @@ class InventarioGroupEditForm(forms.Form):
         required=False,
         widget=forms.DateInput(attrs={'class': 'form-control', 'type': 'date'})
     )
-    valor = forms.IntegerField(
+    valor = forms.CharField(
         label="Nuevo Valor ($)",
         required=False,
-        widget=forms.NumberInput(attrs={'class': 'form-control'})
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej: 50.000', 'inputmode': 'numeric'})
     )
+
+    def clean_valor(self):
+        val = self.cleaned_data.get('valor')
+        if val:
+            val = str(val).replace('.', '').replace(',', '')
+            if val.isdigit():
+                return int(val)
+            else:
+                raise forms.ValidationError("Ingrese un valor numérico válido.")
+        return None
 
 class AvisoForm(forms.ModelForm):
     usuarios = forms.ModelMultipleChoiceField(
