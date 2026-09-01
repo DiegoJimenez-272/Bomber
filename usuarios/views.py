@@ -2360,14 +2360,65 @@ def password_reset_request_view(request):
                 codigo = str(random.randint(100000, 999999))
                 PasswordResetCode.objects.filter(usuario=user, usado=False).update(usado=True)
                 PasswordResetCode.objects.create(usuario=user, codigo=codigo)
-                
                 try:
+                    html_message = f'''
+                    <!DOCTYPE html>
+                    <html>
+                    <head><meta charset="UTF-8"></head>
+                    <body style="margin:0; padding:0; background-color:#f4f4f7; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
+                        <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f4f7; padding: 40px 0;">
+                            <tr>
+                                <td align="center">
+                                    <table width="500" cellpadding="0" cellspacing="0" style="background:#ffffff; border-radius:12px; overflow:hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.08);">
+                                        <tr>
+                                            <td style="background: linear-gradient(135deg, #dc3545, #c82333); padding: 30px 40px; text-align: center;">
+                                                <img src="https://www.sigbomberosmulchen.cl/media/logos_companias/Compania_general.png" alt="Logo Bomberos" style="max-width: 100px; border-radius: 8px; margin-bottom: 10px;">
+                                                <h2 style="color:#ffffff; margin: 10px 0 0 0; font-size: 20px; font-weight: 600;">Cuerpo de Bomberos de Mulchén</h2>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td style="padding: 40px;">
+                                                <h1 style="color:#212529; font-size: 24px; text-align: center; margin: 0 0 10px 0;">Código de Verificación</h1>
+                                                <p style="color:#6c757d; font-size: 14px; text-align: center; margin: 0 0 30px 0; line-height: 1.6;">
+                                                    Hola <strong>{user.nombre}</strong>, hemos recibido una solicitud para restablecer la contraseña de tu cuenta.
+                                                </p>
+                                                <table width="100%" cellpadding="0" cellspacing="0">
+                                                    <tr>
+                                                        <td align="center">
+                                                            <div style="background: #f8f9fa; border: 2px dashed #dc3545; border-radius: 12px; padding: 20px 30px; display: inline-block;">
+                                                                <span style="font-size: 36px; font-weight: 700; letter-spacing: 12px; color: #dc3545; font-family: monospace;">{codigo}</span>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                </table>
+                                                <p style="color:#6c757d; font-size: 13px; text-align: center; margin: 25px 0 0 0; line-height: 1.6;">
+                                                    Este código es válido por <strong>15 minutos</strong>.<br>
+                                                    Si no solicitaste este cambio, puedes ignorar este correo con total seguridad.
+                                                </p>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td style="background:#f8f9fa; padding: 20px 40px; text-align: center; border-top: 1px solid #e9ecef;">
+                                                <p style="color:#adb5bd; font-size: 12px; margin: 0;">
+                                                    Sistema de Gestión de Bomberos &copy; 2026<br>
+                                                    Este es un correo automático, por favor no responder.
+                                                </p>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td>
+                            </tr>
+                        </table>
+                    </body>
+                    </html>
+                    '''
                     send_mail(
-                        'Código de recuperación de contraseña',
-                        f'Hola {user.nombre},\n\nTu código de verificación para recuperar tu contraseña es: {codigo}\nEste código es válido por 15 minutos.\n\nSi no solicitaste esto, ignora este correo.',
+                        'Código de Recuperación - Sistema Bomberos',
+                        f'Hola {user.nombre}, tu código de verificación es: {codigo}. Válido por 15 minutos.',
                         settings.DEFAULT_FROM_EMAIL,
                         [email],
                         fail_silently=False,
+                        html_message=html_message,
                     )
                     request.session['reset_email'] = email
                     messages.success(request, 'Se ha enviado un código de verificación a tu correo.')
