@@ -3,19 +3,6 @@
 {% block title %}Cursos y Capacitaciones - {{ block.super }}{% endblock %}
 
 {% block content %}
-<style>
-    /* Forzar color rojo en las pestañas y variables de Bootstrap */
-    .nav-tabs {
-        --bs-nav-link-color: #dc3545;
-        --bs-nav-link-hover-color: #a71d2a;
-    }
-    .nav-tabs .nav-link {
-        color: #dc3545 !important;
-    }
-    .nav-tabs .nav-link.active {
-        color: #212529 !important;
-    }
-</style>
 <!-- Header del contenido principal -->
 <header class="d-flex align-items-center justify-content-between pb-3 mb-4 border-bottom">
     <h1 class="h2 mb-0">Gestión de Cursos y Capacitaciones</h1>
@@ -40,22 +27,22 @@
     <!-- Navegación por pestañas -->
     <ul class="nav nav-tabs mb-4" id="capacitacionesTab" role="tablist">
         <li class="nav-item" role="presentation">
-            <button class="nav-link active fw-bold" id="cursos-tab" data-bs-toggle="tab" data-bs-target="#cursos" type="button" role="tab">
+            <button class="nav-link tab-rojo active fw-bold" id="cursos-tab" data-bs-toggle="tab" data-bs-target="#cursos" type="button" role="tab">
                 <i class="bi bi-mortarboard-fill me-2"></i>Cursos Oficiales
             </button>
         </li>
         <li class="nav-item" role="presentation">
-            <button class="nav-link fw-bold" id="capacitaciones-internas-tab" data-bs-toggle="tab" data-bs-target="#capacitaciones-internas" type="button" role="tab">
+            <button class="nav-link tab-rojo fw-bold" id="capacitaciones-internas-tab" data-bs-toggle="tab" data-bs-target="#capacitaciones-internas" type="button" role="tab">
                 <i class="bi bi-people-fill me-2"></i>Capacitaciones Internas
             </button>
         </li>
         <li class="nav-item" role="presentation">
-            <button class="nav-link fw-bold" id="reuniones-tab" data-bs-toggle="tab" data-bs-target="#reuniones" type="button" role="tab">
+            <button class="nav-link tab-rojo fw-bold" id="reuniones-tab" data-bs-toggle="tab" data-bs-target="#reuniones" type="button" role="tab">
                 <i class="bi bi-briefcase-fill me-2"></i>Reuniones
             </button>
         </li>
         <li class="nav-item" role="presentation">
-            <button class="nav-link fw-bold" id="abono-tab" data-bs-toggle="tab" data-bs-target="#abono" type="button" role="tab">
+            <button class="nav-link tab-rojo fw-bold" id="abono-tab" data-bs-toggle="tab" data-bs-target="#abono" type="button" role="tab">
                 <i class="bi bi-award-fill me-2"></i>Lista de Abono (Asistencias)
             </button>
         </li>
@@ -482,6 +469,15 @@
         </div>
     </div> <!-- Cierre tab-pane abono -->
     </div> <!-- Cierre tab-content -->
+
+    <style>
+        .nav-tabs .nav-link.tab-rojo {
+            color: #dc3545 !important; 
+        }
+        .nav-tabs .nav-link.tab-rojo.active {
+            color: #212529 !important; /* Color oscuro/negro para pestaña activa */
+        }
+    </style>
 </main>
 
 <!-- Modal Crear Curso -->
