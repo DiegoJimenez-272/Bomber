@@ -452,6 +452,29 @@ class EmergenciaForm(forms.ModelForm):
                     existing_classes = self.fields[field_name].widget.attrs.get('class', '')
                     self.fields[field_name].widget.attrs['class'] = f'{existing_classes} is-invalid'.strip()
 
+class ReunionForm(forms.ModelForm):
+    class Meta:
+        model = Capacitacion
+        fields = ['nombre', 'fecha_inicio', 'descripcion', 'asistentes', 'documento_adjunto']
+        widgets = {
+            'nombre': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Nombre de la reunión'}),
+            'fecha_inicio': forms.DateTimeInput(attrs={'class': 'form-control', 'type': 'datetime-local'}),
+            'descripcion': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'asistentes': forms.SelectMultiple(attrs={'class': 'form-select select2-multiple', 'data-placeholder': 'Seleccionar asistentes...'}),
+            'documento_adjunto': forms.FileInput(attrs={'class': 'form-control'}),
+        }
+        
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        instance.tipo_actividad = 'Reunión'
+        instance.malla = 'Otros'
+        instance.lugar = 'No especificado'
+        instance.instructor = 'No especificado'
+        if commit:
+            instance.save()
+            self.save_m2m()
+        return instance
+
 class CapacitacionForm(forms.ModelForm):
     enviar_invitacion = forms.BooleanField(
         label="Enviar invitación como notificación",

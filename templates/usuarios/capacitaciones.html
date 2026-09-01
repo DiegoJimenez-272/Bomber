@@ -37,6 +37,11 @@
             </button>
         </li>
         <li class="nav-item" role="presentation">
+            <button class="nav-link fw-bold" id="reuniones-tab" data-bs-toggle="tab" data-bs-target="#reuniones" type="button" role="tab">
+                <i class="bi bi-briefcase-fill me-2"></i>Reuniones
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
             <button class="nav-link fw-bold" id="abono-tab" data-bs-toggle="tab" data-bs-target="#abono" type="button" role="tab">
                 <i class="bi bi-award-fill me-2"></i>Lista de Abono (Asistencias)
             </button>
@@ -319,6 +324,83 @@
                 {% endfor %}
             </div>
         </div> <!-- Cierre tab-pane capacitaciones-internas -->
+        
+        <!-- ===== PESTAÑA: REUNIONES ===== -->
+        <div class="tab-pane fade" id="reuniones" role="tabpanel">
+            <div class="d-flex justify-content-end mb-3">
+                {% if request.user.is_superuser or request.user.rol.editar_capacitaciones %}
+                <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#createReunionModal">
+                    <i class="bi bi-plus-lg me-1"></i> Nueva Reunión
+                </button>
+                {% endif %}
+            </div>
+
+            <div class="row g-4">
+                {% for item in capacitaciones|dictsortreversed:"fecha_inicio" %}
+                {% if item.tipo_actividad == 'Reunión' %}
+                <div class="col-12 col-md-6 col-lg-4">
+                    <div class="card h-100 shadow-sm border-0 bg-light rounded-4 overflow-hidden" style="border-left: 5px solid #ff9800 !important;">
+                        <div class="card-body p-4 position-relative">
+                            <!-- Dropdown de Opciones -->
+                            {% if request.user.is_superuser or request.user.rol.editar_capacitaciones %}
+                            <div class="position-absolute top-0 end-0 p-3">
+                                <div class="dropdown">
+                                    <button class="btn btn-link text-muted p-0 border-0 dropdown-toggle-no-caret" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="bi bi-three-dots-vertical fs-5"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end border-0 shadow-sm rounded-3">
+                                        <li>
+                                            <a class="dropdown-item" href="{% url 'capacitacion_edit' item.id %}">
+                                                <i class="bi bi-pencil me-2 text-primary"></i> Editar
+                                            </a>
+                                        </li>
+                                        <li>
+                                            <button class="dropdown-item text-danger" data-bs-toggle="modal" data-bs-target="#deleteCapacitacionModal{{ item.id }}">
+                                                <i class="bi bi-trash me-2 text-danger"></i> Eliminar
+                                            </button>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                            {% endif %}
+                            
+                            <h5 class="card-title fw-bold mb-3 pe-4 text-dark">{{ item.nombre }}</h5>
+                            
+                            <div class="d-flex flex-column gap-2 mb-4">
+                                <div class="d-flex align-items-center text-secondary">
+                                    <i class="bi bi-calendar-event text-danger fs-5 me-3 w-20px text-center"></i>
+                                    <span class="fs-6">{{ item.fecha_inicio|date:"d/m/Y H:i" }}</span>
+                                </div>
+                                <div class="d-flex align-items-center text-secondary">
+                                    <i class="bi bi-people text-danger fs-5 me-3 w-20px text-center"></i>
+                                    <span class="fs-6">{{ item.asistentes.count }} asistentes</span>
+                                </div>
+                                {% if item.documento_adjunto %}
+                                <div class="d-flex align-items-center text-secondary">
+                                    <i class="bi bi-file-earmark-arrow-down text-danger fs-5 me-3 w-20px text-center"></i>
+                                    <a href="{{ item.documento_adjunto.url }}" target="_blank" class="text-decoration-none fs-6 text-primary">Descargar Documento</a>
+                                </div>
+                                {% endif %}
+                            </div>
+                            
+                            {% if item.descripcion %}
+                            <div class="bg-white p-3 rounded-3 mb-4 border border-light">
+                                <p class="mb-0 text-muted fs-6" style="display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; text-overflow: ellipsis;">
+                                    {{ item.descripcion }}
+                                </p>
+                            </div>
+                            {% endif %}
+                            
+                            <button type="button" class="btn btn-outline-danger w-100 rounded-pill" data-bs-toggle="modal" data-bs-target="#viewAsistentesModal{{ item.id }}">
+                                <i class="bi bi-card-checklist me-2"></i> Ver Asistentes
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                {% endfor %}
+            </div>
+        </div> <!-- Cierre tab-pane reuniones -->
 
     <!-- Pestaña Lista de Abono -->
     <div class="tab-pane fade" id="abono" role="tabpanel" aria-labelledby="abono-tab">
@@ -651,6 +733,86 @@
     </div>
 </div>
 
+<!-- Modal Crear Reunión -->
+<div class="modal fade" id="createReunionModal" tabindex="-1" aria-labelledby="createReunionModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header bg-warning bg-opacity-25">
+                <h5 class="modal-title" id="createReunionModalLabel"><i class="bi bi-briefcase-fill me-2 text-warning"></i>Registrar Nueva Reunión</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                <input type="hidden" name="crear_reunion" value="1">
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-md-8">
+                            <label class="form-label fw-bold">Nombre de la Reunión</label>
+                            {{ reunion_form.nombre }}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Fecha de Inicio</label>
+                            {{ reunion_form.fecha_inicio }}
+                        </div>
+                        
+                        <div class="col-12">
+                            <label class="form-label fw-bold">Documento Adjunto (Opcional)</label>
+                            {{ reunion_form.documento_adjunto }}
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label fw-bold">Descripción / Temas a Tratar</label>
+                            {{ reunion_form.descripcion }}
+                        </div>
+
+                        <div class="col-12 mt-4">
+                            <h6 class="fw-bold mb-3 border-bottom pb-2">Asistencias</h6>
+                            
+                            <div class="mb-3">
+                                <label class="form-label text-muted small mb-1">Filtrar por Compañía</label>
+                                <div class="d-flex flex-wrap gap-2 mb-2 p-2 bg-light rounded" id="company-filters-reunion">
+                                    <div class="form-check">
+                                        <input class="form-check-input filter-all" type="checkbox" id="reunionAllComps" checked>
+                                        <label class="form-check-label" for="reunionAllComps">Todas</label>
+                                    </div>
+                                    {% for comp in companias %}
+                                    <div class="form-check">
+                                        <input class="form-check-input filter-comp" type="checkbox" id="reunionComp{{ comp.id }}" value="{{ comp.id }}" checked>
+                                        <label class="form-check-label" for="reunionComp{{ comp.id }}">{{ comp.nombre }}</label>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                                <div class="d-flex justify-content-end mb-2 gap-2">
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" id="selectAllReunion">Seleccionar Todos los Mostrados</button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" id="deselectAllReunion">Deseleccionar Todos los Mostrados</button>
+                                </div>
+                            </div>
+
+                            <div class="border rounded p-3" style="max-height: 250px; overflow-y: auto;">
+                                <div class="row g-2" id="asistentes-list-reunion">
+                                    {% for user_choice in reunion_form.asistentes.field.queryset %}
+                                    <div class="col-md-6 col-lg-4 form-check asistente-item" data-compania="{{ usuarios_companias_json|default:'{}' }}" data-uid="{{ user_choice.id }}">
+                                        <input class="form-check-input" type="checkbox" name="asistentes" value="{{ user_choice.id }}" id="reunionAsistente{{ user_choice.id }}">
+                                        <label class="form-check-label" for="reunionAsistente{{ user_choice.id }}">
+                                            {{ user_choice.nombre }} {{ user_choice.apellidos }}
+                                        </label>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            <small class="text-muted mt-1 d-block">Selecciona los miembros que asistieron a la reunión.</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-warning text-dark fw-bold">Guardar Reunión</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <!-- Modal Eliminar Curso -->
 <div class="modal fade" id="deleteCapacitacionModal" tabindex="-1" aria-labelledby="deleteCapacitacionModalLabel" aria-hidden="true">
     <div class="modal-dialog">
@@ -830,6 +992,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     setupCompanyFilters('company-filters-create', 'asistentes-list-create', 'selectAllCreate', 'deselectAllCreate');
     setupCompanyFilters('company-filters-edit', 'asistentes-list-edit', 'selectAllEdit', 'deselectAllEdit');
+    setupCompanyFilters('company-filters-reunion', 'asistentes-list-reunion', 'selectAllReunion', 'deselectAllReunion');
 
     // --- Lógica de Filtrado para Cursos Oficiales ---
     const cursoSearchInput = document.getElementById('cursoSearchInput');

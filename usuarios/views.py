@@ -22,7 +22,7 @@ from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter
 import openpyxl
 from reportlab.lib.units import inch
-from .forms import RegistroForm, LoginForm, ProyectoForm, ArchivoProyectoForm, DocumentoForm, CarpetaForm, SalidaTerrenoForm, EmergenciaForm, PerfilForm, PasswordChangeForm, CapacitacionForm, MantenimientoForm, ArchivoMantenimientoForm, InventarioForm, CajaChicaForm, AdminUserCreationForm, AdminUserChangeForm, RolForm, CompaniaForm, InventarioEditForm, InventarioGroupEditForm, AvisoForm, PasswordResetRequestForm, PasswordResetVerifyForm, PasswordResetNewPasswordForm, VehiculoForm
+from .forms import RegistroForm, LoginForm, ProyectoForm, ArchivoProyectoForm, DocumentoForm, CarpetaForm, SalidaTerrenoForm, EmergenciaForm, PerfilForm, PasswordChangeForm, CapacitacionForm, MantenimientoForm, ArchivoMantenimientoForm, InventarioForm, CajaChicaForm, AdminUserCreationForm, AdminUserChangeForm, RolForm, CompaniaForm, InventarioEditForm, InventarioGroupEditForm, AvisoForm, PasswordResetRequestForm, PasswordResetVerifyForm, PasswordResetNewPasswordForm, VehiculoForm, ReunionForm
 from .models import Rol, Compania, Proyecto, ArchivoProyecto, Documento, Carpeta, SalidaTerreno, Emergencia, Usuario, Capacitacion, Mantenimiento, ArchivoMantenimiento, Inventario, CajaChica, Notificacion, Aviso, AvisoDestinatario, PasswordResetCode, Vehiculo
 
 def registro_view(request):
@@ -1606,50 +1606,65 @@ def capacitaciones_view(request):
 
     if request.method == 'POST':
         if not request.user.is_superuser and not (request.user.rol and request.user.rol.editar_capacitaciones):
-            messages.error(request, 'No tienes permiso para registrar cursos.')
+            messages.error(request, 'No tienes permiso para registrar capacitaciones.')
             return redirect('capacitaciones')
             
-        form = CapacitacionForm(request.POST)
-        if form.is_valid():
-            capacitacion = form.save(commit=False)
-            capacitacion.creado_por = request.user
-            capacitacion.save()
-            form.save_m2m() # Necesario para guardar las relaciones ManyToMany
-            
-            # Lógica de Notificaciones / Invitaciones
-            enviar_invitacion = request.POST.get('enviar_invitacion') == 'on'
-            audiencia = request.POST.get('audiencia', 'general')
-
-            if enviar_invitacion:
-                if audiencia == 'general':
-                    if capacitacion.companias_invitadas.exists():
-                        usuarios_a_notificar = Usuario.objects.filter(is_active=True, compania__in=capacitacion.companias_invitadas.all())
-                    else:
-                        usuarios_a_notificar = Usuario.objects.none()
-                else:
-                    usuarios_a_notificar = capacitacion.asistentes.all()
-
-                notificaciones = []
-                for u in usuarios_a_notificar:
-                    mensaje = f"Has sido invitado al curso: {capacitacion.nombre}."
-                    if capacitacion.cupos:
-                        mensaje += f" ¡Cupos limitados ({capacitacion.cupos})!"
-                    
-                    notificaciones.append(Notificacion(usuario=u, mensaje=mensaje, link=f"/capacitaciones/"))
-                
-                if notificaciones:
-                    Notificacion.objects.bulk_create(notificaciones)
-                    messages.success(request, f'Curso "{capacitacion.nombre}" creado exitosamente y se enviaron invitaciones a {len(notificaciones)} usuarios.')
-                else:
-                    messages.success(request, f'Curso "{capacitacion.nombre}" creado exitosamente (no se encontraron usuarios para notificar).')
+        if 'crear_reunion' in request.POST:
+            form = CapacitacionForm() # Empty form
+            reunion_form = ReunionForm(request.POST, request.FILES)
+            if reunion_form.is_valid():
+                reunion = reunion_form.save(commit=False)
+                reunion.creado_por = request.user
+                reunion.save()
+                reunion_form.save_m2m()
+                messages.success(request, f'Reunión "{reunion.nombre}" creada exitosamente.')
+                return redirect('capacitaciones')
             else:
-                messages.success(request, f'Curso "{capacitacion.nombre}" creado exitosamente.')
-                
-            return redirect('capacitaciones')
+                messages.error(request, 'Error al crear la reunión. Por favor, revisa el formulario.')
         else:
-            messages.error(request, 'Error al crear el curso. Por favor, revisa el formulario.')
+            reunion_form = ReunionForm() # Empty form
+            form = CapacitacionForm(request.POST)
+            if form.is_valid():
+                capacitacion = form.save(commit=False)
+                capacitacion.creado_por = request.user
+                capacitacion.save()
+                form.save_m2m() # Necesario para guardar las relaciones ManyToMany
+                
+                # Lógica de Notificaciones / Invitaciones
+                enviar_invitacion = request.POST.get('enviar_invitacion') == 'on'
+                audiencia = request.POST.get('audiencia', 'general')
+
+                if enviar_invitacion:
+                    if audiencia == 'general':
+                        if capacitacion.companias_invitadas.exists():
+                            usuarios_a_notificar = Usuario.objects.filter(is_active=True, compania__in=capacitacion.companias_invitadas.all())
+                        else:
+                            usuarios_a_notificar = Usuario.objects.none()
+                    else:
+                        usuarios_a_notificar = capacitacion.asistentes.all()
+
+                    notificaciones = []
+                    for u in usuarios_a_notificar:
+                        mensaje = f"Has sido invitado al curso: {capacitacion.nombre}."
+                        if capacitacion.cupos:
+                            mensaje += f" ¡Cupos limitados ({capacitacion.cupos})!"
+                        
+                        notificaciones.append(Notificacion(usuario=u, mensaje=mensaje, link=f"/capacitaciones/"))
+                    
+                    if notificaciones:
+                        Notificacion.objects.bulk_create(notificaciones)
+                        messages.success(request, f'Curso "{capacitacion.nombre}" creado exitosamente y se enviaron invitaciones a {len(notificaciones)} usuarios.')
+                    else:
+                        messages.success(request, f'Curso "{capacitacion.nombre}" creado exitosamente (no se encontraron usuarios para notificar).')
+                else:
+                    messages.success(request, f'Curso "{capacitacion.nombre}" creado exitosamente.')
+                    
+                return redirect('capacitaciones')
+            else:
+                messages.error(request, 'Error al crear el curso. Por favor, revisa el formulario.')
     else:
         form = CapacitacionForm()
+        reunion_form = ReunionForm()
     
     # Lógica de Visibilidad: Superusuarios y Editores ven todo. 
     # Los demás solo ven los cursos de su compañía o a los que están invitados.
@@ -1697,7 +1712,8 @@ def capacitaciones_view(request):
     ).order_by('nombre')
 
     context = {
-        'form': form, 
+        'form': form,
+        'reunion_form': reunion_form,
         'capacitaciones': capacitaciones,
         'companias': companias,
         'usuarios_companias_json': json.dumps(usuarios_companias),

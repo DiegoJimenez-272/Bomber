@@ -284,6 +284,7 @@ class Capacitacion(models.Model):
     asistentes = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name='capacitaciones_asistidas', blank=True)
     companias_invitadas = models.ManyToManyField(Compania, related_name='capacitaciones_invitadas', blank=True)
     creado_por = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='capacitaciones_creadas')
+    documento_adjunto = models.FileField(upload_to='reuniones/', null=True, blank=True)
     creado_en = models.DateTimeField(auto_now_add=True)
 
     class Meta:
