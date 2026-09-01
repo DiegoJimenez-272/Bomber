@@ -1599,6 +1599,79 @@ def emergencia_delete_view(request, emergencia_id):
     return redirect('emergencias')
 
 @login_required
+def enviar_email_capacitacion(capacitacion, usuarios, accion="invitado al"):
+    emails = [u.email for u in usuarios if u.email]
+    if not emails:
+        return
+    
+    from django.utils import timezone
+    fecha_str = timezone.localtime(capacitacion.fecha_inicio).strftime('%d/%m/%Y %H:%M')
+    from django.conf import settings
+    
+    html_message = f'''
+    <!DOCTYPE html>
+    <html>
+    <head><meta charset="UTF-8"></head>
+    <body style="margin:0; padding:0; background-color:#f4f4f7; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
+        <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f4f7; padding: 40px 0;">
+            <tr>
+                <td align="center">
+                    <table width="500" cellpadding="0" cellspacing="0" style="background:#ffffff; border-radius:12px; overflow:hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.08);">
+                        <tr>
+                            <td style="background: linear-gradient(135deg, #dc3545, #c82333); padding: 30px 40px; text-align: center;">
+                                <img src="https://www.sigbomberosmulchen.cl/media/logos_companias/Compania_general.png" alt="Logo Bomberos" style="max-width: 100px; border-radius: 8px; margin-bottom: 10px;">
+                                <h2 style="color:#ffffff; margin: 10px 0 0 0; font-size: 20px; font-weight: 600;">Cuerpo de Bomberos de Mulchén</h2>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 40px;">
+                                <h1 style="color:#212529; font-size: 22px; text-align: center; margin: 0 0 10px 0;">Notificación de {capacitacion.tipo_actividad}</h1>
+                                <p style="color:#6c757d; font-size: 15px; text-align: center; margin: 0 0 30px 0; line-height: 1.6;">
+                                    Estimado miembro, has sido <strong>{accion}</strong> {capacitacion.tipo_actividad.lower()}: <br>
+                                    <strong style="color: #212529; font-size: 18px;">{capacitacion.nombre}</strong>
+                                </p>
+                                
+                                <div style="background: #f8f9fa; border-left: 4px solid #dc3545; padding: 15px 20px; margin-bottom: 25px;">
+                                    <p style="margin: 0 0 10px 0; font-size: 14px; color: #495057;"><strong>📅 Fecha y Hora:</strong> {fecha_str}</p>
+                                    <p style="margin: 0 0 10px 0; font-size: 14px; color: #495057;"><strong>📍 Lugar:</strong> {capacitacion.lugar}</p>
+                                    <p style="margin: 0; font-size: 14px; color: #495057;"><strong>👨‍🏫 Instructor:</strong> {capacitacion.instructor}</p>
+                                </div>
+                                
+                                <p style="color:#6c757d; font-size: 14px; margin: 0; line-height: 1.6;">
+                                    <strong>Descripción:</strong><br>
+                                    {capacitacion.descripcion if capacitacion.descripcion else 'Sin descripción detallada.'}
+                                </p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="background:#f8f9fa; padding: 20px 40px; text-align: center; border-top: 1px solid #e9ecef;">
+                                <p style="color:#adb5bd; font-size: 12px; margin: 0;">
+                                    Sistema de Gestión de Bomberos &copy; 2026<br>
+                                    Este es un correo automático, por favor no responder.
+                                </p>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+        </table>
+    </body>
+    </html>
+    '''
+    try:
+        from django.core.mail import EmailMultiAlternatives
+        msg = EmailMultiAlternatives(
+            subject=f"Notificación: {capacitacion.nombre}",
+            body=f"Has sido {accion} {capacitacion.tipo_actividad}: {capacitacion.nombre}. Fecha: {fecha_str}",
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            to=[],
+            bcc=emails
+        )
+        msg.attach_alternative(html_message, "text/html")
+        msg.send(fail_silently=True)
+    except Exception as e:
+        print(f"Error al enviar correo de capacitacion: {e}")
+
 def capacitaciones_view(request):
     if not request.user.is_superuser and not (request.user.rol and request.user.rol.ver_capacitaciones):
         messages.error(request, 'No tienes permiso para acceder a Cursos.')
@@ -1653,6 +1726,7 @@ def capacitaciones_view(request):
                     
                     if notificaciones:
                         Notificacion.objects.bulk_create(notificaciones)
+                        enviar_email_capacitacion(capacitacion, usuarios_a_notificar, accion="invitado/a a")
                         messages.success(request, f'Curso "{capacitacion.nombre}" creado exitosamente y se enviaron invitaciones a {len(notificaciones)} usuarios.')
                     else:
                         messages.success(request, f'Curso "{capacitacion.nombre}" creado exitosamente (no se encontraron usuarios para notificar).')
@@ -1751,6 +1825,7 @@ def capacitacion_edit_view(request, capacitacion_id):
                 
                 if notificaciones:
                     Notificacion.objects.bulk_create(notificaciones)
+                    enviar_email_capacitacion(capacitacion, usuarios_a_notificar, accion="notificado/a de una actualización en")
                     messages.success(request, f'Curso "{capacitacion.nombre}" actualizado y se notificó a {len(notificaciones)} usuarios.')
                 else:
                     messages.success(request, f'Curso "{capacitacion.nombre}" actualizado exitosamente.')
