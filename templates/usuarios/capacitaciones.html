@@ -4,8 +4,16 @@
 
 {% block content %}
 <style>
-    .nav-tabs .nav-link:not(.active) {
+    /* Forzar color rojo en las pestañas y variables de Bootstrap */
+    .nav-tabs {
+        --bs-nav-link-color: #dc3545;
+        --bs-nav-link-hover-color: #a71d2a;
+    }
+    .nav-tabs .nav-link {
         color: #dc3545 !important;
+    }
+    .nav-tabs .nav-link.active {
+        color: #212529 !important;
     }
 </style>
 <!-- Header del contenido principal -->
