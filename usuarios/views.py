@@ -2432,7 +2432,9 @@ def password_reset_new_password_view(request):
     else:
         form = PasswordResetNewPasswordForm()
         
-    return render(request, 'usuarios/password_reset_new_password.html', {'form': form})@login_required
+    return render(request, 'usuarios/password_reset_new_password.html', {'form': form})
+
+@login_required
 def inspectores_view(request):
     from .forms import InspectorDocumentoForm, InspectorCarpetaForm
     if not (hasattr(request.user, 'rol') and request.user.rol and request.user.rol.ver_inspectores):
