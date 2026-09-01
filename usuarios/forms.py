@@ -427,7 +427,7 @@ class SalidaTerrenoForm(forms.ModelForm):
 class EmergenciaForm(forms.ModelForm):
     class Meta:
         model = Emergencia
-        fields = ['tipo', 'direccion', 'fecha_hora_alarma', 'descripcion', 'unidades_despachadas', 'oficial_a_cargo', 'estado', 'asistentes']
+        fields = ['tipo', 'direccion', 'fecha_hora_alarma', 'descripcion', 'unidades_despachadas', 'oficial_a_cargo', 'estado', 'asistentes', 'documento_adjunto']
         widgets = {
             'tipo': forms.Select(attrs={'class': 'form-select'}),
             'direccion': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Calle Falsa 123, Comuna'}),
@@ -437,6 +437,7 @@ class EmergenciaForm(forms.ModelForm):
             'oficial_a_cargo': forms.Select(attrs={'class': 'form-select'}),
             'estado': forms.Select(attrs={'class': 'form-select'}),
             'asistentes': forms.CheckboxSelectMultiple(attrs={'class': 'form-check-input'}),
+            'documento_adjunto': forms.FileInput(attrs={'class': 'form-control'}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -445,6 +446,11 @@ class EmergenciaForm(forms.ModelForm):
         self.fields['oficial_a_cargo'].empty_label = "Seleccionar oficial a cargo"
         self.fields['asistentes'].queryset = Usuario.objects.filter(is_active=True).order_by('nombre')
         self.fields['asistentes'].required = False
+        self.fields['direccion'].required = False
+        self.fields['fecha_hora_alarma'].required = False
+        self.fields['descripcion'].required = False
+        self.fields['unidades_despachadas'].required = False
+        self.fields['documento_adjunto'].required = False
 
         if self.errors:
             for field_name in self.errors:

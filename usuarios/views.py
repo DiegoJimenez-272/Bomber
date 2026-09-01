@@ -1519,7 +1519,7 @@ def emergencias_view(request):
             messages.error(request, 'No tienes permiso para registrar emergencias.')
             return redirect('emergencias')
             
-        form = EmergenciaForm(request.POST)
+        form = EmergenciaForm(request.POST, request.FILES)
         if form.is_valid():
             emergencia = form.save(commit=False)
             emergencia.creado_por = request.user
@@ -1577,7 +1577,7 @@ def emergencia_edit_view(request, emergencia_id):
         return redirect('emergencias')
 
     if request.method == 'POST':
-        form = EmergenciaForm(request.POST, instance=emergencia)
+        form = EmergenciaForm(request.POST, request.FILES, instance=emergencia)
         if form.is_valid():
             form.save()
             messages.success(request, f'Emergencia "{emergencia.get_tipo_display()}" actualizada exitosamente.')

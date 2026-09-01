@@ -148,7 +148,7 @@
                 <h5 class="modal-title" id="createEmergenciaModalLabel">Registrar Nueva Emergencia</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form method="post">
+            <form method="post" enctype="multipart/form-data" novalidate>
                 {% csrf_token %}
                 <div class="modal-body">
                     <div class="row g-3">
@@ -215,9 +215,21 @@
                         </div>
                     </div>
                 </div>
-                <div class="modal-footer">
+                
+                <div class="modal-body border-top pt-3">
+                    <div class="row">
+                        <div class="col-12">
+                            <label for="{{ form.documento_adjunto.id_for_label }}" class="form-label">Documento Adjunto (Opcional)</label>
+                            {{ form.documento_adjunto }}
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer justify-content-between">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-danger">Registrar</button>
+                    <div>
+                        <button type="submit" name="guardar_incompleto" class="btn btn-warning">Guardar sin completar</button>
+                        <button type="submit" name="guardar_completo" class="btn btn-danger">Finalizar Registro</button>
+                    </div>
                 </div>
             </form>
         </div>
@@ -232,7 +244,7 @@
                 <h5 class="modal-title" id="editEmergenciaModalLabel">Editar Emergencia</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form id="editEmergenciaForm" method="post">
+            <form id="editEmergenciaForm" method="post" enctype="multipart/form-data" novalidate>
                 {% csrf_token %}
                 <div class="modal-body">
                     <div class="row g-3">
@@ -284,9 +296,21 @@
                         </div>
                     </div>
                 </div>
-                <div class="modal-footer">
+                
+                <div class="modal-body border-top pt-3">
+                    <div class="row">
+                        <div class="col-12">
+                            <label class="form-label">Documento Adjunto (Dejar en blanco para mantener actual)</label>
+                            <input type="file" name="documento_adjunto" class="form-control">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer justify-content-between">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-danger">Guardar Cambios</button>
+                    <div>
+                        <button type="submit" name="guardar_incompleto" class="btn btn-warning">Guardar sin completar</button>
+                        <button type="submit" name="guardar_completo" class="btn btn-danger">Finalizar Registro</button>
+                    </div>
                 </div>
             </form>
         </div>
@@ -305,7 +329,7 @@
                 <p>¿Estás seguro de que quieres eliminar la emergencia "<strong><span id="emergenciaTipoToDelete"></span></strong>"?</p>
                 <p class="text-danger small">Esta acción no se puede deshacer.</p>
             </div>
-            <div class="modal-footer">
+            <div class="modal-footer justify-content-between">
                 <form id="deleteEmergenciaForm" method="post">
                     {% csrf_token %}
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>

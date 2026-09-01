@@ -237,15 +237,17 @@ class Emergencia(models.Model):
     ]
 
     tipo = models.CharField(max_length=50, choices=TIPO_EMERGENCIA_CHOICES, default='Otro')
-    direccion = models.CharField(max_length=255)
-    fecha_hora_alarma = models.DateTimeField()
-    descripcion = models.TextField(verbose_name="Detalles del Incidente")
-    unidades_despachadas = models.CharField(max_length=100, help_text="Ej: B-1, R-2, Z-3")
+    direccion = models.CharField(max_length=255, null=True, blank=True)
+    fecha_hora_alarma = models.DateTimeField(null=True, blank=True)
+    descripcion = models.TextField(verbose_name="Detalles del Incidente", null=True, blank=True)
+    unidades_despachadas = models.CharField(max_length=100, help_text="Ej: B-1, R-2, Z-3", null=True, blank=True)
     oficial_a_cargo = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='emergencias_a_cargo')
     estado = models.CharField(max_length=20, choices=ESTADO_CHOICES, default='Activa')
     asistentes = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name='emergencias_asistidas', blank=True, verbose_name='Personal Asistente')
     creado_por = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='emergencias_creadas')
     creado_en = models.DateTimeField(auto_now_add=True)
+    documento_adjunto = models.FileField(upload_to='emergencias_docs/', null=True, blank=True)
+    registro_completado = models.BooleanField(default=False, verbose_name="Registro Completado")
 
     class Meta:
         ordering = ['-fecha_hora_alarma']
