@@ -30,7 +30,7 @@ MEDIA_DIR = os.path.join(BASE_DIR,'media')
 SECRET_KEY = 'django-insecure-lbh9!lvj!8yit!=4k=3se%r!e9pseyoryo#hi)1khps$17tiy&'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True  # TEMPORAL: para diagnosticar error 500
 
 ALLOWED_HOSTS = ['srv1682969.hstgr.cloud','187.77.16.176']
 ALLOWED_HOSTS = ['srv1682969.hstgr.cloud', '187.77.16.176', 'sigbomberosmulchen.cl', 'www.sigbomberosmulchen.cl']
