@@ -2390,18 +2390,23 @@ def password_reset_verify_view(request):
     if request.method == 'POST':
         form = PasswordResetVerifyForm(request.POST)
         if form.is_valid():
-            codigo = form.cleaned_data['codigo']
-            user = Usuario.objects.filter(email=email).first()
-            reset_code = PasswordResetCode.objects.filter(usuario=user, codigo=codigo, usado=False).last()
-            
-            if reset_code and reset_code.is_valid():
-                reset_code.usado = True
-                reset_code.save()
-                request.session['reset_verified'] = True
-                messages.success(request, 'Código verificado correctamente.')
-                return redirect('password_reset_new_password')
-            else:
-                messages.error(request, 'El código es inválido o ha expirado.')
+            try:
+                codigo = form.cleaned_data['codigo']
+                user = Usuario.objects.filter(email=email).first()
+                reset_code = PasswordResetCode.objects.filter(usuario=user, codigo=codigo, usado=False).last()
+                
+                if reset_code and reset_code.is_valid():
+                    reset_code.usado = True
+                    reset_code.save()
+                    request.session['reset_verified'] = True
+                    messages.success(request, 'Código verificado correctamente.')
+                    return redirect('password_reset_new_password')
+                else:
+                    messages.error(request, 'El código es inválido o ha expirado.')
+            except Exception as e:
+                import traceback
+                print(traceback.format_exc())
+                messages.error(request, f'Error interno detallado: {str(e)} | Tipo: {type(e).__name__}')
     else:
         form = PasswordResetVerifyForm()
     return render(request, 'usuarios/password_reset_verify.html', {'form': form})
