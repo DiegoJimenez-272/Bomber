@@ -164,5 +164,5 @@ EMAIL_PORT = 587
 EMAIL_USE_SSL = False
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'contactobomberosmulchen@gmail.com'
-EMAIL_HOST_PASSWORD = 'abcdefghijklmnop' # <-- Borra esto y pega tus 16 letras reales aquí
+EMAIL_HOST_PASSWORD = 'qfudixutgycvwzkl'
 DEFAULT_FROM_EMAIL = 'Sistema Bomberos <contactobomberosmulchen@gmail.com>'
