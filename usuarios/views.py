@@ -1598,7 +1598,6 @@ def emergencia_delete_view(request, emergencia_id):
         messages.success(request, f'Emergencia tipo "{emergencia_tipo}" eliminada exitosamente.')
     return redirect('emergencias')
 
-@login_required
 def enviar_email_capacitacion(capacitacion, usuarios, accion="invitado al"):
     emails = [u.email for u in usuarios if u.email]
     if not emails:
