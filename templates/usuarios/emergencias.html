@@ -83,7 +83,7 @@
                 <tbody id="emergenciasTableBody">
                     <tr id="no-ems-found" style="display: none;"><td colspan="6" class="text-center text-muted py-4">No se encontraron emergencias con los filtros aplicados.</td></tr>
                         {% for emergencia in emergencias %}
-                        <tr>
+                        <tr {% if not emergencia.registro_completado %}class="table-warning"{% endif %}>
                             <td>
                                 <strong>{{ emergencia.get_tipo_display }}</strong>
                                 <p class="text-muted small mb-0">{{ emergencia.direccion }}</p>
@@ -99,8 +99,17 @@
                                 {% else %}
                                     <span class="badge bg-success">{{ emergencia.estado }}</span>
                                 {% endif %}
+                                {% if not emergencia.registro_completado %}
+                                    <br>
+                                    <span class="badge bg-warning text-dark border border-dark mt-1 shadow-sm">
+                                        <i class="bi bi-exclamation-triangle-fill me-1"></i>Incompleto
+                                    </span>
+                                {% endif %}
                             </td>
                             <td>
+                                {% if emergencia.documento_adjunto %}
+                                    <a href="{{ emergencia.documento_adjunto.url }}" target="_blank" class="btn btn-sm btn-outline-secondary me-1" title="Descargar Adjunto"><i class="bi bi-paperclip"></i></a>
+                                {% endif %}
                                 {% if request.user.is_superuser or request.user.rol.editar_emergencias %}
                                 <div class="btn-group" role="group">
                                     <button type="button" class="btn btn-sm btn-outline-primary"
