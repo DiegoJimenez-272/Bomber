@@ -737,8 +737,8 @@
 <div class="modal fade" id="createReunionModal" tabindex="-1" aria-labelledby="createReunionModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-scrollable">
         <div class="modal-content">
-            <div class="modal-header bg-warning bg-opacity-25">
-                <h5 class="modal-title" id="createReunionModalLabel"><i class="bi bi-briefcase-fill me-2 text-warning"></i>Registrar Nueva Reunión</h5>
+            <div class="modal-header">
+                <h5 class="modal-title" id="createReunionModalLabel"><i class="bi bi-briefcase-fill me-2"></i>Registrar Nueva Reunión</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <form method="post" enctype="multipart/form-data">
@@ -794,7 +794,7 @@
                                     <div class="col-md-6 col-lg-4 form-check asistente-item" data-compania="{{ usuarios_companias_json|default:'{}' }}" data-uid="{{ user_choice.id }}">
                                         <input class="form-check-input" type="checkbox" name="asistentes" value="{{ user_choice.id }}" id="reunionAsistente{{ user_choice.id }}">
                                         <label class="form-check-label" for="reunionAsistente{{ user_choice.id }}">
-                                            {{ user_choice.nombre }} {{ user_choice.apellidos }}
+                                            {{ user_choice.nombre }} {{ user_choice.apellido }}
                                         </label>
                                     </div>
                                     {% endfor %}
@@ -806,7 +806,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-warning text-dark fw-bold">Guardar Reunión</button>
+                    <button type="submit" class="btn btn-danger">Guardar Reunión</button>
                 </div>
             </form>
         </div>
