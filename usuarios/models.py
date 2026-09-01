@@ -490,4 +490,10 @@ class PasswordResetCode(models.Model):
     usado = models.BooleanField(default=False)
 
     def is_valid(self):
-        return not self.usado and (timezone.now() - self.creado_en) < datetime.timedelta(minutes=15)
+        from django.utils import timezone
+        import datetime
+        now = timezone.now()
+        creado_en_aware = self.creado_en
+        if timezone.is_naive(self.creado_en):
+            creado_en_aware = timezone.make_aware(self.creado_en, timezone.get_current_timezone())
+        return not self.usado and (now - creado_en_aware) < datetime.timedelta(minutes=15)
