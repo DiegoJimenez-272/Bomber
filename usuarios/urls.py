@@ -30,8 +30,10 @@ urlpatterns = [
     # Documentos
     path('documentos/', views.documentos_view, name='documentos'),
     path('inspectores/', views.inspectores_view, name='inspectores'),
+    path('documentos/<int:doc_id>/descargar/', views.documento_descargar_view, name='documento_descargar'),
     path('documentos/<int:doc_id>/delete/', views.documento_delete_view, name='documento_delete'),
     path('carpetas/<int:carpeta_id>/delete/', views.carpeta_delete_view, name='carpeta_delete'),
+
 
     # Inventario
     path('inventario/', views.inventario_view, name='inventario'),

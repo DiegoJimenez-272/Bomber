@@ -8,6 +8,7 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 import datetime
 from django.utils import timezone
+from .validators import validar_extension_archivo, validar_extension_imagen, SecureFilePath
 
 class Rol(models.Model):
     nombre = models.CharField(max_length=80)
@@ -45,7 +46,7 @@ class Rol(models.Model):
 class Compania(models.Model):
     nombre = models.CharField(max_length=80)
     ubicacion = models.CharField(max_length=80)
-    logo = models.ImageField(upload_to='logos_companias/', null=True, blank=True, verbose_name='Logo de la Compañía')
+    logo = models.ImageField(upload_to=SecureFilePath('logos_companias/'), null=True, blank=True, verbose_name='Logo de la Compañía', validators=[validar_extension_imagen])
     
     def __str__(self):
         return self.nombre 
@@ -73,7 +74,7 @@ class Usuario(AbstractBaseUser, PermissionsMixin):
     clave_radial = models.CharField(max_length=20, null=True, blank=True, verbose_name='Clave Radial')
     rol = models.ForeignKey(Rol, on_delete=models.SET_NULL, null=True, blank=True)
     compania = models.ForeignKey(Compania, on_delete=models.SET_NULL, null=True, blank=True)
-    foto_perfil = models.ImageField(upload_to='fotos_perfil/', null=True, blank=True, verbose_name='Foto de Perfil')
+    foto_perfil = models.ImageField(upload_to=SecureFilePath('fotos_perfil/'), null=True, blank=True, verbose_name='Foto de Perfil', validators=[validar_extension_imagen])
     
     # Campos requeridos para AbstractBaseUser
     is_active = models.BooleanField(default=True)
@@ -138,7 +139,7 @@ class Proyecto(models.Model):
 
 class ArchivoProyecto(models.Model):
     proyecto = models.ForeignKey(Proyecto, related_name='archivos', on_delete=models.CASCADE)
-    archivo = models.FileField(upload_to='proyectos_archivos/')
+    archivo = models.FileField(upload_to=SecureFilePath('proyectos_archivos/'), validators=[validar_extension_archivo])
     subido_en = models.DateTimeField(auto_now_add=True)
 
 class Carpeta(models.Model):
@@ -166,7 +167,7 @@ class Documento(models.Model):
 
     nombre = models.CharField(max_length=200)
     descripcion = models.TextField(blank=True)
-    archivo = models.FileField(upload_to='documentos/')
+    archivo = models.FileField(upload_to=SecureFilePath('documentos/'), validators=[validar_extension_archivo])
     tipo = models.CharField(max_length=50, choices=TIPO_DOCUMENTO_CHOICES, default='General')
     carpeta = models.ForeignKey(Carpeta, on_delete=models.CASCADE, null=True, blank=True, related_name='documentos')
     compania = models.ForeignKey(Compania, on_delete=models.CASCADE, null=True, blank=True, related_name='documentos')
@@ -246,7 +247,7 @@ class Emergencia(models.Model):
     asistentes = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name='emergencias_asistidas', blank=True, verbose_name='Personal Asistente')
     creado_por = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='emergencias_creadas')
     creado_en = models.DateTimeField(auto_now_add=True)
-    documento_adjunto = models.FileField(upload_to='emergencias_docs/', null=True, blank=True)
+    documento_adjunto = models.FileField(upload_to=SecureFilePath('emergencias_docs/'), null=True, blank=True, validators=[validar_extension_archivo])
     registro_completado = models.BooleanField(default=False, verbose_name="Registro Completado")
 
     class Meta:
@@ -286,7 +287,7 @@ class Capacitacion(models.Model):
     asistentes = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name='capacitaciones_asistidas', blank=True)
     companias_invitadas = models.ManyToManyField(Compania, related_name='capacitaciones_invitadas', blank=True)
     creado_por = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='capacitaciones_creadas')
-    documento_adjunto = models.FileField(upload_to='reuniones/', null=True, blank=True)
+    documento_adjunto = models.FileField(upload_to=SecureFilePath('reuniones/'), null=True, blank=True, validators=[validar_extension_archivo])
     creado_en = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -353,7 +354,7 @@ class Mantenimiento(models.Model):
 
 class ArchivoMantenimiento(models.Model):
     mantenimiento = models.ForeignKey(Mantenimiento, related_name='archivos', on_delete=models.CASCADE)
-    archivo = models.FileField(upload_to='mantenimientos_archivos/')
+    archivo = models.FileField(upload_to=SecureFilePath('mantenimientos_archivos/'), validators=[validar_extension_archivo])
     subido_en = models.DateTimeField(auto_now_add=True)
 
 class Vehiculo(models.Model):
@@ -464,7 +465,7 @@ class CajaChica(models.Model):
     descripcion = models.CharField(max_length=255)
     responsable = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
     compania = models.ForeignKey(Compania, on_delete=models.CASCADE, null=True, blank=True, related_name='movimientos_caja')
-    documento_adjunto = models.FileField(upload_to='caja_chica/', null=True, blank=True)
+    documento_adjunto = models.FileField(upload_to=SecureFilePath('caja_chica/'), null=True, blank=True, validators=[validar_extension_archivo])
 
     class Meta:
         ordering = ['-fecha']
@@ -491,6 +492,7 @@ class PasswordResetCode(models.Model):
     codigo = models.CharField(max_length=6)
     creado_en = models.DateTimeField(auto_now_add=True)
     usado = models.BooleanField(default=False)
+    intentos = models.PositiveIntegerField(default=0)
 
     def is_valid(self):
         from django.utils import timezone
@@ -499,4 +501,4 @@ class PasswordResetCode(models.Model):
         creado_en_aware = self.creado_en
         if timezone.is_naive(self.creado_en):
             creado_en_aware = timezone.make_aware(self.creado_en, timezone.get_current_timezone())
-        return not self.usado and (now - creado_en_aware) < datetime.timedelta(minutes=15)
+        return not self.usado and self.intentos < 5 and (now - creado_en_aware) < datetime.timedelta(minutes=15)
