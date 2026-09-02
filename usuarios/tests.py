@@ -122,3 +122,20 @@ class SecurityTestCase(TestCase):
         
         # Debe bloquear y redirigir
         self.assertEqual(response.status_code, 302)
+
+    def test_validacion_y_formateo_rut_chileno(self):
+        """Verifica la validación Módulo 11 y el formateo de RUT chileno."""
+        from usuarios.validators import validar_rut, formatear_rut
+        
+        # RUTs válidos
+        self.assertTrue(validar_rut("12.345.678-5"))
+        self.assertTrue(validar_rut("123456785"))
+        self.assertTrue(validar_rut("11.111.111-1"))
+        
+        # RUTs inválidos
+        self.assertFalse(validar_rut("12.345.678-9"))
+        self.assertFalse(validar_rut("abc"))
+        
+        # Formateo automático
+        self.assertEqual(formatear_rut("123456785"), "12.345.678-5")
+

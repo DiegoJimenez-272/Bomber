@@ -1,4 +1,5 @@
 import os
+import re
 import uuid
 from django.core.exceptions import ValidationError
 from django.utils.deconstruct import deconstructible
@@ -20,6 +21,67 @@ MAGIC_SIGNATURES = {
     '.xlsx': [b'PK\x03\x04'],
     '.pptx': [b'PK\x03\x04'],
 }
+
+def validar_rut(rut: str) -> bool:
+    """
+    Valida un RUT chileno aplicando el algoritmo oficial del Módulo 11.
+    Acepta cualquier formato (con o sin puntos, guiones o espacios).
+    """
+    if not isinstance(rut, str):
+        return False
+
+    rut_limpio = re.sub(r'[^0-9kK]', '', rut).upper()
+
+    if len(rut_limpio) < 2 or len(rut_limpio) > 10:
+        return False
+
+    cuerpo = rut_limpio[:-1]
+    dv_ingresado = rut_limpio[-1]
+
+    if not cuerpo.isdigit():
+        return False
+
+    suma = 0
+    multiplicador = 2
+
+    for digito in reversed(cuerpo):
+        suma += int(digito) * multiplicador
+        multiplicador = 2 if multiplicador == 7 else multiplicador + 1
+
+    resto = 11 - (suma % 11)
+
+    if resto == 11:
+        dv_calculado = '0'
+    elif resto == 10:
+        dv_calculado = 'K'
+    else:
+        dv_calculado = str(resto)
+
+    return dv_calculado == dv_ingresado
+
+
+def formatear_rut(rut: str) -> str:
+    """
+    Formatea un RUT al estándar chileno: XX.XXX.XXX-X
+    """
+    if not rut:
+        return rut
+    rut_limpio = re.sub(r'[^0-9kK]', '', str(rut)).upper()
+    if len(rut_limpio) < 2:
+        return rut
+    cuerpo = rut_limpio[:-1]
+    dv = rut_limpio[-1]
+    cuerpo_formateado = f"{int(cuerpo):,}".replace(",", ".")
+    return f"{cuerpo_formateado}-{dv}"
+
+
+def validar_rut_chileno(value):
+    """
+    Validador nativo de Django para verificar el RUT chileno.
+    """
+    if value and not validar_rut(value):
+        raise ValidationError("El RUT ingresado no es válido. Revisa el número y el dígito verificador.")
+
 
 def validar_extension_archivo(value):
     ext = os.path.splitext(value.name)[1].lower()
