@@ -1,4 +1,5 @@
 {% extends 'base_con_condicion.html' %}
+{% load humanize %}
 
 {% block title %}Mantenimiento Vehicular - {{ block.super }}{% endblock %}
 
@@ -95,7 +96,7 @@
                             <td>{{ mant.fecha|date:"d/m/Y" }}</td>
                             <td>{{ mant.fecha_resolucion|date:"d/m/Y"|default:"-" }}</td>
                             <td>{{ mant.descripcion|truncatewords:10 }}</td>
-                            <td>${{ mant.costo|floatformat:0 }}</td>
+                            <td>${{ mant.costo|floatformat:0|intcomma }}</td>
                             <td>{{ mant.responsable.get_full_name|default:"N/A" }}</td>
                             <td>
                                 {% if mant.estado == 'Finalizado' %}

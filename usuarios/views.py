@@ -2446,24 +2446,14 @@ def perfil_view(request):
                 return redirect('perfil')
             else:
                 messages.error(request, 'Por favor, corrige los errores al actualizar el perfil.')
-        
-        elif 'change_password' in request.POST:
-            password_form = PasswordChangeForm(user, request.POST)
-            if password_form.is_valid():
-                user = password_form.save()
-                update_session_auth_hash(request, user)  # Importante para mantener al usuario logueado
-                messages.success(request, 'Tu contraseña ha sido cambiada exitosamente.')
-                return redirect('perfil')
-            else:
-                messages.error(request, 'Error al cambiar la contraseña. Por favor, revisa los errores.')
+
 
     capacitaciones_asistidas = user.capacitaciones_asistidas.all()
     equipos_asignados = user.inventario_asignado.all()
     
     context = {
-        'perfil_form': perfil_form, 
-        'password_form': password_form, 
-        'user': user, 
+        'perfil_form': perfil_form,
+'user': user, 
         'capacitaciones_asistidas': capacitaciones_asistidas,
         'equipos_asignados': equipos_asignados
     }
