@@ -24,6 +24,10 @@ import openpyxl
 from reportlab.lib.units import inch
 from .forms import RegistroForm, LoginForm, ProyectoForm, ArchivoProyectoForm, DocumentoForm, CarpetaForm, SalidaTerrenoForm, EmergenciaForm, PerfilForm, PasswordChangeForm, CapacitacionForm, MantenimientoForm, ArchivoMantenimientoForm, InventarioForm, CajaChicaForm, AdminUserCreationForm, AdminUserChangeForm, RolForm, CompaniaForm, InventarioEditForm, InventarioGroupEditForm, AvisoForm, PasswordResetRequestForm, PasswordResetVerifyForm, PasswordResetNewPasswordForm, VehiculoForm, ReunionForm
 from .models import Rol, Compania, Proyecto, ArchivoProyecto, Documento, Carpeta, SalidaTerreno, Emergencia, Usuario, Capacitacion, Mantenimiento, ArchivoMantenimiento, Inventario, CajaChica, Notificacion, Aviso, AvisoDestinatario, PasswordResetCode, Vehiculo
+from .decorators import admin_required, permiso_requerido, pertenencia_compania
+import logging
+
+logger = logging.getLogger('usuarios')
 
 def registro_view(request):
     if request.method == 'POST':
@@ -899,7 +903,37 @@ def documentos_view(request):
     return render(request, 'usuarios/documentos.html', context)
 
 @login_required
+def documento_descargar_view(request, doc_id):
+    documento = get_object_or_404(Documento, id=doc_id)
+    
+    # 1. Verificación de compañía
+    if not pertenencia_compania(request.user, documento.compania):
+        messages.error(request, 'No tienes acceso a los documentos de esta compañía.')
+        return redirect('documentos')
+        
+    # 2. Verificación si el documento es de inspectores
+    if documento.es_de_inspector:
+        if not (request.user.is_superuser or (request.user.rol and request.user.rol.ver_inspectores)):
+            messages.error(request, 'No tienes permiso para ver documentos de inspectores.')
+            return redirect('dashboard')
+            
+    # 3. Verificación de documento privado
+    if documento.es_privado and documento.subido_por != request.user and not request.user.is_superuser:
+        messages.error(request, 'Este documento es privado.')
+        return redirect('documentos')
+
+    if not documento.archivo_existe:
+        messages.error(request, 'El archivo solicitado no se encuentra físicamente en el servidor.')
+        return redirect('documentos')
+
+    from django.http import FileResponse
+    response = FileResponse(documento.archivo.open('rb'))
+    response['Content-Disposition'] = f'inline; filename="{documento.nombre}"'
+    return response
+
+@login_required
 def documento_delete_view(request, doc_id):
+
     documento = get_object_or_404(Documento, id=doc_id)
     is_inspector = documento.es_de_inspector
     
@@ -911,6 +945,10 @@ def documento_delete_view(request, doc_id):
         if not request.user.is_superuser and not (request.user.rol and request.user.rol.editar_documentacion):
             messages.error(request, 'No tienes permiso para eliminar este documento.')
             return redirect('documentos')
+
+    if not pertenencia_compania(request.user, documento.compania):
+        messages.error(request, 'No tienes acceso a documentos de esta compañía.')
+        return redirect('inspectores' if is_inspector else 'documentos')
 
     if request.method == 'POST':
         doc_name = documento.nombre
@@ -932,6 +970,10 @@ def carpeta_delete_view(request, carpeta_id):
         if not request.user.is_superuser and not (request.user.rol and request.user.rol.editar_documentacion):
             messages.error(request, 'No tienes permiso para eliminar carpetas.')
             return redirect('documentos')
+
+    if not pertenencia_compania(request.user, carpeta.compania):
+        messages.error(request, 'No tienes acceso a carpetas de esta compañía.')
+        return redirect('inspectores' if is_inspector else 'documentos')
 
     if request.method == 'POST':
         nombre = carpeta.nombre
@@ -1099,6 +1141,9 @@ def inventario_edit_view(request, item_id):
     if not request.user.is_superuser and not (request.user.rol and request.user.rol.editar_inventario):
         messages.error(request, 'No tienes permiso para editar este ítem.')
         return redirect('inventario')
+    if not pertenencia_compania(request.user, item.compania):
+        messages.error(request, 'No tienes acceso al inventario de esta compañía.')
+        return redirect('inventario')
 
     if request.method == 'POST':
         # Usamos un formulario sin el campo 'cantidad' para la edición
@@ -1115,6 +1160,9 @@ def inventario_delete_view(request, item_id):
     item = get_object_or_404(Inventario, id=item_id)
     if not request.user.is_superuser and not (request.user.rol and request.user.rol.editar_inventario):
         messages.error(request, 'No tienes permiso para eliminar este ítem.')
+        return redirect('inventario')
+    if not pertenencia_compania(request.user, item.compania):
+        messages.error(request, 'No tienes acceso al inventario de esta compañía.')
         return redirect('inventario')
 
     if request.method == 'POST':
@@ -1147,6 +1195,9 @@ def vehiculo_edit_view(request, vehiculo_id):
     if not request.user.is_superuser and not (request.user.rol and request.user.rol.editar_inventario):
         messages.error(request, 'No tienes permiso para realizar esta acción.')
         return redirect('inventario')
+    if not pertenencia_compania(request.user, vehiculo.compania):
+        messages.error(request, 'No tienes acceso a carros de esta compañía.')
+        return redirect('inventario')
 
     if request.method == 'POST':
         form = VehiculoForm(request.POST, instance=vehiculo, user=request.user)
@@ -1165,6 +1216,9 @@ def vehiculo_delete_view(request, vehiculo_id):
     vehiculo = get_object_or_404(Vehiculo, id=vehiculo_id)
     if not request.user.is_superuser and not (request.user.rol and request.user.rol.editar_inventario):
         messages.error(request, 'No tienes permiso para realizar esta acción.')
+        return redirect('inventario')
+    if not pertenencia_compania(request.user, vehiculo.compania):
+        messages.error(request, 'No tienes acceso a carros de esta compañía.')
         return redirect('inventario')
 
     if request.method == 'POST':
@@ -2037,6 +2091,9 @@ def caja_chica_edit_view(request, movimiento_id):
     if not request.user.is_superuser and not (request.user.rol and request.user.rol.editar_caja_chica):
         messages.error(request, 'No tienes permiso para editar este movimiento.')
         return redirect('caja_chica')
+    if not pertenencia_compania(request.user, movimiento.compania):
+        messages.error(request, 'No tienes acceso a la caja chica de esta compañía.')
+        return redirect('caja_chica')
 
     if request.method == 'POST':
         form = CajaChicaForm(request.POST, request.FILES, instance=movimiento, user=request.user)
@@ -2052,6 +2109,9 @@ def caja_chica_delete_view(request, movimiento_id):
     movimiento = get_object_or_404(CajaChica, id=movimiento_id)
     if not request.user.is_superuser and not (request.user.rol and request.user.rol.editar_caja_chica):
         messages.error(request, 'No tienes permiso para eliminar este movimiento.')
+        return redirect('caja_chica')
+    if not pertenencia_compania(request.user, movimiento.compania):
+        messages.error(request, 'No tienes acceso a la caja chica de esta compañía.')
         return redirect('caja_chica')
     if request.method == 'POST':
         movimiento_desc = movimiento.descripcion
@@ -2108,7 +2168,7 @@ def administracion_view(request):
     }
     return render(request, 'usuarios/administracion.html', context)
 
-@login_required
+@admin_required
 def user_create_view(request):
     if not request.user.is_superuser:
         messages.error(request, 'Acción no permitida.')
@@ -2148,7 +2208,7 @@ def user_create_view(request):
             return render(request, 'usuarios/administracion.html', context)
     return redirect('administracion')
 
-@login_required
+@admin_required
 def user_edit_view(request, user_id):
     if not request.user.is_superuser:
         messages.error(request, 'Acción no permitida.')
@@ -2192,7 +2252,7 @@ def user_edit_view(request, user_id):
 
     return redirect('administracion')
 
-@login_required
+@admin_required
 def user_approve_view(request, user_id):
     if not request.user.is_superuser:
         messages.error(request, 'Acción no permitida.')
@@ -2212,7 +2272,7 @@ def user_approve_view(request, user_id):
         messages.success(request, f'Usuario "{user_to_approve.get_full_name()}" ha sido aprobado y ahora puede iniciar sesión.')
     return redirect('administracion')
 
-@login_required
+@admin_required
 def user_delete_view(request, user_id):
     if request.method == 'POST' and request.user.is_superuser:
         user_to_delete = get_object_or_404(Usuario, id=user_id)
@@ -2227,7 +2287,7 @@ def user_delete_view(request, user_id):
         user_to_delete.delete()
     return redirect('administracion')
 
-@login_required
+@admin_required
 def rol_create_view(request):
     if not request.user.is_superuser:
         messages.error(request, 'Acción no permitida.')
@@ -2242,7 +2302,7 @@ def rol_create_view(request):
             messages.error(request, f'Error al crear el rol: {form.errors.as_text()}')
     return redirect('administracion')
 
-@login_required
+@admin_required
 def rol_edit_view(request, rol_id):
     if not request.user.is_superuser:
         messages.error(request, 'Acción no permitida.')
@@ -2258,7 +2318,7 @@ def rol_edit_view(request, rol_id):
             messages.error(request, f'Error al actualizar el rol: {form.errors.as_text()}')
     return redirect('administracion')
 
-@login_required
+@admin_required
 def rol_delete_view(request, rol_id):
     if request.method == 'POST' and request.user.is_superuser:
         rol = get_object_or_404(Rol, id=rol_id)
@@ -2311,7 +2371,7 @@ def aviso_leer_view(request, destinatario_id):
         
     return render(request, 'usuarios/aviso_leer.html', {'aviso': destinatario.aviso})
 
-@login_required
+@admin_required
 def compania_create_view(request):
     if not request.user.is_superuser:
         messages.error(request, 'Acción no permitida.')
@@ -2347,7 +2407,7 @@ def compania_create_view(request):
             messages.error(request, f'Error al crear la compañía: {form.errors.as_text()}')
     return redirect('administracion')
 
-@login_required
+@admin_required
 def compania_edit_view(request, compania_id):
     if not request.user.is_superuser:
         messages.error(request, 'Acción no permitida.')
@@ -2363,7 +2423,7 @@ def compania_edit_view(request, compania_id):
             messages.error(request, f'Error al actualizar la compañía: {form.errors.as_text()}')
     return redirect('administracion')
 
-@login_required
+@admin_required
 def compania_delete_view(request, compania_id):
     if request.method == 'POST' and request.user.is_superuser:
         compania = get_object_or_404(Compania, id=compania_id)
@@ -2500,15 +2560,14 @@ def password_reset_request_view(request):
                         fail_silently=False,
                         html_message=html_message,
                     )
-                    request.session['reset_email'] = email
-                    messages.success(request, 'Se ha enviado un código de verificación a tu correo.')
-                    return redirect('password_reset_verify')
                 except Exception as e:
-                    print(f"Error SMTP: {str(e)}")
-                    messages.error(request, f'Error al enviar el correo. Detalle técnico: {str(e)}')
-            else:
-                # Por seguridad y evitar spam, indicamos esto genéricamente
-                messages.error(request, 'No existe un usuario con ese correo electrónico registrado.')
+                    logger.error(f"Error al enviar correo de recuperación a {email}: {str(e)}")
+            
+            # Respuesta uniforme anti-enumeraciones (OWASP A07)
+            request.session['reset_email'] = email
+            request.session['reset_attempts'] = 0
+            messages.success(request, 'Si el correo ingresado se encuentra registrado, recibirás un código de verificación de 6 dígitos.')
+            return redirect('password_reset_verify')
     else:
         form = PasswordResetRequestForm()
     return render(request, 'usuarios/password_reset_request.html', {'form': form})
@@ -2524,23 +2583,41 @@ def password_reset_verify_view(request):
             try:
                 codigo = form.cleaned_data['codigo']
                 user = Usuario.objects.filter(email=email).first()
-                reset_code = PasswordResetCode.objects.filter(usuario=user, codigo=codigo, usado=False).last()
                 
-                if reset_code and reset_code.is_valid():
+                # Obtener el último código activo registrado en base de datos para este usuario
+                reset_code = PasswordResetCode.objects.filter(usuario=user, usado=False).last() if user else None
+                
+                if not reset_code:
+                    request.session.pop('reset_email', None)
+                    messages.error(request, 'No hay un código activo. Por favor solicita uno nuevo.')
+                    return redirect('password_reset_request')
+
+                # Incrementar contador persistido en BD (Inmune a manipulación de cookies)
+                reset_code.intentos += 1
+                reset_code.save(update_fields=['intentos'])
+
+                if reset_code.intentos > 5:
                     reset_code.usado = True
-                    reset_code.save()
+                    reset_code.save(update_fields=['usado'])
+                    request.session.pop('reset_email', None)
+                    messages.error(request, 'Has superado el número máximo de 5 intentos fallidos para este código. Solicita uno nuevo por seguridad.')
+                    return redirect('password_reset_request')
+
+                if reset_code.codigo == codigo and reset_code.is_valid():
+                    reset_code.usado = True
+                    reset_code.save(update_fields=['usado'])
                     request.session['reset_verified'] = True
                     messages.success(request, 'Código verificado correctamente.')
                     return redirect('password_reset_new_password')
                 else:
-                    messages.error(request, 'El código es inválido o ha expirado.')
+                    messages.error(request, f'El código ingresado es incorrecto o expiró. (Intento {reset_code.intentos} de 5)')
             except Exception as e:
-                import traceback
-                print(traceback.format_exc())
-                messages.error(request, f'Error interno detallado: {str(e)} | Tipo: {type(e).__name__}')
+                logger.error(f"Error al verificar código de recuperación: {str(e)}")
+                messages.error(request, 'Ocurrió un error al procesar tu solicitud. Inténtalo nuevamente.')
     else:
         form = PasswordResetVerifyForm()
     return render(request, 'usuarios/password_reset_verify.html', {'form': form})
+
 
 def password_reset_new_password_view(request):
     email = request.session.get('reset_email')
@@ -2556,14 +2633,16 @@ def password_reset_new_password_view(request):
             if user:
                 user.set_password(form.cleaned_data['password'])
                 user.save()
-                del request.session['reset_email']
-                del request.session['reset_verified']
+                request.session.pop('reset_email', None)
+                request.session.pop('reset_verified', None)
+                request.session.pop('reset_attempts', None)
                 messages.success(request, 'Tu contraseña ha sido cambiada exitosamente. Ahora puedes iniciar sesión.')
                 return redirect('login')
     else:
         form = PasswordResetNewPasswordForm()
         
     return render(request, 'usuarios/password_reset_new_password.html', {'form': form})
+
 
 @login_required
 def inspectores_view(request):

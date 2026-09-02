@@ -5,3 +5,5 @@ media/
 .vscode/
 venv/
 env/
+.env
+*.env
