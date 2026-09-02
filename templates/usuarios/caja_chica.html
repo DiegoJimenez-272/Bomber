@@ -51,7 +51,7 @@
             <div class="card shadow-sm d-inline-block text-center px-4 py-2 border-0 bg-light">
                 <h6 class="card-title force-black-text mb-1 text-uppercase small">Saldo Actual: {{ nombre_caja }}</h6>
                 <p class="card-text fs-3 fw-bold mb-0 {% if saldo_actual < 0 %}text-danger{% else %}text-success{% endif %}">
-                    ${{ saldo_actual|floatformat:2 }}
+                    ${{ saldo_actual|floatformat:0 }}
                 </p>
             </div>
         </div>
@@ -112,7 +112,7 @@
                             </td>
                             <td>{{ mov.descripcion }}</td>
                             <td class="fw-bold {% if mov.tipo == 'Ingreso' %}text-success{% else %}text-danger{% endif %}">
-                                {% if mov.tipo == 'Ingreso' %}+{% else %}-{% endif %} ${{ mov.monto|floatformat:2 }}
+                                {% if mov.tipo == 'Ingreso' %}+{% else %}-{% endif %} ${{ mov.monto|floatformat:0 }}
                             </td>
                             <td>{{ mov.responsable.get_full_name|default:"N/A" }}</td>
                             {% if request.user.is_superuser %}
@@ -135,7 +135,7 @@
                                             data-bs-target="#editMovimientoModal"
                                             data-mov-id="{{ mov.id }}"
                                             data-mov-tipo="{{ mov.tipo }}"
-                                            data-mov-monto="{{ mov.monto|floatformat:'-2' }}"
+                                            data-mov-monto="{{ mov.monto|floatformat:0 }}"
                                             data-mov-descripcion="{{ mov.descripcion }}"
                                             data-mov-compania="{{ mov.compania.id|default:'' }}">
                                         <i class="bi bi-pencil-fill"></i>
