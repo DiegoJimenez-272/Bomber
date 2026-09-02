@@ -1,3 +1,4 @@
+{% load humanize %}
 <div class="card project-card mb-3">
     <div class="card-body p-4">
         <div class="d-flex justify-content-between align-items-start">
@@ -13,7 +14,7 @@
                     <div class="col-auto"><i class="bi bi-person-fill me-1"></i>{{ proyecto.responsable.get_full_name|default:"No asignado" }}</div>
                     <div class="col-auto"><i class="bi bi-tag-fill me-1"></i>{{ proyecto.tipo }}</div>
                     {% if proyecto.presupuesto %}
-                    <div class="col-auto"><i class="bi bi-cash-stack me-1"></i>${{ proyecto.presupuesto|floatformat:0 }}</div>
+                    <div class="col-auto"><i class="bi bi-cash-stack me-1"></i>${{ proyecto.presupuesto|floatformat:0|intcomma }}</div>
                     {% endif %}
                 </div>
             </div>

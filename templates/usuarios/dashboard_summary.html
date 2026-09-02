@@ -472,7 +472,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 document.getElementById('chart-flujo-titulo').textContent = 'Flujo de Caja: ' + data.nombre_caja;
                 
                 // Formatear Monto
-                let formatter = new Intl.NumberFormat('es-CL', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+                let formatter = new Intl.NumberFormat('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
                 const saldoFormat = formatter.format(data.saldo_caja_chica);
                 
                 const montoSpan = document.getElementById('kpi-saldo-monto');
