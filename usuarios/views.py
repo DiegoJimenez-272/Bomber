@@ -792,7 +792,7 @@ def documentos_view(request):
                 messages.success(request, f'Carpeta "{carpeta.nombre}" creada exitosamente.')
                 return redirect('documentos')
             else:
-                messages.error(request, 'Error al crear la carpeta. Revisa el formulario.')
+                messages.error(request, f'Error al crear la carpeta: {carpeta_form.errors.as_text()}')
         else:
             form = DocumentoForm(request.POST, request.FILES, user=request.user)
             if form.is_valid():
@@ -807,7 +807,7 @@ def documentos_view(request):
                 messages.success(request, f'Documento "{documento.nombre}" subido exitosamente.')
                 return redirect('documentos')
             else:
-                messages.error(request, 'Error al subir el documento. Revisa el formulario.')
+                messages.error(request, f'Error al subir el documento: {form.errors.as_text()}')
     else:
         form = DocumentoForm(user=request.user)
     
@@ -2728,7 +2728,7 @@ def inspectores_view(request):
                 messages.success(request, f'Carpeta "{carpeta.nombre}" creada exitosamente.')
                 return redirect('inspectores')
             else:
-                messages.error(request, 'Error al crear la carpeta. Revisa el formulario.')
+                messages.error(request, f'Error al crear la carpeta: {carpeta_form.errors.as_text()}')
         else:
             form = InspectorDocumentoForm(request.POST, request.FILES, user=request.user)
             if form.is_valid():
@@ -2740,7 +2740,7 @@ def inspectores_view(request):
                 messages.success(request, f'Documento "{documento.nombre}" subido exitosamente.')
                 return redirect('inspectores')
             else:
-                messages.error(request, 'Error al subir el documento. Revisa el formulario.')
+                messages.error(request, f'Error al subir el documento: {form.errors.as_text()}')
     else:
         form = InspectorDocumentoForm(user=request.user)
     
