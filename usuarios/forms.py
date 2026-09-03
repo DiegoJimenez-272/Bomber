@@ -1,8 +1,10 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm, PasswordChangeForm as AuthPasswordChangeForm
-from django.db.models import Sum, Case, When, DecimalField, F
+from django.db import models
+from django.db.models import Sum, Case, When, DecimalField, F, Q
 from .models import Usuario, Compania, Rol, Proyecto, Documento, Carpeta, SalidaTerreno, Emergencia, Capacitacion, Mantenimiento, Inventario, CajaChica, Aviso, PasswordResetCode, Vehiculo
 from .validators import validar_rut_chileno, formatear_rut
+
 
 class RegistroForm(UserCreationForm):
     email = forms.EmailField(

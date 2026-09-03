@@ -145,4 +145,11 @@ class SecurityTestCase(TestCase):
         # Formateo automático
         self.assertEqual(formatear_rut("123456785"), "12.345.678-5")
 
+    def test_inspector_documento_form_instantiation(self):
+        """Verifica que InspectorDocumentoForm no lance NameError por faltante de models.Q."""
+        from usuarios.forms import InspectorDocumentoForm
+        form = InspectorDocumentoForm(user=self.user_normal)
+        self.assertIsNotNone(form)
+
+
 
