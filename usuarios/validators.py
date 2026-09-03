@@ -22,25 +22,50 @@ MAGIC_SIGNATURES = {
     '.pptx': [b'PK\x03\x04'],
 }
 
-def validar_rut(rut: str) -> bool:
+RUTS_PRUEBA_CONOCIDOS = {
+    '111111111', '222222222', '333333333', '444444444',
+    '555555555', '666666666', '777777777', '888888888',
+    '999999999', '000000000', '876543210'
+}
+
+
+def es_rut_persona_natural_valido(rut: str) -> tuple[bool, str]:
     """
-    Valida un RUT chileno aplicando el algoritmo oficial del Módulo 11.
-    Acepta cualquier formato (con o sin puntos, guiones o espacios).
+    Valida de forma exhaustiva que un RUT corresponda a una persona natural real:
+    1. Verifica que no corresponda a secuencias repetitivas ni RUTs de prueba conocidos.
+    2. Aplica filtro de rangos lógicos para personas naturales en Chile (1.000.000 a 50.000.000).
+    3. Valida el dígito verificador mediante el algoritmo del Módulo 11.
+    Retorna una tupla (es_valido, mensaje_error).
     """
     if not isinstance(rut, str):
-        return False
+        return False, "El RUT ingresado no es válido."
 
     rut_limpio = re.sub(r'[^0-9kK]', '', rut).upper()
 
     if len(rut_limpio) < 2 or len(rut_limpio) > 10:
-        return False
+        return False, "El RUT ingresado no tiene un largo válido."
 
     cuerpo = rut_limpio[:-1]
     dv_ingresado = rut_limpio[-1]
 
     if not cuerpo.isdigit():
-        return False
+        return False, "El cuerpo del RUT debe contener únicamente números."
 
+    # 1. Detección de RUTs de prueba y secuencias de dígitos repetidos
+    if len(set(cuerpo)) == 1:
+        return False, "No se permiten RUTs de prueba formados por un solo dígito repetido."
+
+    if rut_limpio in RUTS_PRUEBA_CONOCIDOS:
+        return False, "El RUT ingresado corresponde a un número de prueba no permitido."
+
+    # 2. Filtro de rangos lógicos para personas naturales
+    cuerpo_num = int(cuerpo)
+    if cuerpo_num < 1_000_000:
+        return False, "El RUT ingresado es inferior al rango mínimo de personas naturales."
+    if cuerpo_num > 50_000_000:
+        return False, "El RUT ingresado corresponde a una persona jurídica o empresa (serie 50M+), no a una persona natural."
+
+    # 3. Algoritmo Módulo 11
     suma = 0
     multiplicador = 2
 
@@ -57,7 +82,18 @@ def validar_rut(rut: str) -> bool:
     else:
         dv_calculado = str(resto)
 
-    return dv_calculado == dv_ingresado
+    if dv_calculado != dv_ingresado:
+        return False, "El RUT ingresado no es válido. Revisa el número y el dígito verificador."
+
+    return True, ""
+
+
+def validar_rut(rut: str) -> bool:
+    """
+    Función booleana de verificación de RUT.
+    """
+    es_valido, _ = es_rut_persona_natural_valido(rut)
+    return es_valido
 
 
 def formatear_rut(rut: str) -> str:
@@ -77,10 +113,12 @@ def formatear_rut(rut: str) -> str:
 
 def validar_rut_chileno(value):
     """
-    Validador nativo de Django para verificar el RUT chileno.
+    Validador nativo de Django para verificar el RUT chileno con mensajes específicos.
     """
-    if value and not validar_rut(value):
-        raise ValidationError("El RUT ingresado no es válido. Revisa el número y el dígito verificador.")
+    if value:
+        es_valido, msg = es_rut_persona_natural_valido(value)
+        if not es_valido:
+            raise ValidationError(msg)
 
 
 def validar_extension_archivo(value):
