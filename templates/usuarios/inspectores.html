@@ -201,7 +201,7 @@
                                         <i class="bi bi-download"></i>
                                     </a>
                                     {% if request.user.is_superuser or request.user.rol.editar_inspectores %}
-                                        <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteDocumentModal" data-doc-url="{% url 'inspectores' doc.id %}" data-doc-name="{{ doc.nombre }}" title="Eliminar">
+                                        <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteDocumentModal" data-doc-url="{% url 'documento_delete' doc.id %}" data-doc-name="{{ doc.nombre }}" title="Eliminar">
                                             <i class="bi bi-trash-fill"></i>
                                         </button>
                                     {% endif %}
@@ -215,7 +215,7 @@
                             </td>
                             <td>
                                 {% if request.user.is_superuser or request.user.rol.editar_inspectores %}
-                                <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteDocumentModal" data-doc-url="{% url 'inspectores' doc.id %}" data-doc-name="{{ doc.nombre }}" title="Eliminar registro de la base de datos">
+                                <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteDocumentModal" data-doc-url="{% url 'documento_delete' doc.id %}" data-doc-name="{{ doc.nombre }}" title="Eliminar registro de la base de datos">
                                     <i class="bi bi-trash-fill"></i> Eliminar Registro
                                 </button>
                                 {% endif %}

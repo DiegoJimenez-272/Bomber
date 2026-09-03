@@ -938,7 +938,7 @@ def documento_delete_view(request, doc_id):
     is_inspector = documento.es_de_inspector
     
     if is_inspector:
-        if not (hasattr(request.user, 'rol') and request.user.rol and request.user.rol.editar_inspectores):
+        if not (request.user.is_superuser or (hasattr(request.user, 'rol') and request.user.rol and request.user.rol.editar_inspectores)):
             messages.error(request, 'No tienes permiso para eliminar documentos de inspectores.')
             return redirect('inspectores')
     else:
@@ -963,7 +963,7 @@ def carpeta_delete_view(request, carpeta_id):
     is_inspector = carpeta.es_de_inspector
 
     if is_inspector:
-        if not (hasattr(request.user, 'rol') and request.user.rol and request.user.rol.editar_inspectores):
+        if not (request.user.is_superuser or (hasattr(request.user, 'rol') and request.user.rol and request.user.rol.editar_inspectores)):
             messages.error(request, 'No tienes permiso para eliminar carpetas de inspectores.')
             return redirect('inspectores')
     else:
