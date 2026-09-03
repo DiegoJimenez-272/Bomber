@@ -2647,12 +2647,12 @@ def password_reset_new_password_view(request):
 @login_required
 def inspectores_view(request):
     from .forms import InspectorDocumentoForm, InspectorCarpetaForm
-    if not (hasattr(request.user, 'rol') and request.user.rol and request.user.rol.ver_inspectores):
+    if not (request.user.is_superuser or (hasattr(request.user, 'rol') and request.user.rol and request.user.rol.ver_inspectores)):
         messages.error(request, 'No tienes permiso para acceder a Inspectores.')
         return redirect('dashboard')
 
     if request.method == 'POST':
-        if not (hasattr(request.user, 'rol') and request.user.rol and request.user.rol.editar_inspectores):
+        if not (request.user.is_superuser or (hasattr(request.user, 'rol') and request.user.rol and request.user.rol.editar_inspectores)):
             messages.error(request, 'No tienes permiso para modificar documentos de inspectores.')
             return redirect('inspectores')
             
