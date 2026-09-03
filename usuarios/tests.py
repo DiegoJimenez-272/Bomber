@@ -122,3 +122,34 @@ class SecurityTestCase(TestCase):
         
         # Debe bloquear y redirigir
         self.assertEqual(response.status_code, 302)
+
+    def test_validacion_y_formateo_rut_chileno(self):
+        """Verifica la validación Módulo 11, filtro de rangos para personas naturales y bloqueo de patrones repetitivos."""
+        from usuarios.validators import validar_rut, formatear_rut
+        
+        # RUTs válidos de personas naturales
+        self.assertTrue(validar_rut("12.345.678-5"))
+        self.assertTrue(validar_rut("123456785"))
+        
+        # Bloqueo de patrones repetitivos de prueba (ej: 11.111.111-1)
+        self.assertFalse(validar_rut("11.111.111-1"))
+        
+        # Bloqueo de rangos no válidos para persona natural (menor a 1M o mayor a 50M - empresas)
+        self.assertFalse(validar_rut("500.000-1"))       # < 1.000.000
+        self.assertFalse(validar_rut("60.123.456-7"))    # Serie 60M (Persona jurídica/Empresa)
+        
+        # RUTs con DV incorrecto
+        self.assertFalse(validar_rut("12.345.678-9"))
+        self.assertFalse(validar_rut("abc"))
+        
+        # Formateo automático
+        self.assertEqual(formatear_rut("123456785"), "12.345.678-5")
+
+    def test_inspector_documento_form_instantiation(self):
+        """Verifica que InspectorDocumentoForm no lance NameError por faltante de models.Q."""
+        from usuarios.forms import InspectorDocumentoForm
+        form = InspectorDocumentoForm(user=self.user_normal)
+        self.assertIsNotNone(form)
+
+
+

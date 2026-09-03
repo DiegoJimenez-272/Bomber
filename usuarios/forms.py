@@ -1,7 +1,10 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm, PasswordChangeForm as AuthPasswordChangeForm
-from django.db.models import Sum, Case, When, DecimalField, F
+from django.db import models
+from django.db.models import Sum, Case, When, DecimalField, F, Q
 from .models import Usuario, Compania, Rol, Proyecto, Documento, Carpeta, SalidaTerreno, Emergencia, Capacitacion, Mantenimiento, Inventario, CajaChica, Aviso, PasswordResetCode, Vehiculo
+from .validators import validar_rut_chileno, formatear_rut
+
 
 class RegistroForm(UserCreationForm):
     email = forms.EmailField(
@@ -57,6 +60,15 @@ class RegistroForm(UserCreationForm):
         model = Usuario
         fields = ['nombre', 'apellido', 'rut', 'clave_radial', 'email', 'compania', 'foto_perfil', 'password1', 'password2']
     
+    def clean_rut(self):
+        rut = self.cleaned_data.get('rut')
+        if rut:
+            validar_rut_chileno(rut)
+            rut = formatear_rut(rut)
+            if Usuario.objects.filter(rut=rut).exists():
+                raise forms.ValidationError("Este RUT ya se encuentra registrado en el sistema.")
+        return rut
+
     def save(self, commit=True):
         user = super().save(commit=False)
         user.nombre = self.cleaned_data['nombre']
@@ -102,6 +114,15 @@ class AdminUserCreationForm(forms.ModelForm):
     class Meta:
         model = Usuario
         fields = ['nombre', 'apellido', 'rut', 'clave_radial', 'email', 'rol', 'compania', 'is_active', 'is_superuser']
+
+    def clean_rut(self):
+        rut = self.cleaned_data.get('rut')
+        if rut:
+            validar_rut_chileno(rut)
+            rut = formatear_rut(rut)
+            if Usuario.objects.filter(rut=rut).exists():
+                raise forms.ValidationError("Este RUT ya se encuentra registrado en el sistema.")
+        return rut
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

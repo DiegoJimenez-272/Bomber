@@ -8,9 +8,10 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 import datetime
 from django.utils import timezone
-from .validators import validar_extension_archivo, validar_extension_imagen, SecureFilePath
+from .validators import validar_extension_archivo, validar_extension_imagen, SecureFilePath, validar_rut_chileno
 
 class Rol(models.Model):
+
     nombre = models.CharField(max_length=80)
     descripcion = models.TextField(max_length=1200)
     
@@ -70,7 +71,7 @@ class Usuario(AbstractBaseUser, PermissionsMixin):
     nombre = models.CharField(max_length=80)
     apellido = models.CharField(max_length=80)
     email = models.EmailField(unique=True, max_length=80)
-    rut = models.CharField(max_length=12, unique=True, null=True, blank=True, verbose_name='RUT')
+    rut = models.CharField(max_length=15, unique=True, null=True, blank=True, verbose_name='RUT', validators=[validar_rut_chileno])
     clave_radial = models.CharField(max_length=20, null=True, blank=True, verbose_name='Clave Radial')
     rol = models.ForeignKey(Rol, on_delete=models.SET_NULL, null=True, blank=True)
     compania = models.ForeignKey(Compania, on_delete=models.SET_NULL, null=True, blank=True)
