@@ -1577,7 +1577,9 @@ def emergencias_view(request):
         if form.is_valid():
             emergencia = form.save(commit=False)
             emergencia.creado_por = request.user
+            emergencia.registro_completado = 'guardar_incompleto' not in request.POST
             emergencia.save()
+            form.save_m2m()
             messages.success(request, f'Emergencia "{emergencia.get_tipo_display()}" registrada exitosamente.')
             return redirect('emergencias')
         else:
@@ -1633,7 +1635,13 @@ def emergencia_edit_view(request, emergencia_id):
     if request.method == 'POST':
         form = EmergenciaForm(request.POST, request.FILES, instance=emergencia)
         if form.is_valid():
-            form.save()
+            emergencia = form.save(commit=False)
+            if 'guardar_completo' in request.POST:
+                emergencia.registro_completado = True
+            elif 'guardar_incompleto' in request.POST:
+                emergencia.registro_completado = False
+            emergencia.save()
+            form.save_m2m()
             messages.success(request, f'Emergencia "{emergencia.get_tipo_display()}" actualizada exitosamente.')
         else:
             messages.error(request, 'Error al actualizar la emergencia. Revisa el formulario.')
