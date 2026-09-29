@@ -417,87 +417,216 @@
 
     <!-- Pestaña Lista de Abono -->
     <div class="tab-pane fade" id="abono" role="tabpanel" aria-labelledby="abono-tab">
-        <div class="card shadow-sm mt-3">
-            <div class="card-header bg-white d-flex justify-content-between align-items-center py-3 flex-wrap gap-2">
-                <h5 class="mb-0 fw-bold"><i class="bi bi-award-fill me-2 text-primary"></i>Lista de Abono (Asistencias)</h5>
-                <form method="get" class="d-flex align-items-center gap-2 flex-wrap">
+        
+        <!-- Tarjeta de Filtros Moderna -->
+        <div class="card shadow-sm border-0 mb-4 bg-white rounded-3">
+            <div class="card-body p-3">
+                <form method="get" class="row g-2 align-items-end" id="abonoFilterForm">
                     <input type="hidden" name="tab" value="abono">
-                    <select name="compania" class="form-select form-select-sm" style="min-width: 175px;">
-                        <option value="">Todas las Compañías</option>
-                        {% for comp in companias %}
-                        <option value="{{ comp.id }}" {% if compania_filtro == comp.id|stringformat:"s" %}selected{% endif %}>
-                            {{ comp.nombre }}
-                        </option>
-                        {% endfor %}
-                        <option value="sin_compania" {% if compania_filtro == 'sin_compania' %}selected{% endif %}>Sin Compañía</option>
-                    </select>
-                    <input type="date" name="fecha_inicio" class="form-control form-control-sm" value="{{ fecha_inicio_filtro }}" title="Fecha Inicio">
-                    <span>-</span>
-                    <input type="date" name="fecha_fin" class="form-control form-control-sm" value="{{ fecha_fin_filtro }}" title="Fecha Fin">
-                    <button type="submit" class="btn btn-sm btn-danger text-white px-3" title="Filtrar"><i class="bi bi-filter"></i></button>
-                    {% if fecha_inicio_filtro or fecha_fin_filtro or compania_filtro %}
-                    <a href="?tab=abono" class="btn btn-sm btn-outline-secondary" title="Limpiar Filtros"><i class="bi bi-x-circle"></i></a>
-                    {% endif %}
+                    
+                    <!-- Búsqueda en tiempo real -->
+                    <div class="col-12 col-md-6 col-lg-3">
+                        <label class="form-label small fw-semibold text-muted mb-1">
+                            <i class="bi bi-search me-1"></i>Buscar Bombero
+                        </label>
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-text bg-light"><i class="bi bi-search text-muted"></i></span>
+                            <input class="form-control" type="search" id="abonoSearchInput" placeholder="Escribe nombre o RUT...">
+                        </div>
+                    </div>
+
+                    <!-- Filtro por Compañía -->
+                    <div class="col-12 col-md-6 col-lg-3">
+                        <label class="form-label small fw-semibold text-muted mb-1">
+                            <i class="bi bi-building me-1"></i>Compañía
+                        </label>
+                        <select name="compania" class="form-select form-select-sm" onchange="this.form.submit()">
+                            <option value="">Todas las Compañías</option>
+                            {% for comp in companias %}
+                            <option value="{{ comp.id }}" {% if compania_filtro == comp.id|stringformat:"s" %}selected{% endif %}>
+                                {{ comp.nombre }}
+                            </option>
+                            {% endfor %}
+                            <option value="sin_compania" {% if compania_filtro == 'sin_compania' %}selected{% endif %}>Sin Compañía asignada</option>
+                        </select>
+                    </div>
+
+                    <!-- Rango de Fechas -->
+                    <div class="col-12 col-md-8 col-lg-4">
+                        <label class="form-label small fw-semibold text-muted mb-1">
+                            <i class="bi bi-calendar3 me-1"></i>Periodo (Desde - Hasta)
+                        </label>
+                        <div class="input-group input-group-sm">
+                            <input type="date" name="fecha_inicio" class="form-control" value="{{ fecha_inicio_filtro }}" title="Fecha Inicio">
+                            <span class="input-group-text bg-light text-muted px-2">a</span>
+                            <input type="date" name="fecha_fin" class="form-control" value="{{ fecha_fin_filtro }}" title="Fecha Fin">
+                        </div>
+                    </div>
+
+                    <!-- Botones de Acción -->
+                    <div class="col-12 col-md-4 col-lg-2 d-flex gap-2">
+                        <button type="submit" class="btn btn-sm btn-danger text-white flex-grow-1 shadow-sm d-flex align-items-center justify-content-center gap-1">
+                            <i class="bi bi-funnel-fill"></i>
+                            <span>Filtrar</span>
+                        </button>
+                        {% if fecha_inicio_filtro or fecha_fin_filtro or compania_filtro %}
+                        <a href="?tab=abono" class="btn btn-sm btn-outline-secondary d-flex align-items-center justify-content-center px-2" title="Limpiar todos los filtros">
+                            <i class="bi bi-arrow-counterclockwise"></i>
+                        </a>
+                        {% endif %}
+                    </div>
                 </form>
             </div>
+        </div>
+
+        <!-- Tarjeta con la Tabla de Asistencias -->
+        <div class="card shadow-sm border-0 rounded-3 overflow-hidden">
+            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center flex-wrap gap-2 border-bottom">
+                <div>
+                    <h5 class="mb-0 fw-bold text-dark d-flex align-items-center gap-2">
+                        <i class="bi bi-award-fill text-danger fs-5"></i>
+                        <span>Lista de Abono (Asistencias)</span>
+                    </h5>
+                    <div class="small text-muted mt-1">
+                        {% if fecha_inicio_filtro or fecha_fin_filtro %}
+                            <i class="bi bi-calendar-check me-1"></i>Periodo: 
+                            <span class="fw-semibold text-dark">{{ fecha_inicio_filtro|default:"Inicio" }}</span> al <span class="fw-semibold text-dark">{{ fecha_fin_filtro|default:"Hoy" }}</span>
+                        {% else %}
+                            <i class="bi bi-clock-history me-1"></i>Registro histórico acumulado
+                        {% endif %}
+                        {% if compania_filtro %}
+                            <span class="mx-1">&bull;</span>
+                            <i class="bi bi-building me-1"></i>Compañía: 
+                            <span class="fw-semibold text-dark">
+                                {% for comp in companias %}
+                                    {% if compania_filtro == comp.id|stringformat:"s" %}{{ comp.nombre }}{% endif %}
+                                {% endfor %}
+                                {% if compania_filtro == 'sin_compania' %}Sin Compañía{% endif %}
+                            </span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div>
+                    <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 px-3 py-2 rounded-pill fw-semibold">
+                        <i class="bi bi-people-fill me-1"></i>{{ lista_abono|length }} Bomberos
+                    </span>
+                </div>
+            </div>
+            
             <div class="card-body p-0">
                 <div class="table-responsive">
-                    <table class="table table-hover table-striped align-middle mb-0">
-                        <thead class="table-light">
+                    <table class="table table-hover align-middle mb-0" id="abonoTable">
+                        <thead class="table-light text-uppercase small text-secondary">
                             <tr>
-                                <th>Bombero</th>
-                                <th class="text-center" title="Emergencias">Emergencias</th>
-                                <th class="text-center" title="Cursos">Cursos</th>
-                                <th class="text-center" title="Reuniones">Reuniones</th>
-                                <th class="text-center" title="Talleres">Talleres</th>
-                                <th class="text-center" title="Charlas">Charlas</th>
-                                <th class="text-center" title="Visitas">Visitas</th>
-                                <th class="text-center" title="Otros">Otros</th>
-                                <th class="text-center fw-bold text-primary">Total Abono</th>
+                                <th class="ps-3 py-3" style="min-width: 250px;">Bombero</th>
+                                <th class="text-center py-3" title="Emergencias"><i class="bi bi-fire text-danger me-1"></i>Emergencias</th>
+                                <th class="text-center py-3" title="Cursos"><i class="bi bi-mortarboard-fill text-primary me-1"></i>Cursos</th>
+                                <th class="text-center py-3" title="Reuniones"><i class="bi bi-briefcase-fill text-warning me-1"></i>Reuniones</th>
+                                <th class="text-center py-3" title="Talleres"><i class="bi bi-tools text-secondary me-1"></i>Talleres</th>
+                                <th class="text-center py-3" title="Charlas"><i class="bi bi-chat-dots-fill text-info me-1"></i>Charlas</th>
+                                <th class="text-center py-3" title="Visitas"><i class="bi bi-binoculars-fill text-success me-1"></i>Visitas</th>
+                                <th class="text-center py-3" title="Otros"><i class="bi bi-star-fill text-muted me-1"></i>Otros</th>
+                                <th class="text-center py-3 pe-3 text-danger fw-bold" style="min-width: 110px;">Total Abono</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody id="abonoTableBody">
                             {% for u in lista_abono %}
-                            <tr>
-                                <td>
-                                    <div class="d-flex align-items-center ms-2">
-                                        <div class="bg-secondary rounded-circle text-white d-flex align-items-center justify-content-center me-2" style="width: 32px; height: 32px;">
-                                            {{ u.nombre.0 }}{{ u.apellido.0 }}
+                            <tr class="abono-row" data-nombre="{{ u.get_full_name|lower }}" data-rut="{{ u.rut|default:''|lower }}">
+                                <td class="ps-3">
+                                    <div class="d-flex align-items-center">
+                                        <div class="text-white rounded-circle d-flex align-items-center justify-content-center me-3 shadow-sm fw-bold" 
+                                             style="width: 38px; height: 38px; background-color: #6c757d; font-size: 0.85rem; flex-shrink: 0;">
+                                            {{ u.nombre.0|upper }}{{ u.apellido.0|upper }}
                                         </div>
                                         <div>
-                                            <div class="fw-bold">{{ u.get_full_name }}</div>
-                                            <div class="small text-muted d-flex align-items-center gap-2">
-                                                <span>{{ u.rut|default:"-" }}</span>
+                                            <div class="fw-bold text-dark">{{ u.get_full_name }}</div>
+                                            <div class="small d-flex align-items-center gap-2 mt-1 flex-wrap">
+                                                <span class="text-muted"><i class="bi bi-person-vcard me-1"></i>{{ u.rut|default:"Sin RUT" }}</span>
                                                 {% if u.compania %}
-                                                <span class="badge bg-light text-dark border">{{ u.compania.nombre }}</span>
+                                                <span class="badge bg-light text-dark border px-2 py-1"><i class="bi bi-shield-fill text-danger me-1"></i>{{ u.compania.nombre }}</span>
                                                 {% else %}
-                                                <span class="badge bg-light text-muted border">Sin Compañía</span>
+                                                <span class="badge bg-light text-muted border px-2 py-1">Sin Compañía</span>
                                                 {% endif %}
                                             </div>
                                         </div>
                                     </div>
                                 </td>
-                                <td class="text-center">{{ u.total_emergencias }}</td>
-                                <td class="text-center">{{ u.total_cursos }}</td>
-                                <td class="text-center">{{ u.total_reuniones }}</td>
-                                <td class="text-center">{{ u.total_talleres }}</td>
-                                <td class="text-center">{{ u.total_charlas }}</td>
-                                <td class="text-center">{{ u.total_visitas }}</td>
-                                <td class="text-center">{{ u.total_otros }}</td>
-                                <td class="text-center fw-bold fs-5 text-primary">{{ u.total_general }}</td>
+                                <td class="text-center">
+                                    {% if u.total_emergencias > 0 %}
+                                    <span class="badge bg-danger bg-opacity-10 text-danger fw-bold px-2 py-1 rounded-pill">{{ u.total_emergencias }}</span>
+                                    {% else %}
+                                    <span class="text-muted opacity-50">0</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-center">
+                                    {% if u.total_cursos > 0 %}
+                                    <span class="badge bg-primary bg-opacity-10 text-primary fw-bold px-2 py-1 rounded-pill">{{ u.total_cursos }}</span>
+                                    {% else %}
+                                    <span class="text-muted opacity-50">0</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-center">
+                                    {% if u.total_reuniones > 0 %}
+                                    <span class="badge bg-warning bg-opacity-10 text-dark fw-bold px-2 py-1 rounded-pill">{{ u.total_reuniones }}</span>
+                                    {% else %}
+                                    <span class="text-muted opacity-50">0</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-center">
+                                    {% if u.total_talleres > 0 %}
+                                    <span class="badge bg-secondary bg-opacity-10 text-secondary fw-bold px-2 py-1 rounded-pill">{{ u.total_talleres }}</span>
+                                    {% else %}
+                                    <span class="text-muted opacity-50">0</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-center">
+                                    {% if u.total_charlas > 0 %}
+                                    <span class="badge bg-info bg-opacity-10 text-dark fw-bold px-2 py-1 rounded-pill">{{ u.total_charlas }}</span>
+                                    {% else %}
+                                    <span class="text-muted opacity-50">0</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-center">
+                                    {% if u.total_visitas > 0 %}
+                                    <span class="badge bg-success bg-opacity-10 text-success fw-bold px-2 py-1 rounded-pill">{{ u.total_visitas }}</span>
+                                    {% else %}
+                                    <span class="text-muted opacity-50">0</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-center">
+                                    {% if u.total_otros > 0 %}
+                                    <span class="badge bg-secondary bg-opacity-10 text-secondary fw-bold px-2 py-1 rounded-pill">{{ u.total_otros }}</span>
+                                    {% else %}
+                                    <span class="text-muted opacity-50">0</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-center pe-3">
+                                    <span class="badge {% if u.total_general > 0 %}bg-danger text-white shadow-sm{% else %}bg-light text-muted border{% endif %} fs-6 px-3 py-1 rounded-pill">
+                                        {{ u.total_general }}
+                                    </span>
+                                </td>
                             </tr>
                             {% empty %}
                             <tr>
-                                <td colspan="9" class="text-center text-muted py-4">No hay bomberos para mostrar con los filtros aplicados.</td>
+                                <td colspan="9" class="text-center text-muted py-5">
+                                    <i class="bi bi-inbox fs-1 d-block mb-2 text-muted opacity-50"></i>
+                                    No hay bomberos activos para mostrar con los filtros aplicados.
+                                </td>
                             </tr>
                             {% endfor %}
+                            <tr id="noAbonoFound" style="display: none;">
+                                <td colspan="9" class="text-center text-muted py-5">
+                                    <i class="bi bi-search fs-1 d-block mb-2 text-muted opacity-50"></i>
+                                    No se encontraron bomberos que coincidan con la búsqueda.
+                                </td>
+                            </tr>
                         </tbody>
                     </table>
                 </div>
             </div>
-
         </div>
     </div> <!-- Cierre tab-pane abono -->
+
     </div> <!-- Cierre tab-content -->
 
     <style>
@@ -1116,11 +1245,36 @@ document.addEventListener('DOMContentLoaded', function () {
 
     if (capInternSearchInput) capInternSearchInput.addEventListener('keyup', filterCapInternas);
     if (tipoFilter) tipoFilter.addEventListener('change', filterCapInternas);
-    if (capInternCompaniaFilter) capInternCompaniaFilter.addEventListener('change', filterCapInternas);
+    // --- Búsqueda rápida en tiempo real para Lista de Abono ---
+    const abonoSearchInput = document.getElementById('abonoSearchInput');
+    if (abonoSearchInput) {
+        abonoSearchInput.addEventListener('input', function() {
+            const query = this.value.toLowerCase().trim();
+            const rows = document.querySelectorAll('#abonoTableBody tr.abono-row');
+            let visibleCount = 0;
 
+            rows.forEach(function(row) {
+                const nombre = row.dataset.nombre || '';
+                const rut = row.dataset.rut || '';
+
+                if (query === '' || nombre.includes(query) || rut.includes(query)) {
+                    row.style.display = '';
+                    visibleCount++;
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+
+            const noFoundRow = document.getElementById('noAbonoFound');
+            if (noFoundRow) {
+                noFoundRow.style.display = (visibleCount === 0 && rows.length > 0) ? '' : 'none';
+            }
+        });
+    }
 
     // --- Pre-seleccionar tipo de actividad en el modal de creación ---
     const createModal = document.getElementById('createCapacitacionModal');
+
     if (createModal) {
         createModal.addEventListener('show.bs.modal', function(event) {
             const button = event.relatedTarget;
