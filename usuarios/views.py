@@ -1824,6 +1824,7 @@ def capacitaciones_view(request):
     from django.db.models import Count
     fecha_inicio_filtro = request.GET.get('fecha_inicio', '')
     fecha_fin_filtro = request.GET.get('fecha_fin', '')
+    compania_filtro = request.GET.get('compania', '')
     
     base_filter = Q()
     base_filter_em = Q()
@@ -1835,7 +1836,14 @@ def capacitaciones_view(request):
         base_filter &= Q(capacitaciones_asistidas__fecha_inicio__lte=f"{fecha_fin_filtro} 23:59:59")
         base_filter_em &= Q(emergencias_asistidas__fecha_hora_alarma__lte=f"{fecha_fin_filtro} 23:59:59")
 
-    lista_abono = Usuario.objects.filter(is_active=True).annotate(
+    usuarios_abono = Usuario.objects.filter(is_active=True).select_related('compania')
+    if compania_filtro:
+        if compania_filtro == 'sin_compania':
+            usuarios_abono = usuarios_abono.filter(compania__isnull=True)
+        elif compania_filtro.isdigit():
+            usuarios_abono = usuarios_abono.filter(compania_id=compania_filtro)
+
+    lista_abono = usuarios_abono.annotate(
         total_cursos=Count('capacitaciones_asistidas', filter=base_filter & Q(capacitaciones_asistidas__tipo_actividad='Curso'), distinct=True),
         total_reuniones=Count('capacitaciones_asistidas', filter=base_filter & Q(capacitaciones_asistidas__tipo_actividad='Reunión'), distinct=True),
         total_talleres=Count('capacitaciones_asistidas', filter=base_filter & Q(capacitaciones_asistidas__tipo_actividad='Taller'), distinct=True),
@@ -1854,9 +1862,11 @@ def capacitaciones_view(request):
         'usuarios_companias_json': json.dumps(usuarios_companias),
         'lista_abono': lista_abono,
         'fecha_inicio_filtro': fecha_inicio_filtro,
-        'fecha_fin_filtro': fecha_fin_filtro
+        'fecha_fin_filtro': fecha_fin_filtro,
+        'compania_filtro': compania_filtro
     }
     return render(request, 'usuarios/capacitaciones.html', context)
+
 
 @login_required
 def capacitacion_edit_view(request, capacitacion_id):

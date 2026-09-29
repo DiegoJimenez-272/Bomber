@@ -151,5 +151,29 @@ class SecurityTestCase(TestCase):
         form = InspectorDocumentoForm(user=self.user_normal)
         self.assertIsNotNone(form)
 
+    def test_capacitaciones_filtro_compania(self):
+        """Verifica que el filtrado por compañía en Lista de Abono funcione correctamente."""
+        self.client.login(email="admin@sigbomberos.cl", password="AdminPassword123!")
+        
+        # Crear usuario en compania_b
+        user_b = Usuario.objects.create_user(
+            email="voluntario_b@sigbomberos.cl",
+            password="VoluntarioPassword123!",
+            nombre="Pedro",
+            apellido="Gómez",
+            rut="14.444.444-4",
+            compania=self.compania_b,
+            rol=self.rol_voluntario
+        )
+        
+        # Filtrar por compania_a
+        response = self.client.get(reverse('capacitaciones') + f'?tab=abono&compania={self.compania_a.id}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context['compania_filtro'], str(self.compania_a.id))
+        lista_ids = [u.id for u in response.context['lista_abono']]
+        self.assertIn(self.user_normal.id, lista_ids)
+        self.assertNotIn(user_b.id, lista_ids)
+
+
 
 

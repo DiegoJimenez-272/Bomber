@@ -66,7 +66,7 @@
             <div class="card shadow-sm mb-4">
                 <div class="card-body">
                     <div class="row g-3 align-items-center">
-                        <div class="col-lg-8">
+                        <div class="col-lg-5">
                             <div class="input-group">
                                 <span class="input-group-text"><i class="bi bi-search"></i></span>
                                 <input class="form-control" type="search" id="cursoSearchInput" placeholder="Buscar por nombre, instructor o lugar...">
@@ -77,6 +77,14 @@
                                 <option value="">Todas las Mallas</option>
                                 {% for choice in form.malla.field.choices %}
                                     <option value="{{ choice.0 }}">{{ choice.1 }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-lg-3">
+                            <select id="cursoCompaniaFilter" class="form-select">
+                                <option value="">Todas las Compañías</option>
+                                {% for comp in companias %}
+                                    <option value="{{ comp.id }}">{{ comp.nombre }}</option>
                                 {% endfor %}
                             </select>
                         </div>
@@ -91,7 +99,8 @@
             <div class="row row-cols-1 row-cols-lg-2 g-4" id="capacitaciones-list">
                 {% for cap in capacitaciones %}
                 {% if cap.tipo_actividad == 'Curso' %}
-                <div class="col capacitacion-card" data-malla="{{ cap.malla }}">
+                <div class="col capacitacion-card" data-malla="{{ cap.malla }}" data-companias="{% for c in cap.companias_invitadas.all %}{{ c.id }},{% endfor %}{% if cap.creado_por.compania %}{{ cap.creado_por.compania.id }},{% endif %}">
+
                     <div class="card h-100 shadow-sm border-primary border-opacity-25">
                         <div class="card-body">
                             <div class="d-flex align-items-start mb-3">
@@ -202,7 +211,7 @@
             <div class="card shadow-sm mb-4">
                 <div class="card-body">
                     <div class="row g-3 align-items-center">
-                        <div class="col-lg-8">
+                        <div class="col-lg-5">
                             <div class="input-group">
                                 <span class="input-group-text"><i class="bi bi-search"></i></span>
                                 <input class="form-control" type="search" id="capInternSearchInput" placeholder="Buscar por nombre, instructor o lugar...">
@@ -218,6 +227,14 @@
                                 {% endfor %}
                             </select>
                         </div>
+                        <div class="col-lg-3">
+                            <select id="capInternCompaniaFilter" class="form-select">
+                                <option value="">Todas las Compañías</option>
+                                {% for comp in companias %}
+                                    <option value="{{ comp.id }}">{{ comp.nombre }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -229,7 +246,8 @@
             <div class="row row-cols-1 row-cols-lg-2 g-4" id="cap-intern-list">
                 {% for cap in capacitaciones %}
                 {% if cap.tipo_actividad != 'Curso' %}
-                <div class="col cap-intern-card" data-tipo="{{ cap.tipo_actividad }}">
+                <div class="col cap-intern-card" data-tipo="{{ cap.tipo_actividad }}" data-companias="{% for c in cap.companias_invitadas.all %}{{ c.id }},{% endfor %}{% if cap.creado_por.compania %}{{ cap.creado_por.compania.id }},{% endif %}">
+
                     <div class="card h-100 shadow-sm border-danger border-opacity-25">
                         <div class="card-body">
                             <div class="d-flex align-items-start mb-3">
@@ -400,16 +418,25 @@
     <!-- Pestaña Lista de Abono -->
     <div class="tab-pane fade" id="abono" role="tabpanel" aria-labelledby="abono-tab">
         <div class="card shadow-sm mt-3">
-            <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center py-3 flex-wrap gap-2">
                 <h5 class="mb-0 fw-bold"><i class="bi bi-award-fill me-2 text-primary"></i>Lista de Abono (Asistencias)</h5>
-                <form method="get" class="d-flex align-items-center gap-2">
+                <form method="get" class="d-flex align-items-center gap-2 flex-wrap">
                     <input type="hidden" name="tab" value="abono">
+                    <select name="compania" class="form-select form-select-sm" style="min-width: 175px;">
+                        <option value="">Todas las Compañías</option>
+                        {% for comp in companias %}
+                        <option value="{{ comp.id }}" {% if compania_filtro == comp.id|stringformat:"s" %}selected{% endif %}>
+                            {{ comp.nombre }}
+                        </option>
+                        {% endfor %}
+                        <option value="sin_compania" {% if compania_filtro == 'sin_compania' %}selected{% endif %}>Sin Compañía</option>
+                    </select>
                     <input type="date" name="fecha_inicio" class="form-control form-control-sm" value="{{ fecha_inicio_filtro }}" title="Fecha Inicio">
                     <span>-</span>
                     <input type="date" name="fecha_fin" class="form-control form-control-sm" value="{{ fecha_fin_filtro }}" title="Fecha Fin">
-                    <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-filter"></i></button>
-                    {% if fecha_inicio_filtro or fecha_fin_filtro %}
-                    <a href="?" class="btn btn-sm btn-outline-secondary"><i class="bi bi-x-circle"></i></a>
+                    <button type="submit" class="btn btn-sm btn-danger text-white px-3" title="Filtrar"><i class="bi bi-filter"></i></button>
+                    {% if fecha_inicio_filtro or fecha_fin_filtro or compania_filtro %}
+                    <a href="?tab=abono" class="btn btn-sm btn-outline-secondary" title="Limpiar Filtros"><i class="bi bi-x-circle"></i></a>
                     {% endif %}
                 </form>
             </div>
@@ -439,7 +466,14 @@
                                         </div>
                                         <div>
                                             <div class="fw-bold">{{ u.get_full_name }}</div>
-                                            <div class="small text-muted">{{ u.rut }}</div>
+                                            <div class="small text-muted d-flex align-items-center gap-2">
+                                                <span>{{ u.rut|default:"-" }}</span>
+                                                {% if u.compania %}
+                                                <span class="badge bg-light text-dark border">{{ u.compania.nombre }}</span>
+                                                {% else %}
+                                                <span class="badge bg-light text-muted border">Sin Compañía</span>
+                                                {% endif %}
+                                            </div>
                                         </div>
                                     </div>
                                 </td>
@@ -454,13 +488,14 @@
                             </tr>
                             {% empty %}
                             <tr>
-                                <td colspan="8" class="text-center text-muted py-4">No hay bomberos activos para mostrar en la lista de abono.</td>
+                                <td colspan="9" class="text-center text-muted py-4">No hay bomberos para mostrar con los filtros aplicados.</td>
                             </tr>
                             {% endfor %}
                         </tbody>
                     </table>
                 </div>
             </div>
+
         </div>
     </div> <!-- Cierre tab-pane abono -->
     </div> <!-- Cierre tab-content -->
@@ -889,13 +924,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Mantener la pestaña activa si hay un filtro de abono
     const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('tab') === 'abono' || urlParams.has('fecha_inicio')) {
+    if (urlParams.get('tab') === 'abono' || urlParams.has('fecha_inicio') || urlParams.has('compania')) {
         const abonoTabTrigger = document.querySelector('#abono-tab');
         if(abonoTabTrigger) {
             const abonoTab = new bootstrap.Tab(abonoTabTrigger);
             abonoTab.show();
         }
     }
+
 
     // Lógica para el modal de eliminación
     var deleteModal = document.getElementById('deleteCapacitacionModal');
@@ -1001,6 +1037,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // --- Lógica de Filtrado para Cursos Oficiales ---
     const cursoSearchInput = document.getElementById('cursoSearchInput');
     const mallaFilter = document.getElementById('mallaFilter');
+    const cursoCompaniaFilter = document.getElementById('cursoCompaniaFilter');
     const capacitacionesList = document.getElementById('capacitaciones-list');
     const noCursosRow = document.getElementById('no-cursos-found');
 
@@ -1008,6 +1045,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (!capacitacionesList) return;
         const searchText = cursoSearchInput ? cursoSearchInput.value.toLowerCase() : '';
         const selectedMalla = mallaFilter ? mallaFilter.value.toLowerCase() : '';
+        const selectedComp = cursoCompaniaFilter ? cursoCompaniaFilter.value : '';
         const cards = capacitacionesList.getElementsByClassName('capacitacion-card');
         let visibleCards = 0;
 
@@ -1015,11 +1053,13 @@ document.addEventListener('DOMContentLoaded', function () {
             const card = cards[i];
             const textContent = card.textContent.toLowerCase();
             const malla = card.dataset.malla ? card.dataset.malla.toLowerCase() : '';
+            const companias = card.dataset.companias ? card.dataset.companias.split(',') : [];
 
             const matchesSearch = searchText === "" || textContent.includes(searchText);
             const matchesMalla = selectedMalla === "" || malla === selectedMalla;
+            const matchesComp = selectedComp === "" || companias.includes(selectedComp);
 
-            if (matchesSearch && matchesMalla) {
+            if (matchesSearch && matchesMalla && matchesComp) {
                 card.style.display = "";
                 visibleCards++;
             } else {
@@ -1034,10 +1074,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
     if (cursoSearchInput) cursoSearchInput.addEventListener('keyup', filterCursos);
     if (mallaFilter) mallaFilter.addEventListener('change', filterCursos);
+    if (cursoCompaniaFilter) cursoCompaniaFilter.addEventListener('change', filterCursos);
 
     // --- Lógica de Filtrado para Capacitaciones Internas ---
     const capInternSearchInput = document.getElementById('capInternSearchInput');
     const tipoFilter = document.getElementById('tipoFilter');
+    const capInternCompaniaFilter = document.getElementById('capInternCompaniaFilter');
     const capInternList = document.getElementById('cap-intern-list');
     const noCapInternRow = document.getElementById('no-cap-intern-found');
 
@@ -1045,6 +1087,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (!capInternList) return;
         const searchText = capInternSearchInput ? capInternSearchInput.value.toLowerCase() : '';
         const selectedTipo = tipoFilter ? tipoFilter.value.toLowerCase() : '';
+        const selectedComp = capInternCompaniaFilter ? capInternCompaniaFilter.value : '';
         const cards = capInternList.getElementsByClassName('cap-intern-card');
         let visibleCards = 0;
 
@@ -1052,11 +1095,13 @@ document.addEventListener('DOMContentLoaded', function () {
             const card = cards[i];
             const textContent = card.textContent.toLowerCase();
             const tipo = card.dataset.tipo ? card.dataset.tipo.toLowerCase() : '';
+            const companias = card.dataset.companias ? card.dataset.companias.split(',') : [];
 
             const matchesSearch = searchText === "" || textContent.includes(searchText);
             const matchesTipo = selectedTipo === "" || tipo === selectedTipo;
+            const matchesComp = selectedComp === "" || companias.includes(selectedComp);
 
-            if (matchesSearch && matchesTipo) {
+            if (matchesSearch && matchesTipo && matchesComp) {
                 card.style.display = "";
                 visibleCards++;
             } else {
@@ -1071,6 +1116,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
     if (capInternSearchInput) capInternSearchInput.addEventListener('keyup', filterCapInternas);
     if (tipoFilter) tipoFilter.addEventListener('change', filterCapInternas);
+    if (capInternCompaniaFilter) capInternCompaniaFilter.addEventListener('change', filterCapInternas);
+
 
     // --- Pre-seleccionar tipo de actividad en el modal de creación ---
     const createModal = document.getElementById('createCapacitacionModal');
