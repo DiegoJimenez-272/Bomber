@@ -245,7 +245,7 @@
 
             <div class="row row-cols-1 row-cols-lg-2 g-4" id="cap-intern-list">
                 {% for cap in capacitaciones %}
-                {% if cap.tipo_actividad != 'Curso' %}
+                {% if cap.tipo_actividad != 'Curso' and cap.tipo_actividad != 'Reunión' %}
                 <div class="col cap-intern-card" data-tipo="{{ cap.tipo_actividad }}" data-companias="{% for c in cap.companias_invitadas.all %}{{ c.id }},{% endfor %}{% if cap.creado_por.compania %}{{ cap.creado_por.compania.id }},{% endif %}">
 
                     <div class="card h-100 shadow-sm border-danger border-opacity-25">
@@ -340,7 +340,29 @@
         
         <!-- ===== PESTAÑA: REUNIONES ===== -->
         <div class="tab-pane fade" id="reuniones" role="tabpanel">
-            <div class="d-flex justify-content-end mb-3">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <!-- Filtros de Reuniones -->
+                <div class="d-flex flex-wrap gap-2 align-items-center">
+                    <div class="input-group input-group-sm" style="max-width: 260px;">
+                        <span class="input-group-text bg-light"><i class="bi bi-search text-muted"></i></span>
+                        <input class="form-control" type="search" id="reunionSearchInput" placeholder="Buscar por nombre...">
+                    </div>
+                    <select class="form-select form-select-sm" id="reunionMonthFilter" style="max-width: 180px;">
+                        <option value="">Todos los meses</option>
+                        <option value="1">Enero</option>
+                        <option value="2">Febrero</option>
+                        <option value="3">Marzo</option>
+                        <option value="4">Abril</option>
+                        <option value="5">Mayo</option>
+                        <option value="6">Junio</option>
+                        <option value="7">Julio</option>
+                        <option value="8">Agosto</option>
+                        <option value="9">Septiembre</option>
+                        <option value="10">Octubre</option>
+                        <option value="11">Noviembre</option>
+                        <option value="12">Diciembre</option>
+                    </select>
+                </div>
                 {% if request.user.is_superuser or request.user.rol.editar_capacitaciones %}
                 <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#createReunionModal">
                     <i class="bi bi-plus-lg me-1"></i> Nueva Reunión
@@ -348,26 +370,19 @@
                 {% endif %}
             </div>
 
-            <div class="row g-4 reuniones-container">
-                <style>
-                    .reuniones-container:empty::after,
-                    .reuniones-container .empty-msg:only-child {
-                        content: "No hay reuniones registradas.";
-                        display: block;
-                        width: 100%;
-                        text-align: center;
-                        padding: 3rem;
-                        color: #6c757d;
-                        font-style: italic;
-                    }
-                </style>
-                <div class="empty-msg" style="display: none;"></div>
+            <div id="no-reunion-found" class="text-center text-muted py-5" style="display: none;">
+                <i class="bi bi-calendar-x fs-1 d-block mb-2"></i>
+                No se encontraron reuniones con los filtros aplicados.
+            </div>
+
+            <div class="row g-4" id="reuniones-list">
                 {% for item in capacitaciones|dictsortreversed:"fecha_inicio" %}
                 {% if item.tipo_actividad == 'Reunión' %}
-                <div class="col-12 col-md-6 col-lg-4">
+                <div class="col-12 col-md-6 col-lg-4 reunion-card"
+                     data-nombre="{{ item.nombre|lower }}"
+                     data-mes="{{ item.fecha_inicio|date:'n' }}">
                     <div class="card h-100 shadow-sm border-0 bg-light rounded-4 overflow-hidden" style="border-left: 5px solid #ff9800 !important;">
                         <div class="card-body p-4 position-relative">
-                            <!-- Dropdown de Opciones -->
                             {% if request.user.is_superuser or request.user.rol.editar_capacitaciones %}
                             <div class="position-absolute top-0 end-0 p-3">
                                 <div class="dropdown">
@@ -381,7 +396,7 @@
                                             </a>
                                         </li>
                                         <li>
-                                            <button class="dropdown-item text-danger" data-bs-toggle="modal" data-bs-target="#deleteCapacitacionModal{{ item.id }}">
+                                            <button class="dropdown-item text-danger" data-bs-toggle="modal" data-bs-target="#deleteReunionModal{{ item.id }}">
                                                 <i class="bi bi-trash me-2 text-danger"></i> Eliminar
                                             </button>
                                         </li>
@@ -389,9 +404,9 @@
                                 </div>
                             </div>
                             {% endif %}
-                            
+
                             <h5 class="card-title fw-bold mb-3 pe-4 text-dark">{{ item.nombre }}</h5>
-                            
+
                             <div class="d-flex flex-column gap-2 mb-4">
                                 <div class="d-flex align-items-center text-secondary">
                                     <i class="bi bi-calendar-event text-danger fs-5 me-3 w-20px text-center"></i>
@@ -408,7 +423,7 @@
                                 </div>
                                 {% endif %}
                             </div>
-                            
+
                             {% if item.descripcion %}
                             <div class="bg-white p-3 rounded-3 mb-4 border border-light">
                                 <p class="mb-0 text-muted fs-6" style="display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; text-overflow: ellipsis;">
@@ -416,16 +431,49 @@
                                 </p>
                             </div>
                             {% endif %}
-                            
+
                             <button type="button" class="btn btn-outline-danger w-100 rounded-pill" data-bs-toggle="modal" data-bs-target="#viewAsistentesModal{{ item.id }}">
                                 <i class="bi bi-card-checklist me-2"></i> Ver Asistentes
                             </button>
                         </div>
                     </div>
                 </div>
+
+                <!-- Modal Eliminar Reunión {{ item.id }} -->
+                <div class="modal fade" id="deleteReunionModal{{ item.id }}" tabindex="-1" aria-hidden="true">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Confirmar Eliminación</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                <p>¿Estás seguro de que quieres eliminar la reunión "<strong>{{ item.nombre }}</strong>"?</p>
+                                <p class="text-danger small">Esta acción no se puede deshacer.</p>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                <form method="post" action="{% url 'capacitacion_delete' item.id %}">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-danger">Sí, eliminar</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
                 {% endif %}
                 {% endfor %}
             </div>
+
+            {% with hay_reunion=False %}
+            {% for item in capacitaciones %}{% if item.tipo_actividad == 'Reunión' %}{% with hay_reunion=True %}{% endwith %}{% endif %}{% endfor %}
+            {% if not hay_reunion %}
+            <div class="text-center text-muted py-5">
+                <i class="bi bi-briefcase fs-1 d-block mb-2"></i>
+                <p>No hay reuniones registradas aún.</p>
+            </div>
+            {% endif %}
+            {% endwith %}
         </div> <!-- Cierre tab-pane reuniones -->
 
     <!-- Pestaña Lista de Abono -->

@@ -1876,6 +1876,16 @@ def capacitacion_edit_view(request, capacitacion_id):
         return redirect('capacitaciones')
 
     if request.method == 'POST':
+        # Use different form depending on activity type
+        if capacitacion.tipo_actividad == 'Reunión':
+            form = ReunionForm(request.POST, request.FILES, instance=capacitacion)
+            if form.is_valid():
+                capacitacion = form.save()
+                messages.success(request, f'Reunión "{capacitacion.nombre}" actualizada exitosamente.')
+            else:
+                messages.error(request, 'Error al actualizar la reunión. Revisa el formulario.')
+            return redirect('capacitaciones')
+
         form = CapacitacionForm(request.POST, instance=capacitacion)
         if form.is_valid():
             capacitacion = form.save() # El save() de un ModelForm maneja las relaciones ManyToMany
