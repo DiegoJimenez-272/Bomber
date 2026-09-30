@@ -384,8 +384,7 @@
             </div>
 
             <div class="row g-4" id="reuniones-list">
-                {% for item in capacitaciones|dictsortreversed:"fecha_inicio" %}
-                {% if item.tipo_actividad == 'Reunión' %}
+                {% for item in reuniones %}
                 <div class="col-12 col-md-6 col-lg-4 reunion-card"
                      data-nombre="{{ item.nombre|lower }}"
                      data-mes="{{ item.fecha_inicio|date:'n' }}">
@@ -498,19 +497,13 @@
                         </div>
                     </div>
                 </div>
-                {% endif %}
+                {% empty %}
+                <div class="col-12 text-center text-muted py-5">
+                    <i class="bi bi-briefcase fs-1 d-block mb-2"></i>
+                    <p>No hay reuniones registradas aún.</p>
+                </div>
                 {% endfor %}
             </div>
-
-            {% with hay_reunion=False %}
-            {% for item in capacitaciones %}{% if item.tipo_actividad == 'Reunión' %}{% with hay_reunion=True %}{% endwith %}{% endif %}{% endfor %}
-            {% if not hay_reunion %}
-            <div class="text-center text-muted py-5">
-                <i class="bi bi-briefcase fs-1 d-block mb-2"></i>
-                <p>No hay reuniones registradas aún.</p>
-            </div>
-            {% endif %}
-            {% endwith %}
         </div> <!-- Cierre tab-pane reuniones -->
 
     <!-- Pestaña Lista de Abono -->

@@ -1816,6 +1816,7 @@ def capacitaciones_view(request):
                 Q(creado_por=request.user) | Q(asistentes=request.user)
             ).distinct()
 
+    reuniones = capacitaciones.filter(tipo_actividad='Reunión').order_by('-fecha_inicio')
     companias = Compania.objects.all().order_by('nombre')
     usuarios_info = list(Usuario.objects.filter(is_active=True).values('id', 'compania_id'))
     usuarios_companias = {u['id']: u['compania_id'] for u in usuarios_info}
@@ -1858,6 +1859,7 @@ def capacitaciones_view(request):
         'form': form,
         'reunion_form': reunion_form,
         'capacitaciones': capacitaciones,
+        'reuniones': reuniones,
         'companias': companias,
         'usuarios_companias_json': json.dumps(usuarios_companias),
         'lista_abono': lista_abono,
