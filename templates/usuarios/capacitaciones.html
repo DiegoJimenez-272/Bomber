@@ -148,6 +148,7 @@
                                 <button class="btn btn-sm btn-outline-primary"
                                         data-bs-toggle="modal" data-bs-target="#editCapacitacionModal"
                                         data-cap-id="{{ cap.id }}"
+                                        data-cap-edit-url="{% url 'capacitacion_edit' cap.id %}"
                                         data-cap-nombre="{{ cap.nombre }}"
                                         data-cap-tipo_actividad="{{ cap.tipo_actividad }}"
                                         data-cap-malla="{{ cap.malla }}"
@@ -299,6 +300,7 @@
                                 <button class="btn btn-sm btn-outline-primary"
                                         data-bs-toggle="modal" data-bs-target="#editCapacitacionModal"
                                         data-cap-id="{{ cap.id }}"
+                                        data-cap-edit-url="{% url 'capacitacion_edit' cap.id %}"
                                         data-cap-nombre="{{ cap.nombre }}"
                                         data-cap-tipo_actividad="{{ cap.tipo_actividad }}"
                                         data-cap-malla="{{ cap.malla }}"
@@ -343,6 +345,7 @@
                                         <li>
                                             <button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#editCapacitacionModal"
                                                     data-cap-id="{{ item.id }}"
+                                                    data-cap-edit-url="{% url 'capacitacion_edit' item.id %}"
                                                     data-cap-nombre="{{ item.nombre }}"
                                                     data-cap-tipo_actividad="Reunión"
                                                     data-cap-malla="{{ item.malla }}"
@@ -992,7 +995,7 @@ document.addEventListener('DOMContentLoaded', function () {
         var button = event.relatedTarget;
         var form = document.getElementById('editCapacitacionForm');
         document.getElementById('editCapacitacionModalLabel').textContent = `Editar ${button.dataset.capTipo_actividad}`;
-        form.action = `/capacitaciones/${button.dataset.capId}/edit/`;
+        form.action = button.dataset.capEditUrl;
         form.querySelector('#edit_nombre').value = button.dataset.capNombre;
         form.querySelector('#edit_tipo_actividad').value = button.dataset.capTipo_actividad;
         form.querySelector('#edit_malla').value = button.dataset.capMalla;

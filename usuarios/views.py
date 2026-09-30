@@ -1,4 +1,5 @@
 from django.shortcuts import render, redirect, get_object_or_404
+from django.urls import reverse
 from django.contrib.auth import login, authenticate, logout
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
@@ -1921,7 +1922,11 @@ def capacitacion_edit_view(request, capacitacion_id):
             else:
                 messages.success(request, f'{capacitacion.get_tipo_actividad_display()} "{capacitacion.nombre}" actualizada exitosamente.')
         else:
-            messages.error(request, 'Error al actualizar el curso. Revisa el formulario.')
+            errores = form.errors.as_text()
+            messages.error(request, f'No se guardaron los cambios. Revisa los campos del formulario.{errores}')
+        tipo_destino = request.POST.get('tipo_actividad', capacitacion.tipo_actividad)
+        tab = 'cursos' if tipo_destino == 'Curso' else 'actividades'
+        return redirect(f"{reverse('capacitaciones')}?tab={tab}")
     return redirect('capacitaciones')
 
 @login_required
