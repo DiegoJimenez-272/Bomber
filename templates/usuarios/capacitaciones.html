@@ -469,6 +469,35 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Modal Ver Asistentes de Reunión {{ item.id }} -->
+                <div class="modal fade" id="viewAsistentesModal{{ item.id }}" tabindex="-1" aria-labelledby="viewAsistentesModalLabel{{ item.id }}" aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="viewAsistentesModalLabel{{ item.id }}">
+                                    <i class="bi bi-people-fill text-danger me-2"></i>Asistentes de {{ item.nombre }}
+                                </h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                            </div>
+                            <div class="modal-body">
+                                <p class="text-muted small mb-3">{{ item.asistentes.count }} asistente(s) registrado(s)</p>
+                                <ul class="list-group list-group-flush">
+                                    {% for asistente in item.asistentes.all %}
+                                    <li class="list-group-item px-0">
+                                        <i class="bi bi-person-check text-success me-2"></i>{{ asistente.get_full_name }}
+                                    </li>
+                                    {% empty %}
+                                    <li class="list-group-item px-0 text-muted">No hay asistentes registrados.</li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
                 {% endif %}
                 {% endfor %}
             </div>
