@@ -146,6 +146,7 @@
                             {% if request.user.is_superuser or request.user.rol.editar_capacitaciones %}
                             <div>
                                 <button class="btn btn-sm btn-outline-primary"
+                                        onclick="window.loadCapacitacionEdit(this)"
                                         data-bs-toggle="modal" data-bs-target="#editCapacitacionModal"
                                         data-cap-id="{{ cap.id }}"
                                         data-cap-edit-url="{% url 'capacitacion_edit' cap.id %}"
@@ -298,6 +299,7 @@
                             {% if request.user.is_superuser or request.user.rol.editar_capacitaciones %}
                             <div>
                                 <button class="btn btn-sm btn-outline-primary"
+                                        onclick="window.loadCapacitacionEdit(this)"
                                         data-bs-toggle="modal" data-bs-target="#editCapacitacionModal"
                                         data-cap-id="{{ cap.id }}"
                                         data-cap-edit-url="{% url 'capacitacion_edit' cap.id %}"
@@ -343,7 +345,7 @@
                                     </button>
                                     <ul class="dropdown-menu dropdown-menu-end border-0 shadow-sm rounded-3">
                                         <li>
-                                            <button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#editCapacitacionModal"
+                                            <button type="button" class="dropdown-item" onclick="window.loadCapacitacionEdit(this)" data-bs-toggle="modal" data-bs-target="#editCapacitacionModal"
                                                     data-cap-id="{{ item.id }}"
                                                     data-cap-edit-url="{% url 'capacitacion_edit' item.id %}"
                                                     data-cap-nombre="{{ item.nombre }}"
@@ -966,44 +968,37 @@
 {% block scripts %}
 {{ block.super }}
 <script>
-document.addEventListener('DOMContentLoaded', function () {
-    // Lógica para el modal de edición
-    var editModal = document.getElementById('editCapacitacionModal');
-    editModal.addEventListener('show.bs.modal', function (event) {
-        var button = event.relatedTarget;
-        var form = document.getElementById('editCapacitacionForm');
-        document.getElementById('editCapacitacionModalLabel').textContent = `Editar ${button.dataset.capTipo_actividad}`;
-        form.action = button.dataset.capEditUrl;
-        form.querySelector('#edit_nombre').value = button.dataset.capNombre;
-        form.querySelector('#edit_tipo_actividad').value = button.dataset.capTipo_actividad;
-        form.querySelector('#edit_malla').value = button.dataset.capMalla;
-        form.querySelector('#edit_descripcion').value = button.dataset.capDescripcion;
-        form.querySelector('#edit_fecha_inicio').value = button.dataset.capFecha_inicio;
-        form.querySelector('#edit_fecha_fin').value = button.dataset.capFecha_fin;
-        form.querySelector('#edit_lugar').value = button.dataset.capLugar;
-        form.querySelector('#edit_instructor').value = button.dataset.capInstructor;
-        form.querySelector('#edit_cupos').value = button.dataset.capCupos;
-        
-        // Seleccionar asistentes
-        var asistentesIds = button.dataset.capAsistentes ? button.dataset.capAsistentes.split(',') : [];
-        var checkboxes = form.querySelectorAll('#asistentes-list-edit input[type="checkbox"]');
-        checkboxes.forEach(function(cb) {
-            cb.checked = asistentesIds.includes(cb.value);
-        });
+window.loadCapacitacionEdit = function(button) {
+    const form = document.getElementById('editCapacitacionForm');
+    const value = (name) => button.getAttribute('data-cap-' + name) || '';
+    const tipo = value('tipo_actividad');
 
-        // Seleccionar compañías invitadas
-        var companiasIds = button.dataset.capCompanias ? button.dataset.capCompanias.split(',') : [];
-        var compCheckboxes = form.querySelectorAll('#company-filters-edit .comp-filter-cb');
-        compCheckboxes.forEach(function(cb) {
-            cb.checked = companiasIds.includes(cb.value);
-        });
+    document.getElementById('editCapacitacionModalLabel').textContent = `Editar ${tipo}`;
+    form.action = value('edit-url');
+    form.querySelector('#edit_nombre').value = value('nombre');
+    form.querySelector('#edit_tipo_actividad').value = tipo;
+    form.querySelector('#edit_malla').value = value('malla');
+    form.querySelector('#edit_descripcion').value = value('descripcion');
+    form.querySelector('#edit_fecha_inicio').value = value('fecha_inicio');
+    form.querySelector('#edit_fecha_fin').value = value('fecha_fin');
+    form.querySelector('#edit_lugar').value = value('lugar');
+    form.querySelector('#edit_instructor').value = value('instructor');
+    form.querySelector('#edit_cupos').value = value('cupos');
 
-        // Disparar evento para actualizar filtros visuales y el checkbox "Todas"
-        if (compCheckboxes.length > 0) {
-            compCheckboxes[0].dispatchEvent(new Event('change'));
-        }
+    const asistentes = value('asistentes').split(',').filter(Boolean);
+    form.querySelectorAll('#asistentes-list-edit input[type="checkbox"]').forEach(function(checkbox) {
+        checkbox.checked = asistentes.includes(checkbox.value);
     });
 
+    const companias = value('companias').split(',').filter(Boolean);
+    const companyCheckboxes = form.querySelectorAll('#company-filters-edit .comp-filter-cb');
+    companyCheckboxes.forEach(function(checkbox) {
+        checkbox.checked = companias.includes(checkbox.value);
+    });
+    if (companyCheckboxes.length) companyCheckboxes[0].dispatchEvent(new Event('change', { bubbles: true }));
+};
+
+document.addEventListener('DOMContentLoaded', function () {
     // Restaurar la pestaña seleccionada al volver de guardar o filtrar.
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('tab') === 'abono' || urlParams.has('fecha_inicio') || urlParams.has('compania')) {
