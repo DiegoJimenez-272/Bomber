@@ -162,11 +162,10 @@
                                         data-cap-companias="{% for c in cap.companias_invitadas.all %}{{ c.id }}{% if not forloop.last %},{% endif %}{% endfor %}">
                                     <i class="bi bi-pencil-fill"></i>
                                 </button>
-                                <button class="btn btn-sm btn-outline-danger"
-                                        data-bs-toggle="modal" data-bs-target="#deleteCapacitacionModal"
-                                        data-cap-id="{{ cap.id }}" data-cap-nombre="{{ cap.nombre }}"
-                                        data-cap-delete-url="{% url 'capacitacion_delete' cap.id %}">
-                                    <i class="bi bi-trash-fill"></i></button>
+                                <form method="post" action="{% url 'capacitacion_delete' cap.id %}" class="d-inline" onsubmit="return confirm('¿Eliminar este registro?');">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" aria-label="Eliminar {{ cap.nombre }}"><i class="bi bi-trash-fill"></i></button>
+                                </form>
                             </div>
                             {% endif %}
                         </div>
@@ -315,11 +314,10 @@
                                         data-cap-companias="{% for c in cap.companias_invitadas.all %}{{ c.id }}{% if not forloop.last %},{% endif %}{% endfor %}">
                                     <i class="bi bi-pencil-fill"></i>
                                 </button>
-                                <button class="btn btn-sm btn-outline-danger"
-                                        data-bs-toggle="modal" data-bs-target="#deleteCapacitacionModal"
-                                        data-cap-id="{{ cap.id }}" data-cap-nombre="{{ cap.nombre }}"
-                                        data-cap-delete-url="{% url 'capacitacion_delete' cap.id %}">
-                                    <i class="bi bi-trash-fill"></i></button>
+                                <form method="post" action="{% url 'capacitacion_delete' cap.id %}" class="d-inline" onsubmit="return confirm('¿Eliminar este registro?');">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" aria-label="Eliminar {{ cap.nombre }}"><i class="bi bi-trash-fill"></i></button>
+                                </form>
                             </div>
                             {% endif %}
                         </div>
@@ -963,28 +961,6 @@
     </div>
 </div>
 
-<!-- Modal Eliminar Curso -->
-<div class="modal fade" id="deleteCapacitacionModal" tabindex="-1" aria-labelledby="deleteCapacitacionModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="deleteCapacitacionModalLabel">Confirmar Eliminación</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <p>¿Estás seguro de que quieres eliminar "<strong><span id="capNameToDelete"></span></strong>"?</p>
-                <p class="text-danger small">Esta acción no se puede deshacer.</p>
-            </div>
-            <div class="modal-footer">
-                <form id="deleteCapacitacionForm" method="post">
-                    {% csrf_token %}
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-danger">Sí, eliminar</button>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
 {% endblock %}
 
 {% block scripts %}
@@ -1040,15 +1016,6 @@ document.addEventListener('DOMContentLoaded', function () {
         new bootstrap.Tab(document.querySelector('#actividades-tab')).show();
     }
 
-
-    // Lógica para el modal de eliminación
-    var deleteModal = document.getElementById('deleteCapacitacionModal');
-    deleteModal.addEventListener('show.bs.modal', function (event) {
-        var button = event.relatedTarget;
-        var form = document.getElementById('deleteCapacitacionForm');
-        form.action = button.dataset.capDeleteUrl;
-        document.getElementById('capNameToDelete').textContent = button.dataset.capNombre;
-    });
 
     // Lógica para toggle de invitación
     const checkInvitacion = document.getElementById('{{ form.enviar_invitacion.id_for_label }}');
