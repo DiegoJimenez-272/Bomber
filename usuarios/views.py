@@ -22,7 +22,7 @@ from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter
 import openpyxl
 from reportlab.lib.units import inch
-from .forms import RegistroForm, LoginForm, ProyectoForm, ArchivoProyectoForm, DocumentoForm, CarpetaForm, SalidaTerrenoForm, EmergenciaForm, PerfilForm, PasswordChangeForm, CapacitacionForm, MantenimientoForm, ArchivoMantenimientoForm, InventarioForm, CajaChicaForm, AdminUserCreationForm, AdminUserChangeForm, RolForm, CompaniaForm, InventarioEditForm, InventarioGroupEditForm, AvisoForm, PasswordResetRequestForm, PasswordResetVerifyForm, PasswordResetNewPasswordForm, VehiculoForm, ReunionForm
+from .forms import RegistroForm, LoginForm, ProyectoForm, ArchivoProyectoForm, DocumentoForm, CarpetaForm, SalidaTerrenoForm, EmergenciaForm, PerfilForm, PasswordChangeForm, CapacitacionForm, MantenimientoForm, ArchivoMantenimientoForm, InventarioForm, CajaChicaForm, AdminUserCreationForm, AdminUserChangeForm, RolForm, CompaniaForm, InventarioEditForm, InventarioGroupEditForm, AvisoForm, PasswordResetRequestForm, PasswordResetVerifyForm, PasswordResetNewPasswordForm, VehiculoForm
 from .models import Rol, Compania, Proyecto, ArchivoProyecto, Documento, Carpeta, SalidaTerreno, Emergencia, Usuario, Capacitacion, Mantenimiento, ArchivoMantenimiento, Inventario, CajaChica, Notificacion, Aviso, AvisoDestinatario, PasswordResetCode, Vehiculo
 from .decorators import admin_required, permiso_requerido, pertenencia_compania
 import logging
@@ -1743,63 +1743,45 @@ def capacitaciones_view(request):
             messages.error(request, 'No tienes permiso para registrar capacitaciones.')
             return redirect('capacitaciones')
             
-        if 'crear_reunion' in request.POST:
-            form = CapacitacionForm() # Empty form
-            reunion_form = ReunionForm(request.POST, request.FILES)
-            if reunion_form.is_valid():
-                reunion = reunion_form.save(commit=False)
-                reunion.creado_por = request.user
-                reunion.save()
-                reunion_form.save_m2m()
-                messages.success(request, f'Reunión "{reunion.nombre}" creada exitosamente.')
-                return redirect('capacitaciones')
-            else:
-                messages.error(request, 'Error al crear la reunión. Por favor, revisa el formulario.')
-        else:
-            reunion_form = ReunionForm() # Empty form
-            form = CapacitacionForm(request.POST)
-            if form.is_valid():
-                capacitacion = form.save(commit=False)
-                capacitacion.creado_por = request.user
-                capacitacion.save()
-                form.save_m2m() # Necesario para guardar las relaciones ManyToMany
-                
-                # Lógica de Notificaciones / Invitaciones
-                enviar_invitacion = request.POST.get('enviar_invitacion') == 'on'
-                audiencia = request.POST.get('audiencia', 'general')
+        form = CapacitacionForm(request.POST, request.FILES)
+        if form.is_valid():
+            capacitacion = form.save(commit=False)
+            capacitacion.creado_por = request.user
+            capacitacion.save()
+            form.save_m2m()
 
-                if enviar_invitacion:
-                    if audiencia == 'general':
-                        if capacitacion.companias_invitadas.exists():
-                            usuarios_a_notificar = Usuario.objects.filter(is_active=True, compania__in=capacitacion.companias_invitadas.all())
-                        else:
-                            usuarios_a_notificar = Usuario.objects.none()
-                    else:
-                        usuarios_a_notificar = capacitacion.asistentes.all()
-
-                    notificaciones = []
-                    for u in usuarios_a_notificar:
-                        mensaje = f"Has sido invitado al curso: {capacitacion.nombre}."
-                        if capacitacion.cupos:
-                            mensaje += f" ¡Cupos limitados ({capacitacion.cupos})!"
-                        
-                        notificaciones.append(Notificacion(usuario=u, mensaje=mensaje, link=f"/capacitaciones/"))
-                    
-                    if notificaciones:
-                        Notificacion.objects.bulk_create(notificaciones)
-                        enviar_email_capacitacion(capacitacion, usuarios_a_notificar, accion="invitado/a a")
-                        messages.success(request, f'Curso "{capacitacion.nombre}" creado exitosamente y se enviaron invitaciones a {len(notificaciones)} usuarios.')
-                    else:
-                        messages.success(request, f'Curso "{capacitacion.nombre}" creado exitosamente (no se encontraron usuarios para notificar).')
+            enviar_invitacion = request.POST.get('enviar_invitacion') == 'on'
+            audiencia = request.POST.get('audiencia', 'general')
+            if enviar_invitacion:
+                if audiencia == 'general':
+                    usuarios_a_notificar = Usuario.objects.filter(
+                        is_active=True,
+                        compania__in=capacitacion.companias_invitadas.all()
+                    ) if capacitacion.companias_invitadas.exists() else Usuario.objects.none()
                 else:
-                    messages.success(request, f'Curso "{capacitacion.nombre}" creado exitosamente.')
-                    
-                return redirect('capacitaciones')
+                    usuarios_a_notificar = capacitacion.asistentes.all()
+
+                notificaciones = []
+                for usuario in usuarios_a_notificar:
+                    mensaje = f"Has sido invitado/a a {capacitacion.get_tipo_actividad_display().lower()}: {capacitacion.nombre}."
+                    if capacitacion.cupos:
+                        mensaje += f" ¡Cupos limitados ({capacitacion.cupos})!"
+                    notificaciones.append(Notificacion(usuario=usuario, mensaje=mensaje, link='/capacitaciones/'))
+
+                if notificaciones:
+                    Notificacion.objects.bulk_create(notificaciones)
+                    enviar_email_capacitacion(capacitacion, usuarios_a_notificar, accion='invitado/a a')
+                    messages.success(request, f'{capacitacion.get_tipo_actividad_display()} "{capacitacion.nombre}" creado/a y se notificó a {len(notificaciones)} usuarios.')
+                else:
+                    messages.success(request, f'{capacitacion.get_tipo_actividad_display()} "{capacitacion.nombre}" creada; no hubo destinatarios para notificar.')
             else:
-                messages.error(request, 'Error al crear el curso. Por favor, revisa el formulario.')
+                messages.success(request, f'{capacitacion.get_tipo_actividad_display()} "{capacitacion.nombre}" creada exitosamente.')
+
+            tab = 'cursos' if capacitacion.tipo_actividad == 'Curso' else 'actividades'
+            return redirect(f'/capacitaciones/?tab={tab}')
+        messages.error(request, 'No se pudo guardar la actividad. Revisa los campos marcados.')
     else:
         form = CapacitacionForm()
-        reunion_form = ReunionForm()
     
     # Lógica de Visibilidad: Superusuarios y Editores ven todo. 
     # Los demás solo ven los cursos de su compañía o a los que están invitados.
@@ -1833,6 +1815,23 @@ def capacitaciones_view(request):
         reunion.companias_filtro_ids = ','.join(str(compania_id) for compania_id in companias_participantes)
         if any(asistente.compania_id is None for asistente in reunion.asistentes.all()):
             reunion.companias_filtro_ids += (',' if reunion.companias_filtro_ids else '') + 'sin_compania'
+    actividades_internas = list(
+        capacitaciones.exclude(tipo_actividad__in=['Curso', 'Reunión'])
+        .prefetch_related('companias_invitadas', 'asistentes__compania')
+        .select_related('creado_por__compania')
+    )
+    for actividad in actividades_internas:
+        companias_actividad = {compania.id: compania for compania in actividad.companias_invitadas.all()}
+        if not companias_actividad:
+            companias_actividad = {
+                asistente.compania_id: asistente.compania
+                for asistente in actividad.asistentes.all()
+                if asistente.compania_id and asistente.compania
+            }
+        actividad.companias_actividad = sorted(companias_actividad.values(), key=lambda compania: compania.nombre.lower())
+        actividad.companias_filtro_ids = ','.join(str(compania_id) for compania_id in companias_actividad)
+        if any(asistente.compania_id is None for asistente in actividad.asistentes.all()):
+            actividad.companias_filtro_ids += (',' if actividad.companias_filtro_ids else '') + 'sin_compania'
     companias = Compania.objects.all().order_by('nombre')
     usuarios_info = list(Usuario.objects.filter(is_active=True).values('id', 'compania_id'))
     usuarios_companias = {u['id']: u['compania_id'] for u in usuarios_info}
@@ -1873,8 +1872,9 @@ def capacitaciones_view(request):
 
     context = {
         'form': form,
-        'reunion_form': reunion_form,
         'capacitaciones': capacitaciones,
+        'cursos': capacitaciones.filter(tipo_actividad='Curso'),
+        'actividades_internas': actividades_internas,
         'reuniones': reuniones,
         'companias': companias,
         'usuarios_companias_json': json.dumps(usuarios_companias),
@@ -1894,17 +1894,7 @@ def capacitacion_edit_view(request, capacitacion_id):
         return redirect('capacitaciones')
 
     if request.method == 'POST':
-        # Use different form depending on activity type
-        if capacitacion.tipo_actividad == 'Reunión':
-            form = ReunionForm(request.POST, request.FILES, instance=capacitacion)
-            if form.is_valid():
-                capacitacion = form.save()
-                messages.success(request, f'Reunión "{capacitacion.nombre}" actualizada exitosamente.')
-            else:
-                messages.error(request, 'Error al actualizar la reunión. Revisa el formulario.')
-            return redirect('capacitaciones')
-
-        form = CapacitacionForm(request.POST, instance=capacitacion)
+        form = CapacitacionForm(request.POST, request.FILES, instance=capacitacion)
         if form.is_valid():
             capacitacion = form.save() # El save() de un ModelForm maneja las relaciones ManyToMany
             
@@ -1919,17 +1909,17 @@ def capacitacion_edit_view(request, capacitacion_id):
                     usuarios_a_notificar = capacitacion.asistentes.all()
                 notificaciones = []
                 for u in usuarios_a_notificar:
-                    mensaje = f"Actualización del curso: {capacitacion.nombre}."
+                    mensaje = f"Actualización de {capacitacion.get_tipo_actividad_display().lower()}: {capacitacion.nombre}."
                     notificaciones.append(Notificacion(usuario=u, mensaje=mensaje, link=f"/capacitaciones/"))
                 
                 if notificaciones:
                     Notificacion.objects.bulk_create(notificaciones)
                     enviar_email_capacitacion(capacitacion, usuarios_a_notificar, accion="notificado/a de una actualización en")
-                    messages.success(request, f'Curso "{capacitacion.nombre}" actualizado y se notificó a {len(notificaciones)} usuarios.')
+                    messages.success(request, f'{capacitacion.get_tipo_actividad_display()} "{capacitacion.nombre}" actualizada y se notificó a {len(notificaciones)} usuarios.')
                 else:
-                    messages.success(request, f'Curso "{capacitacion.nombre}" actualizado exitosamente.')
+                    messages.success(request, f'{capacitacion.get_tipo_actividad_display()} "{capacitacion.nombre}" actualizada exitosamente.')
             else:
-                messages.success(request, f'Curso "{capacitacion.nombre}" actualizado exitosamente.')
+                messages.success(request, f'{capacitacion.get_tipo_actividad_display()} "{capacitacion.nombre}" actualizada exitosamente.')
         else:
             messages.error(request, 'Error al actualizar el curso. Revisa el formulario.')
     return redirect('capacitaciones')

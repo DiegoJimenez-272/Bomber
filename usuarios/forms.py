@@ -547,6 +547,11 @@ class CapacitacionForm(forms.ModelForm):
         self.fields['fecha_fin'].required = False
         self.fields['cupos'].required = False
 
+        tipo_actividad = self.data.get('tipo_actividad') if self.is_bound else getattr(self.instance, 'tipo_actividad', 'Curso')
+        if tipo_actividad == 'Reunión':
+            for field_name in ('malla', 'lugar', 'instructor'):
+                self.fields[field_name].required = False
+
         # Agregar clases a los radios
         for _, radio in self.fields['audiencia'].choices:
             pass # Radios se manejan en la plantilla
@@ -554,6 +559,19 @@ class CapacitacionForm(forms.ModelForm):
         for field_name, field in self.fields.items():
             if self.errors.get(field_name):
                 field.widget.attrs['class'] += ' is-invalid'
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        if instance.tipo_actividad == 'Reunión':
+            instance.malla = 'Otros'
+            instance.lugar = 'No especificado'
+            instance.instructor = 'No especificado'
+            instance.fecha_fin = None
+            instance.cupos = None
+        if commit:
+            instance.save()
+            self.save_m2m()
+        return instance
 
 class MantenimientoForm(forms.ModelForm):
     caja_descuento = forms.ChoiceField(
