@@ -1938,8 +1938,11 @@ def capacitacion_delete_view(request, capacitacion_id):
 
     if request.method == 'POST':
         capacitacion_nombre = capacitacion.nombre
+        tipo_actividad = capacitacion.tipo_actividad
         capacitacion.delete()
-        messages.success(request, f'Curso "{capacitacion_nombre}" eliminado exitosamente.')
+        messages.success(request, f'{tipo_actividad} "{capacitacion_nombre}" eliminada exitosamente.')
+        tab = 'cursos' if tipo_actividad == 'Curso' else 'actividades'
+        return redirect(f"{reverse('capacitaciones')}?tab={tab}")
     return redirect('capacitaciones')
 
 
