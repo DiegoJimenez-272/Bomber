@@ -351,13 +351,13 @@
             <div class="card shadow-sm mb-4">
                 <div class="card-body">
                     <div class="row g-3 align-items-center">
-                        <div class="col-lg-8">
+                        <div class="col-lg-5">
                             <div class="input-group">
                                 <span class="input-group-text"><i class="bi bi-search"></i></span>
                                 <input class="form-control" type="search" id="reunionSearchInput" placeholder="Buscar por nombre...">
                             </div>
                         </div>
-                        <div class="col-lg-4">
+                        <div class="col-lg-3">
                             <select class="form-select" id="reunionMonthFilter">
                                 <option value="">Todos los meses</option>
                                 <option value="1">Enero</option>
@@ -374,6 +374,15 @@
                                 <option value="12">Diciembre</option>
                             </select>
                         </div>
+                        <div class="col-lg-4">
+                            <select class="form-select" id="reunionCompaniaFilter">
+                                <option value="">Todas las Compañías</option>
+                                {% for compania in companias %}
+                                <option value="{{ compania.id }}">{{ compania.nombre }}</option>
+                                {% endfor %}
+                                <option value="sin_compania">Sin compañía</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -387,7 +396,8 @@
                 {% for item in reuniones %}
                 <div class="col-12 col-md-6 col-lg-4 reunion-card"
                      data-nombre="{{ item.nombre|lower }}"
-                     data-mes="{{ item.fecha_inicio|date:'n' }}">
+                     data-mes="{{ item.fecha_inicio|date:'n' }}"
+                     data-companias="{{ item.companias_filtro_ids }}">
                     <div class="card h-100 shadow-sm border-0 bg-light rounded-4 overflow-hidden" style="border-left: 5px solid #ff9800 !important;">
                         <div class="card-body p-4 position-relative">
                             {% if request.user.is_superuser or request.user.rol.editar_capacitaciones %}
@@ -422,6 +432,16 @@
                                 <div class="d-flex align-items-center text-secondary">
                                     <i class="bi bi-people text-danger fs-5 me-3 w-20px text-center"></i>
                                     <span class="fs-6">{{ item.asistentes.count }} asistentes</span>
+                                </div>
+                                <div class="d-flex align-items-start text-secondary">
+                                    <i class="bi bi-building text-danger fs-5 me-3 w-20px text-center"></i>
+                                    <span class="fs-6">
+                                        {% if item.companias_asistentes %}
+                                            {% for compania in item.companias_asistentes %}{{ compania.nombre }}{% if not forloop.last %}, {% endif %}{% endfor %}
+                                        {% else %}
+                                            Sin compañía registrada
+                                        {% endif %}
+                                    </span>
                                 </div>
                                 {% if item.documento_adjunto %}
                                 <div class="d-flex align-items-center text-secondary">
@@ -1251,6 +1271,42 @@ document.addEventListener('DOMContentLoaded', function () {
     setupCompanyFilters('company-filters-create', 'asistentes-list-create', 'selectAllCreate', 'deselectAllCreate');
     setupCompanyFilters('company-filters-edit', 'asistentes-list-edit', 'selectAllEdit', 'deselectAllEdit');
     setupCompanyFilters('company-filters-reunion', 'asistentes-list-reunion', 'selectAllReunion', 'deselectAllReunion');
+
+    // --- Búsqueda y filtros de reuniones ---
+    const reunionSearchInput = document.getElementById('reunionSearchInput');
+    const reunionMonthFilter = document.getElementById('reunionMonthFilter');
+    const reunionCompaniaFilter = document.getElementById('reunionCompaniaFilter');
+    const reunionesList = document.getElementById('reuniones-list');
+    const noReunionFound = document.getElementById('no-reunion-found');
+
+    function filterReuniones() {
+        if (!reunionesList) return;
+        const searchText = reunionSearchInput ? reunionSearchInput.value.trim().toLowerCase() : '';
+        const selectedMonth = reunionMonthFilter ? reunionMonthFilter.value : '';
+        const selectedCompany = reunionCompaniaFilter ? reunionCompaniaFilter.value : '';
+        const cards = reunionesList.querySelectorAll('.reunion-card');
+        let visibleCards = 0;
+
+        cards.forEach(card => {
+            const matchesSearch = !searchText || (card.dataset.nombre || '').includes(searchText);
+            const matchesMonth = !selectedMonth || card.dataset.mes === selectedMonth;
+            const companyIds = card.dataset.companias ? card.dataset.companias.split(',') : [];
+            const matchesCompany = !selectedCompany || companyIds.includes(selectedCompany);
+            const isVisible = matchesSearch && matchesMonth && matchesCompany;
+
+            card.style.display = isVisible ? '' : 'none';
+            if (isVisible) visibleCards++;
+        });
+
+        if (noReunionFound) {
+            noReunionFound.style.display = cards.length > 0 && visibleCards === 0 ? 'block' : 'none';
+        }
+    }
+
+    if (reunionSearchInput) reunionSearchInput.addEventListener('input', filterReuniones);
+    if (reunionMonthFilter) reunionMonthFilter.addEventListener('change', filterReuniones);
+    if (reunionCompaniaFilter) reunionCompaniaFilter.addEventListener('change', filterReuniones);
+    filterReuniones();
 
     // --- Lógica de Filtrado para Cursos Oficiales ---
     const cursoSearchInput = document.getElementById('cursoSearchInput');

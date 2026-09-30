@@ -1816,7 +1816,21 @@ def capacitaciones_view(request):
                 Q(creado_por=request.user) | Q(asistentes=request.user)
             ).distinct()
 
-    reuniones = capacitaciones.filter(tipo_actividad='Reunión').order_by('-fecha_inicio')
+    reuniones = list(
+        capacitaciones.filter(tipo_actividad='Reunión')
+        .prefetch_related('asistentes__compania')
+        .order_by('-fecha_inicio')
+    )
+    for reunion in reuniones:
+        companias_asistentes = {
+            asistente.compania_id: asistente.compania
+            for asistente in reunion.asistentes.all()
+            if asistente.compania_id and asistente.compania
+        }
+        reunion.companias_asistentes = sorted(companias_asistentes.values(), key=lambda compania: compania.nombre.lower())
+        reunion.companias_filtro_ids = ','.join(str(compania_id) for compania_id in companias_asistentes)
+        if any(asistente.compania_id is None for asistente in reunion.asistentes.all()):
+            reunion.companias_filtro_ids += (',' if reunion.companias_filtro_ids else '') + 'sin_compania'
     companias = Compania.objects.all().order_by('nombre')
     usuarios_info = list(Usuario.objects.filter(is_active=True).values('id', 'compania_id'))
     usuarios_companias = {u['id']: u['compania_id'] for u in usuarios_info}
