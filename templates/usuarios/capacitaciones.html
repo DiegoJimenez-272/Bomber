@@ -145,24 +145,9 @@
                             </div>
                             {% if request.user.is_superuser or request.user.rol.editar_capacitaciones %}
                             <div>
-                                <button class="btn btn-sm btn-outline-primary"
-                                        onclick="window.loadCapacitacionEdit(this)"
-                                        data-bs-toggle="modal" data-bs-target="#editCapacitacionModal"
-                                        data-cap-id="{{ cap.id }}"
-                                        data-cap-edit-url="{% url 'capacitacion_edit' cap.id %}"
-                                        data-cap-nombre="{{ cap.nombre }}"
-                                        data-cap-tipo_actividad="{{ cap.tipo_actividad }}"
-                                        data-cap-malla="{{ cap.malla }}"
-                                        data-cap-descripcion="{{ cap.descripcion }}"
-                                        data-cap-fecha_inicio="{{ cap.fecha_inicio|date:'Y-m-d\TH:i' }}"
-                                        data-cap-fecha_fin="{{ cap.fecha_fin|date:'Y-m-d\TH:i' }}"
-                                        data-cap-lugar="{{ cap.lugar }}"
-                                        data-cap-instructor="{{ cap.instructor }}"
-                                        data-cap-cupos="{{ cap.cupos|default_if_none:'' }}"
-                                        data-cap-asistentes="{% for a in cap.asistentes.all %}{{ a.id }}{% if not forloop.last %},{% endif %}{% endfor %}"
-                                        data-cap-companias="{% for c in cap.companias_invitadas.all %}{{ c.id }}{% if not forloop.last %},{% endif %}{% endfor %}">
+                                <a class="btn btn-sm btn-outline-primary" href="{% url 'capacitacion_edit' cap.id %}" aria-label="Editar {{ cap.nombre }}">
                                     <i class="bi bi-pencil-fill"></i>
-                                </button>
+                                </a>
                                 <form method="post" action="{% url 'capacitacion_delete' cap.id %}" class="d-inline" onsubmit="return confirm('¿Eliminar este registro?');">
                                     {% csrf_token %}
                                     <button type="submit" class="btn btn-sm btn-outline-danger" aria-label="Eliminar {{ cap.nombre }}"><i class="bi bi-trash-fill"></i></button>
@@ -298,24 +283,9 @@
                             </div>
                             {% if request.user.is_superuser or request.user.rol.editar_capacitaciones %}
                             <div>
-                                <button class="btn btn-sm btn-outline-primary"
-                                        onclick="window.loadCapacitacionEdit(this)"
-                                        data-bs-toggle="modal" data-bs-target="#editCapacitacionModal"
-                                        data-cap-id="{{ cap.id }}"
-                                        data-cap-edit-url="{% url 'capacitacion_edit' cap.id %}"
-                                        data-cap-nombre="{{ cap.nombre }}"
-                                        data-cap-tipo_actividad="{{ cap.tipo_actividad }}"
-                                        data-cap-malla="{{ cap.malla }}"
-                                        data-cap-descripcion="{{ cap.descripcion }}"
-                                        data-cap-fecha_inicio="{{ cap.fecha_inicio|date:'Y-m-d\TH:i' }}"
-                                        data-cap-fecha_fin="{{ cap.fecha_fin|date:'Y-m-d\TH:i' }}"
-                                        data-cap-lugar="{{ cap.lugar }}"
-                                        data-cap-instructor="{{ cap.instructor }}"
-                                        data-cap-cupos="{{ cap.cupos|default_if_none:'' }}"
-                                        data-cap-asistentes="{% for a in cap.asistentes.all %}{{ a.id }}{% if not forloop.last %},{% endif %}{% endfor %}"
-                                        data-cap-companias="{% for c in cap.companias_invitadas.all %}{{ c.id }}{% if not forloop.last %},{% endif %}{% endfor %}">
+                                <a class="btn btn-sm btn-outline-primary" href="{% url 'capacitacion_edit' cap.id %}" aria-label="Editar {{ cap.nombre }}">
                                     <i class="bi bi-pencil-fill"></i>
-                                </button>
+                                </a>
                                 <form method="post" action="{% url 'capacitacion_delete' cap.id %}" class="d-inline" onsubmit="return confirm('¿Eliminar este registro?');">
                                     {% csrf_token %}
                                     <button type="submit" class="btn btn-sm btn-outline-danger" aria-label="Eliminar {{ cap.nombre }}"><i class="bi bi-trash-fill"></i></button>
@@ -345,22 +315,9 @@
                                     </button>
                                     <ul class="dropdown-menu dropdown-menu-end border-0 shadow-sm rounded-3">
                                         <li>
-                                            <button type="button" class="dropdown-item" onclick="window.loadCapacitacionEdit(this)" data-bs-toggle="modal" data-bs-target="#editCapacitacionModal"
-                                                    data-cap-id="{{ item.id }}"
-                                                    data-cap-edit-url="{% url 'capacitacion_edit' item.id %}"
-                                                    data-cap-nombre="{{ item.nombre }}"
-                                                    data-cap-tipo_actividad="Reunión"
-                                                    data-cap-malla="{{ item.malla }}"
-                                                    data-cap-descripcion="{{ item.descripcion }}"
-                                                    data-cap-fecha_inicio="{{ item.fecha_inicio|date:'Y-m-d\TH:i' }}"
-                                                    data-cap-fecha_fin=""
-                                                    data-cap-lugar="{{ item.lugar }}"
-                                                    data-cap-instructor="{{ item.instructor }}"
-                                                    data-cap-cupos="{{ item.cupos|default_if_none:'' }}"
-                                                    data-cap-asistentes="{% for asistente in item.asistentes.all %}{{ asistente.id }}{% if not forloop.last %},{% endif %}{% endfor %}"
-                                                    data-cap-companias="{% for compania in item.companias_asistentes %}{{ compania.id }}{% if not forloop.last %},{% endif %}{% endfor %}">
+                                            <a class="dropdown-item" href="{% url 'capacitacion_edit' item.id %}">
                                                 <i class="bi bi-pencil me-2 text-primary"></i> Editar
-                                            </button>
+                                            </a>
                                         </li>
                                         <li>
                                             <button class="dropdown-item text-danger" data-bs-toggle="modal" data-bs-target="#deleteReunionModal{{ item.id }}">
@@ -968,36 +925,6 @@
 {% block scripts %}
 {{ block.super }}
 <script>
-window.loadCapacitacionEdit = function(button) {
-    const form = document.getElementById('editCapacitacionForm');
-    const value = (name) => button.getAttribute('data-cap-' + name) || '';
-    const tipo = value('tipo_actividad');
-
-    document.getElementById('editCapacitacionModalLabel').textContent = `Editar ${tipo}`;
-    form.action = value('edit-url');
-    form.querySelector('#edit_nombre').value = value('nombre');
-    form.querySelector('#edit_tipo_actividad').value = tipo;
-    form.querySelector('#edit_malla').value = value('malla');
-    form.querySelector('#edit_descripcion').value = value('descripcion');
-    form.querySelector('#edit_fecha_inicio').value = value('fecha_inicio');
-    form.querySelector('#edit_fecha_fin').value = value('fecha_fin');
-    form.querySelector('#edit_lugar').value = value('lugar');
-    form.querySelector('#edit_instructor').value = value('instructor');
-    form.querySelector('#edit_cupos').value = value('cupos');
-
-    const asistentes = value('asistentes').split(',').filter(Boolean);
-    form.querySelectorAll('#asistentes-list-edit input[type="checkbox"]').forEach(function(checkbox) {
-        checkbox.checked = asistentes.includes(checkbox.value);
-    });
-
-    const companias = value('companias').split(',').filter(Boolean);
-    const companyCheckboxes = form.querySelectorAll('#company-filters-edit .comp-filter-cb');
-    companyCheckboxes.forEach(function(checkbox) {
-        checkbox.checked = companias.includes(checkbox.value);
-    });
-    if (companyCheckboxes.length) companyCheckboxes[0].dispatchEvent(new Event('change', { bubbles: true }));
-};
-
 document.addEventListener('DOMContentLoaded', function () {
     // Restaurar la pestaña seleccionada al volver de guardar o filtrar.
     const urlParams = new URLSearchParams(window.location.search);
@@ -1022,14 +949,6 @@ document.addEventListener('DOMContentLoaded', function () {
         if(checkInvitacion.checked) {
             containerAudiencia.style.display = 'block';
         }
-    }
-
-    const editCheckInvitacion = document.getElementById('edit_enviar_invitacion');
-    const editContainerAudiencia = document.getElementById('edit-audiencia-container');
-    if(editCheckInvitacion && editContainerAudiencia) {
-        editCheckInvitacion.addEventListener('change', function() {
-            editContainerAudiencia.style.display = this.checked ? 'block' : 'none';
-        });
     }
 
     // --- Lógica de Filtro Dinámico de Asistentes por Compañía ---
@@ -1101,7 +1020,6 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     setupCompanyFilters('company-filters-create', 'asistentes-list-create', 'selectAllCreate', 'deselectAllCreate');
-    setupCompanyFilters('company-filters-edit', 'asistentes-list-edit', 'selectAllEdit', 'deselectAllEdit');
 
     // --- Filtros compartidos para todas las actividades ---
     const activitySearchInput = document.getElementById('capInternSearchInput');

@@ -1897,7 +1897,7 @@ def capacitacion_edit_view(request, capacitacion_id):
     if request.method == 'POST':
         form = CapacitacionForm(request.POST, request.FILES, instance=capacitacion)
         if form.is_valid():
-            capacitacion = form.save() # El save() de un ModelForm maneja las relaciones ManyToMany
+            capacitacion = form.save()
             
             # Lógica de Notificaciones / Actualizaciones en Edición
             enviar_invitacion = request.POST.get('enviar_invitacion') == 'on'
@@ -1921,13 +1921,15 @@ def capacitacion_edit_view(request, capacitacion_id):
                     messages.success(request, f'{capacitacion.get_tipo_actividad_display()} "{capacitacion.nombre}" actualizada exitosamente.')
             else:
                 messages.success(request, f'{capacitacion.get_tipo_actividad_display()} "{capacitacion.nombre}" actualizada exitosamente.')
-        else:
-            errores = form.errors.as_text()
-            messages.error(request, f'No se guardaron los cambios. Revisa los campos del formulario.{errores}')
-        tipo_destino = request.POST.get('tipo_actividad', capacitacion.tipo_actividad)
-        tab = 'cursos' if tipo_destino == 'Curso' else 'actividades'
-        return redirect(f"{reverse('capacitaciones')}?tab={tab}")
-    return redirect('capacitaciones')
+            tab = 'cursos' if capacitacion.tipo_actividad == 'Curso' else 'actividades'
+            return redirect(f"{reverse('capacitaciones')}?tab={tab}")
+    else:
+        form = CapacitacionForm(instance=capacitacion)
+
+    return render(request, 'usuarios/capacitacion_editar.html', {
+        'form': form,
+        'capacitacion': capacitacion,
+    })
 
 @login_required
 def capacitacion_delete_view(request, capacitacion_id):
