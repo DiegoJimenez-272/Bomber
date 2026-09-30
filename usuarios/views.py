@@ -1818,17 +1818,19 @@ def capacitaciones_view(request):
 
     reuniones = list(
         capacitaciones.filter(tipo_actividad='Reunión')
-        .prefetch_related('asistentes__compania')
+        .prefetch_related('asistentes__compania', 'companias_invitadas')
         .order_by('-fecha_inicio')
     )
     for reunion in reuniones:
-        companias_asistentes = {
-            asistente.compania_id: asistente.compania
-            for asistente in reunion.asistentes.all()
-            if asistente.compania_id and asistente.compania
-        }
-        reunion.companias_asistentes = sorted(companias_asistentes.values(), key=lambda compania: compania.nombre.lower())
-        reunion.companias_filtro_ids = ','.join(str(compania_id) for compania_id in companias_asistentes)
+        companias_participantes = {compania.id: compania for compania in reunion.companias_invitadas.all()}
+        if not companias_participantes:
+            companias_participantes = {
+                asistente.compania_id: asistente.compania
+                for asistente in reunion.asistentes.all()
+                if asistente.compania_id and asistente.compania
+            }
+        reunion.companias_asistentes = sorted(companias_participantes.values(), key=lambda compania: compania.nombre.lower())
+        reunion.companias_filtro_ids = ','.join(str(compania_id) for compania_id in companias_participantes)
         if any(asistente.compania_id is None for asistente in reunion.asistentes.all()):
             reunion.companias_filtro_ids += (',' if reunion.companias_filtro_ids else '') + 'sin_compania'
     companias = Compania.objects.all().order_by('nombre')

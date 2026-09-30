@@ -482,12 +482,13 @@ class EmergenciaForm(forms.ModelForm):
 class ReunionForm(forms.ModelForm):
     class Meta:
         model = Capacitacion
-        fields = ['nombre', 'fecha_inicio', 'descripcion', 'asistentes', 'documento_adjunto']
+        fields = ['nombre', 'fecha_inicio', 'descripcion', 'asistentes', 'companias_invitadas', 'documento_adjunto']
         widgets = {
             'nombre': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Nombre de la reunión'}),
             'fecha_inicio': forms.DateTimeInput(attrs={'class': 'form-control', 'type': 'datetime-local'}),
             'descripcion': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             'asistentes': forms.SelectMultiple(attrs={'class': 'form-select select2-multiple', 'data-placeholder': 'Seleccionar asistentes...'}),
+            'companias_invitadas': forms.CheckboxSelectMultiple(attrs={'class': 'form-check-input comp-filter-cb'}),
             'documento_adjunto': forms.FileInput(attrs={'class': 'form-control'}),
         }
         

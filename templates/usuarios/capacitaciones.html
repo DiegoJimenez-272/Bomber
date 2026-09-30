@@ -408,9 +408,21 @@
                                     </button>
                                     <ul class="dropdown-menu dropdown-menu-end border-0 shadow-sm rounded-3">
                                         <li>
-                                            <a class="dropdown-item" href="{% url 'capacitacion_edit' item.id %}">
+                                            <button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#editCapacitacionModal"
+                                                    data-cap-id="{{ item.id }}"
+                                                    data-cap-nombre="{{ item.nombre }}"
+                                                    data-cap-tipo_actividad="Reunión"
+                                                    data-cap-malla="{{ item.malla }}"
+                                                    data-cap-descripcion="{{ item.descripcion }}"
+                                                    data-cap-fecha_inicio="{{ item.fecha_inicio|date:'Y-m-d\TH:i' }}"
+                                                    data-cap-fecha_fin=""
+                                                    data-cap-lugar="{{ item.lugar }}"
+                                                    data-cap-instructor="{{ item.instructor }}"
+                                                    data-cap-cupos="{{ item.cupos|default_if_none:'' }}"
+                                                    data-cap-asistentes="{% for asistente in item.asistentes.all %}{{ asistente.id }}{% if not forloop.last %},{% endif %}{% endfor %}"
+                                                    data-cap-companias="{% for compania in item.companias_asistentes %}{{ compania.id }}{% if not forloop.last %},{% endif %}{% endfor %}">
                                                 <i class="bi bi-pencil me-2 text-primary"></i> Editar
-                                            </a>
+                                            </button>
                                         </li>
                                         <li>
                                             <button class="dropdown-item text-danger" data-bs-toggle="modal" data-bs-target="#deleteReunionModal{{ item.id }}">
@@ -1047,15 +1059,15 @@
                             <h6 class="fw-bold mb-3 border-bottom pb-2">Asistencias</h6>
                             
                             <div class="mb-3">
-                                <label class="form-label text-muted small mb-1">Filtrar por Compañía</label>
+                                <label class="form-label text-muted small mb-1">Compañías participantes (opcional)</label>
                                 <div class="d-flex flex-wrap gap-2 mb-2 p-2 bg-light rounded" id="company-filters-reunion">
                                     <div class="form-check">
-                                        <input class="form-check-input filter-all" type="checkbox" id="reunionAllComps" checked>
+                                        <input class="form-check-input comp-filter-all" type="checkbox" id="reunionAllComps">
                                         <label class="form-check-label" for="reunionAllComps">Todas</label>
                                     </div>
                                     {% for comp in companias %}
                                     <div class="form-check">
-                                        <input class="form-check-input filter-comp" type="checkbox" id="reunionComp{{ comp.id }}" value="{{ comp.id }}" checked>
+                                        <input class="form-check-input comp-filter-cb" type="checkbox" name="companias_invitadas" id="reunionComp{{ comp.id }}" value="{{ comp.id }}">
                                         <label class="form-check-label" for="reunionComp{{ comp.id }}">{{ comp.nombre }}</label>
                                     </div>
                                     {% endfor %}
@@ -1129,6 +1141,7 @@ document.addEventListener('DOMContentLoaded', function () {
     editModal.addEventListener('show.bs.modal', function (event) {
         var button = event.relatedTarget;
         var form = document.getElementById('editCapacitacionForm');
+        document.getElementById('editCapacitacionModalLabel').textContent = button.dataset.capTipo_actividad === 'Reunión' ? 'Editar Reunión' : 'Editar Curso';
         form.action = `/capacitaciones/${button.dataset.capId}/edit/`;
         form.querySelector('#edit_nombre').value = button.dataset.capNombre;
         form.querySelector('#edit_tipo_actividad').value = button.dataset.capTipo_actividad;
@@ -1220,7 +1233,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 const userCompId = usuariosCompanias[userId];
                 const wrapper = cb.closest('.form-check');
                 
-                if (selectedComps.includes(userCompId)) {
+                if (selectedComps.length === 0 || selectedComps.includes(userCompId)) {
                     wrapper.style.display = '';
                 } else {
                     wrapper.style.display = 'none';
