@@ -348,7 +348,20 @@
                 {% endif %}
             </div>
 
-            <div class="row g-4">
+            <div class="row g-4 reuniones-container">
+                <style>
+                    .reuniones-container:empty::after,
+                    .reuniones-container .empty-msg:only-child {
+                        content: "No hay reuniones registradas.";
+                        display: block;
+                        width: 100%;
+                        text-align: center;
+                        padding: 3rem;
+                        color: #6c757d;
+                        font-style: italic;
+                    }
+                </style>
+                <div class="empty-msg" style="display: none;"></div>
                 {% for item in capacitaciones|dictsortreversed:"fecha_inicio" %}
                 {% if item.tipo_actividad == 'Reunión' %}
                 <div class="col-12 col-md-6 col-lg-4">
@@ -904,12 +917,11 @@
 <!-- Modal Crear Reunión -->
 <div class="modal fade" id="createReunionModal" tabindex="-1" aria-labelledby="createReunionModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-scrollable">
-        <div class="modal-content">
+        <form method="post" enctype="multipart/form-data" class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="createReunionModalLabel"><i class="bi bi-briefcase-fill me-2"></i>Registrar Nueva Reunión</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form method="post" enctype="multipart/form-data">
                 {% csrf_token %}
                 <input type="hidden" name="crear_reunion" value="1">
                 <div class="modal-body">
@@ -976,8 +988,7 @@
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
                     <button type="submit" class="btn btn-danger">Guardar Reunión</button>
                 </div>
-            </form>
-        </div>
+                </form>
     </div>
 </div>
 
