@@ -1208,7 +1208,7 @@ document.addEventListener('DOMContentLoaded', function () {
             ['notifications', 'malla', 'fecha_fin', 'lugar', 'cupos', 'instructor'].forEach(function(fieldName) {
                 const field = createModal.querySelector('[data-create-activity-field="' + fieldName + '"]');
                 if (field) field.hidden = isMeeting;
-            }
+            });
 
             if (isMeeting && invitationCheckbox) {
                 invitationCheckbox.checked = false;
