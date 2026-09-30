@@ -47,17 +47,18 @@
 
         <!-- ===== PESTAÑA: CURSOS OFICIALES ===== -->
         <div class="tab-pane fade show active" id="cursos" role="tabpanel">
-            <!-- Filtro de búsqueda cursos -->
-            <div class="card shadow-sm mb-4">
-                <div class="card-body">
-                    <div class="row g-3 align-items-center">
-                        <div class="col-lg-5">
+            <div class="card filter-panel shadow-sm mb-4">
+                <div class="card-body p-3">
+                    <div class="row g-2 align-items-end">
+                        <div class="col-12 col-md-6 col-lg-3">
+                            <label for="cursoSearchInput" class="form-label filter-label"><i class="bi bi-search me-1"></i>Buscar Curso</label>
                             <div class="input-group">
                                 <span class="input-group-text"><i class="bi bi-search"></i></span>
-                                <input class="form-control" type="search" id="cursoSearchInput" placeholder="Buscar por nombre, instructor o lugar...">
+                                <input class="form-control" type="search" id="cursoSearchInput" placeholder="Nombre, instructor o lugar...">
                             </div>
                         </div>
-                        <div class="col-lg-3">
+                        <div class="col-12 col-md-6 col-lg-2">
+                            <label for="mallaFilter" class="form-label filter-label">Malla / Nivel</label>
                             <select id="mallaFilter" class="form-select">
                                 <option value="">Todas las Mallas</option>
                                 {% for choice in form.malla.field.choices %}
@@ -65,13 +66,25 @@
                                 {% endfor %}
                             </select>
                         </div>
-                        <div class="col-lg-3">
+                        <div class="col-12 col-md-6 col-lg-2">
+                            <label for="cursoCompaniaFilter" class="form-label filter-label"><i class="bi bi-building me-1"></i>Compañía</label>
                             <select id="cursoCompaniaFilter" class="form-select">
                                 <option value="">Todas las Compañías</option>
                                 {% for comp in companias %}
                                     <option value="{{ comp.id }}">{{ comp.nombre }}</option>
                                 {% endfor %}
                             </select>
+                        </div>
+                        <div class="col-12 col-md-6 col-lg-3">
+                            <label class="form-label filter-label"><i class="bi bi-calendar3 me-1"></i>Periodo (Desde - Hasta)</label>
+                            <div class="input-group">
+                                <input type="date" id="cursoFechaDesde" class="form-control" aria-label="Fecha desde">
+                                <span class="input-group-text px-2">a</span>
+                                <input type="date" id="cursoFechaHasta" class="form-control" aria-label="Fecha hasta">
+                            </div>
+                        </div>
+                        <div class="col-12 col-md-6 col-lg-2 d-grid">
+                            <button type="button" id="cursoFilterButton" class="btn btn-danger"><i class="bi bi-funnel-fill me-1"></i>Filtrar</button>
                         </div>
                     </div>
                 </div>
@@ -83,7 +96,7 @@
 
             <div class="row row-cols-1 row-cols-lg-2 g-4" id="capacitaciones-list">
                 {% for cap in cursos %}
-                <div class="col capacitacion-card" data-malla="{{ cap.malla }}" data-companias="{% for c in cap.companias_invitadas.all %}{{ c.id }},{% endfor %}{% if cap.creado_por.compania %}{{ cap.creado_por.compania.id }},{% endif %}">
+                <div class="col capacitacion-card" data-malla="{{ cap.malla }}" data-fecha="{{ cap.fecha_inicio|date:'Y-m-d' }}" data-companias="{% for c in cap.companias_invitadas.all %}{{ c.id }},{% endfor %}{% if cap.creado_por.compania %}{{ cap.creado_por.compania.id }},{% endif %}">
 
                     <div class="card h-100 shadow-sm border-primary border-opacity-25">
                         <div class="card-body">
@@ -167,16 +180,18 @@
         <div class="tab-pane fade" id="actividades" role="tabpanel">
 
             <!-- Filtro de búsqueda capacitaciones -->
-            <div class="card shadow-sm mb-4">
-                <div class="card-body">
-                    <div class="row g-3 align-items-center">
-                        <div class="col-lg-4">
+            <div class="card filter-panel shadow-sm mb-4">
+                <div class="card-body p-3">
+                    <div class="row g-2 align-items-end">
+                        <div class="col-12 col-md-6 col-lg-3">
+                            <label for="capInternSearchInput" class="form-label filter-label"><i class="bi bi-search me-1"></i>Buscar Actividad</label>
                             <div class="input-group">
                                 <span class="input-group-text"><i class="bi bi-search"></i></span>
-                                <input class="form-control" type="search" id="capInternSearchInput" placeholder="Buscar por nombre, instructor o lugar...">
+                                <input class="form-control" type="search" id="capInternSearchInput" placeholder="Nombre, instructor o lugar...">
                             </div>
                         </div>
-                        <div class="col-lg-3">
+                        <div class="col-12 col-md-6 col-lg-2">
+                            <label for="tipoFilter" class="form-label filter-label">Tipo</label>
                             <select id="tipoFilter" class="form-select">
                                 <option value="">Todos los tipos de actividad</option>
                                 {% for choice in form.tipo_actividad.field.choices %}
@@ -186,24 +201,25 @@
                                 {% endfor %}
                             </select>
                         </div>
-                        <div class="col-lg-2">
-                            <select id="activityMonthFilter" class="form-select">
-                                <option value="">Todos los meses</option>
-                                <option value="1">Enero</option><option value="2">Febrero</option>
-                                <option value="3">Marzo</option><option value="4">Abril</option>
-                                <option value="5">Mayo</option><option value="6">Junio</option>
-                                <option value="7">Julio</option><option value="8">Agosto</option>
-                                <option value="9">Septiembre</option><option value="10">Octubre</option>
-                                <option value="11">Noviembre</option><option value="12">Diciembre</option>
-                            </select>
-                        </div>
-                        <div class="col-lg-3">
+                        <div class="col-12 col-md-6 col-lg-2">
+                            <label for="capInternCompaniaFilter" class="form-label filter-label"><i class="bi bi-building me-1"></i>Compañía</label>
                             <select id="capInternCompaniaFilter" class="form-select">
                                 <option value="">Todas las Compañías</option>
                                 {% for comp in companias %}
                                     <option value="{{ comp.id }}">{{ comp.nombre }}</option>
                                 {% endfor %}
                             </select>
+                        </div>
+                        <div class="col-12 col-md-6 col-lg-3">
+                            <label class="form-label filter-label"><i class="bi bi-calendar3 me-1"></i>Periodo (Desde - Hasta)</label>
+                            <div class="input-group">
+                                <input type="date" id="activityFechaDesde" class="form-control" aria-label="Fecha desde">
+                                <span class="input-group-text px-2">a</span>
+                                <input type="date" id="activityFechaHasta" class="form-control" aria-label="Fecha hasta">
+                            </div>
+                        </div>
+                        <div class="col-12 col-md-6 col-lg-2 d-grid">
+                            <button type="button" id="activityFilterButton" class="btn btn-danger"><i class="bi bi-funnel-fill me-1"></i>Filtrar</button>
                         </div>
                     </div>
                 </div>
@@ -215,7 +231,7 @@
 
             <div class="row row-cols-1 row-cols-lg-2 g-4" id="cap-intern-list">
                 {% for cap in actividades_internas %}
-                <div class="col cap-intern-card" data-tipo="{{ cap.tipo_actividad }}" data-nombre="{{ cap.nombre|lower }}" data-mes="{{ cap.fecha_inicio|date:'n' }}" data-companias="{{ cap.companias_filtro_ids }}">
+                <div class="col cap-intern-card" data-tipo="{{ cap.tipo_actividad }}" data-nombre="{{ cap.nombre|lower }}" data-fecha="{{ cap.fecha_inicio|date:'Y-m-d' }}" data-companias="{{ cap.companias_filtro_ids }}">
 
                     <div class="card h-100 shadow-sm border-danger border-opacity-25">
                         <div class="card-body">
@@ -303,7 +319,7 @@
                 <div class="col-12 col-md-6 col-lg-4 reunion-card"
                      data-nombre="{{ item.nombre|lower }}"
                      data-tipo="Reunión"
-                     data-mes="{{ item.fecha_inicio|date:'n' }}"
+                     data-fecha="{{ item.fecha_inicio|date:'Y-m-d' }}"
                      data-companias="{{ item.companias_filtro_ids }}">
                     <div class="card h-100 shadow-sm border-0 bg-light rounded-4 overflow-hidden" style="border-left: 5px solid #ff9800 !important;">
                         <div class="card-body p-4 position-relative">
@@ -649,6 +665,28 @@
     </div> <!-- Cierre tab-content -->
 
     <style>
+        .filter-panel {
+            border: 1px solid #e1e5ea;
+            border-radius: .65rem;
+            background: #fff;
+        }
+        .filter-panel .filter-label {
+            display: block;
+            margin-bottom: .35rem;
+            color: #445268;
+            font-size: .8rem;
+            font-weight: 600;
+        }
+        .filter-panel .form-control,
+        .filter-panel .form-select,
+        .filter-panel .input-group-text {
+            min-height: 38px;
+            border-color: #d9dfe6;
+            background-color: #f8f9fa;
+        }
+        .filter-panel .input-group-text {
+            color: #4b5d73;
+        }
         .nav-tabs .nav-link.tab-rojo {
             color: #dc3545 !important; 
         }
@@ -1024,8 +1062,10 @@ document.addEventListener('DOMContentLoaded', function () {
     // --- Filtros compartidos para todas las actividades ---
     const activitySearchInput = document.getElementById('capInternSearchInput');
     const activityTypeFilter = document.getElementById('tipoFilter');
-    const activityMonthFilter = document.getElementById('activityMonthFilter');
     const activityCompanyFilter = document.getElementById('capInternCompaniaFilter');
+    const activityDateFromFilter = document.getElementById('activityFechaDesde');
+    const activityDateToFilter = document.getElementById('activityFechaHasta');
+    const activityFilterButton = document.getElementById('activityFilterButton');
     const noActivitiesFound = document.getElementById('no-activities-found');
     const emptyActivitiesState = document.getElementById('empty-activities-state');
 
@@ -1033,24 +1073,27 @@ document.addEventListener('DOMContentLoaded', function () {
         const cards = document.querySelectorAll('#cap-intern-list .cap-intern-card, #reuniones-list .reunion-card');
         const searchText = activitySearchInput ? activitySearchInput.value.trim().toLowerCase() : '';
         const selectedType = activityTypeFilter ? activityTypeFilter.value : '';
-        const selectedMonth = activityMonthFilter ? activityMonthFilter.value : '';
         const selectedCompany = activityCompanyFilter ? activityCompanyFilter.value : '';
+        const selectedDateFrom = activityDateFromFilter ? activityDateFromFilter.value : '';
+        const selectedDateTo = activityDateToFilter ? activityDateToFilter.value : '';
         let visibleCards = 0;
 
         cards.forEach(card => {
             const name = card.dataset.nombre || card.textContent.toLowerCase();
             const companyIds = (card.dataset.companias || '').split(',').filter(Boolean);
+            const activityDate = card.dataset.fecha || '';
             const matchesSearch = !searchText || name.includes(searchText) || card.textContent.toLowerCase().includes(searchText);
             const matchesType = !selectedType || card.dataset.tipo === selectedType;
-            const matchesMonth = !selectedMonth || card.dataset.mes === selectedMonth;
             const matchesCompany = !selectedCompany || companyIds.includes(selectedCompany);
-            const isVisible = matchesSearch && matchesType && matchesMonth && matchesCompany;
+            const matchesDateFrom = !selectedDateFrom || (activityDate && activityDate >= selectedDateFrom);
+            const matchesDateTo = !selectedDateTo || (activityDate && activityDate <= selectedDateTo);
+            const isVisible = matchesSearch && matchesType && matchesCompany && matchesDateFrom && matchesDateTo;
 
             card.style.display = isVisible ? '' : 'none';
             if (isVisible) visibleCards++;
         });
 
-        const filtersApplied = Boolean(searchText || selectedType || selectedMonth || selectedCompany);
+        const filtersApplied = Boolean(searchText || selectedType || selectedCompany || selectedDateFrom || selectedDateTo);
         if (noActivitiesFound) {
             noActivitiesFound.style.display = filtersApplied && visibleCards === 0 ? 'block' : 'none';
         }
@@ -1061,14 +1104,19 @@ document.addEventListener('DOMContentLoaded', function () {
 
     if (activitySearchInput) activitySearchInput.addEventListener('input', filterActivities);
     if (activityTypeFilter) activityTypeFilter.addEventListener('change', filterActivities);
-    if (activityMonthFilter) activityMonthFilter.addEventListener('change', filterActivities);
     if (activityCompanyFilter) activityCompanyFilter.addEventListener('change', filterActivities);
+    if (activityDateFromFilter) activityDateFromFilter.addEventListener('change', filterActivities);
+    if (activityDateToFilter) activityDateToFilter.addEventListener('change', filterActivities);
+    if (activityFilterButton) activityFilterButton.addEventListener('click', filterActivities);
     filterActivities();
 
     // --- Lógica de Filtrado para Cursos Oficiales ---
     const cursoSearchInput = document.getElementById('cursoSearchInput');
     const mallaFilter = document.getElementById('mallaFilter');
     const cursoCompaniaFilter = document.getElementById('cursoCompaniaFilter');
+    const cursoDateFromFilter = document.getElementById('cursoFechaDesde');
+    const cursoDateToFilter = document.getElementById('cursoFechaHasta');
+    const cursoFilterButton = document.getElementById('cursoFilterButton');
     const capacitacionesList = document.getElementById('capacitaciones-list');
     const noCursosRow = document.getElementById('no-cursos-found');
 
@@ -1077,6 +1125,8 @@ document.addEventListener('DOMContentLoaded', function () {
         const searchText = cursoSearchInput ? cursoSearchInput.value.toLowerCase() : '';
         const selectedMalla = mallaFilter ? mallaFilter.value.toLowerCase() : '';
         const selectedComp = cursoCompaniaFilter ? cursoCompaniaFilter.value : '';
+        const selectedDateFrom = cursoDateFromFilter ? cursoDateFromFilter.value : '';
+        const selectedDateTo = cursoDateToFilter ? cursoDateToFilter.value : '';
         const cards = capacitacionesList.getElementsByClassName('capacitacion-card');
         let visibleCards = 0;
 
@@ -1085,12 +1135,15 @@ document.addEventListener('DOMContentLoaded', function () {
             const textContent = card.textContent.toLowerCase();
             const malla = card.dataset.malla ? card.dataset.malla.toLowerCase() : '';
             const companias = card.dataset.companias ? card.dataset.companias.split(',') : [];
+            const cursoDate = card.dataset.fecha || '';
 
             const matchesSearch = searchText === "" || textContent.includes(searchText);
             const matchesMalla = selectedMalla === "" || malla === selectedMalla;
             const matchesComp = selectedComp === "" || companias.includes(selectedComp);
+            const matchesDateFrom = !selectedDateFrom || (cursoDate && cursoDate >= selectedDateFrom);
+            const matchesDateTo = !selectedDateTo || (cursoDate && cursoDate <= selectedDateTo);
 
-            if (matchesSearch && matchesMalla && matchesComp) {
+            if (matchesSearch && matchesMalla && matchesComp && matchesDateFrom && matchesDateTo) {
                 card.style.display = "";
                 visibleCards++;
             } else {
@@ -1099,13 +1152,17 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         if (noCursosRow) {
-            noCursosRow.style.display = visibleCards === 0 ? "block" : "none";
+            noCursosRow.style.display = cards.length > 0 && visibleCards === 0 ? "block" : "none";
         }
     }
 
-    if (cursoSearchInput) cursoSearchInput.addEventListener('keyup', filterCursos);
+    if (cursoSearchInput) cursoSearchInput.addEventListener('input', filterCursos);
     if (mallaFilter) mallaFilter.addEventListener('change', filterCursos);
     if (cursoCompaniaFilter) cursoCompaniaFilter.addEventListener('change', filterCursos);
+    if (cursoDateFromFilter) cursoDateFromFilter.addEventListener('change', filterCursos);
+    if (cursoDateToFilter) cursoDateToFilter.addEventListener('change', filterCursos);
+    if (cursoFilterButton) cursoFilterButton.addEventListener('click', filterCursos);
+    filterCursos();
 
     // --- Búsqueda rápida en tiempo real para Lista de Abono ---
     const abonoSearchInput = document.getElementById('abonoSearchInput');
