@@ -28,7 +28,7 @@ if os.path.exists(env_path):
 
 # Quick-start development settings - unsuitable for production
 SECRET_KEY = os.environ.get('SECRET_KEY', 'django-secure-bomberos-mulchen-2026-x9k2p7q4v1z8m3n5w6y0u2i4o6p8')
-DEBUG = False
+DEBUG = True
 
 
 allowed_hosts_env = os.environ.get('ALLOWED_HOSTS')
