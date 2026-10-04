@@ -192,6 +192,11 @@ LOGGING = {
             'level': 'WARNING',
             'propagate': False,
         },
+        'django.request': {
+            'handlers': ['console'],
+            'level': 'ERROR',
+            'propagate': False,
+        },
         'usuarios': {
             'handlers': ['console'],
             'level': 'INFO',
