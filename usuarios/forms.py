@@ -485,7 +485,7 @@ class ReunionForm(forms.ModelForm):
         fields = ['nombre', 'fecha_inicio', 'descripcion', 'asistentes', 'companias_invitadas', 'documento_adjunto']
         widgets = {
             'nombre': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Nombre de la reunión'}),
-            'fecha_inicio': forms.DateTimeInput(attrs={'class': 'form-control', 'type': 'datetime-local'}),
+            'fecha_inicio': forms.DateTimeInput(format='%Y-%m-%dT%H:%M', attrs={'class': 'form-control', 'type': 'datetime-local'}),
             'descripcion': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             'asistentes': forms.SelectMultiple(attrs={'class': 'form-select select2-multiple', 'data-placeholder': 'Seleccionar asistentes...'}),
             'companias_invitadas': forms.CheckboxSelectMultiple(attrs={'class': 'form-check-input comp-filter-cb'}),
@@ -529,8 +529,8 @@ class CapacitacionForm(forms.ModelForm):
             'tipo_actividad': forms.Select(attrs={'class': 'form-select'}),
             'malla': forms.Select(attrs={'class': 'form-select'}),
             'descripcion': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Objetivos, temas a tratar, etc.'}),
-            'fecha_inicio': forms.DateTimeInput(attrs={'class': 'form-control', 'type': 'datetime-local'}),
-            'fecha_fin': forms.DateTimeInput(attrs={'class': 'form-control', 'type': 'datetime-local'}),
+            'fecha_inicio': forms.DateTimeInput(format='%Y-%m-%dT%H:%M', attrs={'class': 'form-control', 'type': 'datetime-local'}),
+            'fecha_fin': forms.DateTimeInput(format='%Y-%m-%dT%H:%M', attrs={'class': 'form-control', 'type': 'datetime-local'}),
             'lugar': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej: Cuartel General, Campo de entrenamiento'}),
             'instructor': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Nombre del instructor o entidad'}),
             'cupos': forms.NumberInput(attrs={'class': 'form-control'}),
@@ -701,12 +701,13 @@ class InventarioForm(forms.ModelForm):
 class VehiculoForm(forms.ModelForm):
     class Meta:
         model = Vehiculo
-        fields = ['nombre', 'compania', 'patente', 'descripcion']
+        fields = ['nombre', 'compania', 'patente', 'descripcion', 'estado']
         widgets = {
             'nombre': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej: B-1, RX-2'}),
             'compania': forms.Select(attrs={'class': 'form-select'}),
             'patente': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej: AB-CD-12'}),
             'descripcion': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Descripción del vehículo (marca, función, etc.)'}),
+            'estado': forms.Select(attrs={'class': 'form-select'}),
         }
 
     def __init__(self, *args, **kwargs):

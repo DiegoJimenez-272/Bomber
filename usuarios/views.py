@@ -1895,7 +1895,10 @@ def capacitacion_edit_view(request, capacitacion_id):
         return redirect('capacitaciones')
 
     if request.method == 'POST':
-        form = CapacitacionForm(request.POST, request.FILES, instance=capacitacion)
+        if capacitacion.tipo_actividad == 'Reunión':
+            form = ReunionForm(request.POST, request.FILES, instance=capacitacion)
+        else:
+            form = CapacitacionForm(request.POST, request.FILES, instance=capacitacion)
         if form.is_valid():
             capacitacion = form.save()
             
@@ -1921,10 +1924,18 @@ def capacitacion_edit_view(request, capacitacion_id):
                     messages.success(request, f'{capacitacion.get_tipo_actividad_display()} "{capacitacion.nombre}" actualizada exitosamente.')
             else:
                 messages.success(request, f'{capacitacion.get_tipo_actividad_display()} "{capacitacion.nombre}" actualizada exitosamente.')
-            tab = 'cursos' if capacitacion.tipo_actividad == 'Curso' else 'actividades'
+            if capacitacion.tipo_actividad == 'Curso':
+                tab = 'cursos'
+            elif capacitacion.tipo_actividad == 'Reunión':
+                tab = 'reuniones'
+            else:
+                tab = 'actividades'
             return redirect(f"{reverse('capacitaciones')}?tab={tab}")
     else:
-        form = CapacitacionForm(instance=capacitacion)
+        if capacitacion.tipo_actividad == 'Reunión':
+            form = ReunionForm(instance=capacitacion)
+        else:
+            form = CapacitacionForm(instance=capacitacion)
 
     return render(request, 'usuarios/capacitacion_editar.html', {
         'form': form,
@@ -1943,7 +1954,7 @@ def capacitacion_delete_view(request, capacitacion_id):
         tipo_actividad = capacitacion.tipo_actividad
         capacitacion.delete()
         messages.success(request, f'{tipo_actividad} "{capacitacion_nombre}" eliminada exitosamente.')
-        tab = 'cursos' if tipo_actividad == 'Curso' else 'actividades'
+        tab = 'cursos' if tipo_actividad == 'Curso' else ('reuniones' if tipo_actividad == 'Reunión' else 'actividades')
         return redirect(f"{reverse('capacitaciones')}?tab={tab}")
     return redirect('capacitaciones')
 
