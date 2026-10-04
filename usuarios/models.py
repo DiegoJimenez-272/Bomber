@@ -359,10 +359,17 @@ class ArchivoMantenimiento(models.Model):
     subido_en = models.DateTimeField(auto_now_add=True)
 
 class Vehiculo(models.Model):
+    ESTADO_CHOICES = [
+        ('Disponible', 'Disponible'),
+        ('En Servicio', 'En Servicio'),
+        ('Fuera de Servicio', 'Fuera de Servicio'),
+    ]
+
     nombre = models.CharField(max_length=80, verbose_name="Nombre / Código del Carro")
     compania = models.ForeignKey(Compania, on_delete=models.CASCADE, related_name='vehiculos', verbose_name="Compañía")
     patente = models.CharField(max_length=15, null=True, blank=True, verbose_name="Patente")
     descripcion = models.TextField(max_length=500, null=True, blank=True, verbose_name="Descripción")
+    estado = models.CharField(max_length=20, choices=ESTADO_CHOICES, default='Disponible')
 
     def __str__(self):
         return f"{self.nombre} ({self.compania.nombre})"

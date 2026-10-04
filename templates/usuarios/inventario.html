@@ -203,6 +203,7 @@
                                                             </div>
                                                             <div>
                                                                 <strong>Carro: {{ grupo_v.vehiculo.nombre }}</strong>
+                                                                <span class="badge {% if grupo_v.vehiculo.estado == 'Disponible' %}bg-success{% elif grupo_v.vehiculo.estado == 'En Servicio' %}bg-warning text-dark{% else %}bg-secondary{% endif %}">{{ grupo_v.vehiculo.estado }}</span>
                                                                 {% if grupo_v.vehiculo.patente %}
                                                                     <div class="text-muted small">Patente: {{ grupo_v.vehiculo.patente }}</div>
                                                                 {% endif %}
@@ -223,7 +224,8 @@
                                                                         data-vehiculo-nombre="{{ grupo_v.vehiculo.nombre }}"
                                                                         data-vehiculo-patente="{{ grupo_v.vehiculo.patente|default:'' }}"
                                                                         data-vehiculo-descripcion="{{ grupo_v.vehiculo.descripcion|default:'' }}"
-                                                                        data-vehiculo-compania="{{ grupo_v.vehiculo.compania.id }}">
+                                                                        data-vehiculo-compania="{{ grupo_v.vehiculo.compania.id }}"
+                                                                        data-vehiculo-estado="{{ grupo_v.vehiculo.estado }}">
                                                                     <i class="bi bi-pencil-fill"></i>
                                                                 </button>
                                                                 <button type="button" class="btn btn-sm btn-outline-danger" title="Eliminar carro"
@@ -812,6 +814,10 @@
                             {{ vehiculo_form.descripcion }}
                             {% for error in vehiculo_form.descripcion.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
                         </div>
+                        <div class="col-md-12">
+                            <label for="{{ vehiculo_form.estado.id_for_label }}" class="form-label">Estado</label>
+                            {{ vehiculo_form.estado }}
+                        </div>
                     </div>
                     
                     <div class="modal-footer mt-4">
@@ -899,6 +905,14 @@
                         <div class="col-md-12">
                             <label for="edit_vehiculo_descripcion" class="form-label">Descripción (Opcional)</label>
                             <textarea id="edit_vehiculo_descripcion" name="descripcion" class="form-control" rows="3"></textarea>
+                        </div>
+                        <div class="col-md-12">
+                            <label for="edit_vehiculo_estado" class="form-label">Estado</label>
+                            <select id="edit_vehiculo_estado" name="estado" class="form-select">
+                                {% for value, text in vehiculo_form.fields.estado.choices %}
+                                    <option value="{{ value }}">{{ text }}</option>
+                                {% endfor %}
+                            </select>
                         </div>
                     </div>
                     
@@ -1117,6 +1131,7 @@ document.addEventListener('DOMContentLoaded', function () {
             form.querySelector('#edit_vehiculo_compania').value = button.dataset.vehiculoCompania;
             form.querySelector('#edit_vehiculo_patente').value = button.dataset.vehiculoPatente || "";
             form.querySelector('#edit_vehiculo_descripcion').value = button.dataset.vehiculoDescripcion || "";
+            form.querySelector('#edit_vehiculo_estado').value = button.dataset.vehiculoEstado || "Disponible";
         });
     }
 
