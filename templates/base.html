@@ -45,6 +45,9 @@
             border: none;
             background: transparent;
             font-size: 1.5rem;
+            padding: 0.25rem 0.5rem;
+            line-height: 1;
+            color: var(--text-color);
         }
         .sidebar {
             position: fixed;
@@ -55,12 +58,32 @@
             z-index: 100;
             background-color: var(--sidebar-bg); /* Use variable */
             border-right: 1px solid #dee2e6;
-            transition: transform 0.3s ease-in-out;
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        .sidebar-backdrop {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1040;
+            backdrop-filter: blur(2px);
+            opacity: 0;
+            transition: opacity 0.3s ease-in-out;
+        }
+        .sidebar-backdrop.show {
+            display: block;
+            opacity: 1;
         }
         .main-content {
             margin-left: 260px;
             transition: margin-left 0.3s ease-in-out;
             width: calc(100% - 260px);
+            min-height: 100vh;
         }
         .sidebar-header {
             padding: 1.5rem 1.5rem;
@@ -185,14 +208,22 @@
         }
         @media (max-width: 991.98px) {
             .sidebar-toggler {
-                display: block;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                min-width: 44px;
+                min-height: 44px;
             }
             .sidebar {
                 transform: translateX(-100%);
+                z-index: 1045;
+                width: 280px;
+                max-width: 85vw;
+                box-shadow: none;
             }
             .sidebar.visible {
                 transform: translateX(0);
-                box-shadow: 0 0.5rem 1rem rgba(0,0,0,.15);
+                box-shadow: 0 0.5rem 2rem rgba(0,0,0,.25);
             }
             .main-content {
                 margin-left: 0;
@@ -205,23 +236,26 @@
     <div class="d-flex">
         <!-- Sidebar -->
         <div class="sidebar d-flex flex-column flex-shrink-0">
-            <a href="{% url 'dashboard' %}" class="sidebar-header text-decoration-none d-flex align-items-center justify-content-between w-100">
-                <div class="d-flex align-items-center">
-                    <i class="bi bi-fire text-danger me-2" style="font-size: 1.5rem;"></i>
-                    <span class="fw-bold" style="line-height: 1.2; font-size: 1.1rem;">
-                        Gestión<br>Bomberos
-                    </span>
-                </div>
-                <div>
-                    {% if request.user.is_authenticated and request.user.compania %}
-                        {% if request.user.compania.logo %}
-                            <img src="{{ request.user.compania.logo.url }}" alt="Logo" style="max-height: 65px; width: auto; object-fit: contain;">
-                        {% else %}
-                            <span style="font-size: 2.5rem;" title="Bomberos">🚒</span>
+            <div class="sidebar-header d-flex align-items-center justify-content-between">
+                <a href="{% url 'dashboard' %}" class="text-decoration-none d-flex align-items-center justify-content-between flex-grow-1 text-dark">
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-fire text-danger me-2" style="font-size: 1.5rem;"></i>
+                        <span class="fw-bold" style="line-height: 1.2; font-size: 1.1rem;">
+                            Gestión<br>Bomberos
+                        </span>
+                    </div>
+                    <div>
+                        {% if request.user.is_authenticated and request.user.compania %}
+                            {% if request.user.compania.logo %}
+                                <img src="{{ request.user.compania.logo.url }}" alt="Logo" style="max-height: 50px; width: auto; object-fit: contain;">
+                            {% else %}
+                                <span style="font-size: 2rem;" title="Bomberos">🚒</span>
+                            {% endif %}
                         {% endif %}
-                    {% endif %}
-                </div>
-            </a>
+                    </div>
+                </a>
+                <button type="button" class="btn-close d-lg-none ms-2" id="sidebarCloseBtn" aria-label="Cerrar menú"></button>
+            </div>
             <ul class="nav nav-pills flex-column mb-auto mt-2">
                 <li class="nav-item"><a href="{% url 'dashboard' %}" class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}"><i class="bi bi-grid-1x2-fill"></i>Inicio</a></li>
                 
@@ -286,26 +320,32 @@
 
         </div>
 
+        <!-- Backdrop para móviles al abrir el sidebar -->
+        <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
         <!-- Main Content -->
         <div class="main-content flex-grow-1">
             <!-- Top Navigation -->
-            <header class="bg-white border-bottom d-flex align-items-center justify-content-between p-3">
+            <header class="bg-white border-bottom d-flex align-items-center justify-content-between py-2 px-3 py-md-3 px-md-4">
                 <div class="d-flex align-items-center">
-                    <button class="sidebar-toggler me-3" type="button" id="sidebarToggle">
-                        <i class="bi bi-list"></i>
+                    <button class="sidebar-toggler me-2 me-sm-3" type="button" id="sidebarToggle" aria-label="Abrir menú">
+                        <i class="bi bi-list fs-3"></i>
                     </button>
+                    <span class="d-lg-none fw-bold text-danger d-flex align-items-center" style="font-size: 1rem;">
+                        <i class="bi bi-fire me-1"></i> Bomberos
+                    </span>
                 </div>
-                <div class="d-flex align-items-center gap-3">
+                <div class="d-flex align-items-center gap-2 gap-sm-3">
                     
                     <!-- Campana de Notificaciones -->
                     <div class="dropdown">
-                        <button class="btn btn-light position-relative rounded-circle p-2 border" type="button" id="userNotificationsBell" data-bs-toggle="dropdown" aria-expanded="false">
+                        <button class="btn btn-light position-relative rounded-circle p-2 border" type="button" id="userNotificationsBell" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Notificaciones">
                             <i class="bi bi-bell-fill fs-5 text-secondary"></i>
                             <span class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-light rounded-circle d-none" id="notif-badge">
                                 <span class="visually-hidden">Nuevas notificaciones</span>
                             </span>
                         </button>
-                        <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2" aria-labelledby="userNotificationsBell" style="min-width: 320px; max-height: 400px; overflow-y: auto;" id="notif-list">
+                        <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2" aria-labelledby="userNotificationsBell" style="min-width: 280px; max-width: calc(100vw - 24px); max-height: 400px; overflow-y: auto;" id="notif-list">
                             <li><h6 class="dropdown-header">Tus Notificaciones</h6></li>
                             <li><hr class="dropdown-divider"></li>
                             <li><div class="dropdown-item text-center small text-muted py-3"><div class="spinner-border spinner-border-sm" role="status"></div> Cargando...</div></li>
@@ -315,21 +355,21 @@
                     <div class="dropdown">
                         <a href="#" class="d-flex align-items-center text-decoration-none dropdown-toggle text-dark" id="dropdownUser" data-bs-toggle="dropdown" aria-expanded="false">
                             {% if user.foto_perfil %}
-                                <img src="{{ user.foto_perfil.url }}" alt="Foto de perfil" class="rounded-circle me-2" style="width: 40px; height: 40px; object-fit: cover;">
+                                <img src="{{ user.foto_perfil.url }}" alt="Foto de perfil" class="rounded-circle me-0 me-md-2" style="width: 38px; height: 38px; object-fit: cover;">
                             {% else %}
-                                <div class="rounded-circle bg-danger text-white d-flex align-items-center justify-content-center me-2" style="width: 40px; height: 40px;">
+                                <div class="rounded-circle bg-danger text-white d-flex align-items-center justify-content-center me-0 me-md-2" style="width: 38px; height: 38px;">
                                     <strong class="text-uppercase">{{ user.nombre.0 }}{{ user.apellido.0 }}</strong>
                                 </div>
                             {% endif %}
-                            <div>
-                                <div class="fw-bold">{{ user.get_full_name }}</div>
-                                <div class="text-muted small">{{ user.rol.nombre|default:"Miembro" }}</div>
+                            <div class="d-none d-md-block text-start">
+                                <div class="fw-bold lh-1">{{ user.get_full_name }}</div>
+                                <div class="text-muted small mt-1" style="font-size: 0.75rem;">{{ user.rol.nombre|default:"Miembro" }}</div>
                             </div>
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end text-small shadow" aria-labelledby="dropdownUser">
-                            <li><a class="dropdown-item" href="{% url 'perfil' %}">Mi Perfil</a></li>
+                            <li><a class="dropdown-item" href="{% url 'perfil' %}"><i class="bi bi-person me-2"></i>Mi Perfil</a></li>
                             <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item text-danger-emphasis" href="{% url 'logout' %}">Cerrar Sesión</a></li>
+                            <li><a class="dropdown-item text-danger-emphasis" href="{% url 'logout' %}"><i class="bi bi-box-arrow-left me-2"></i>Cerrar Sesión</a></li>
                         </ul>
                     </div>
                 </div>
@@ -368,12 +408,57 @@
         document.addEventListener('DOMContentLoaded', function () {
             const sidebar = document.querySelector('.sidebar');
             const sidebarToggler = document.getElementById('sidebarToggle');
+            const sidebarBackdrop = document.getElementById('sidebarBackdrop');
+            const sidebarCloseBtn = document.getElementById('sidebarCloseBtn');
+
+            function openSidebar() {
+                if (sidebar) sidebar.classList.add('visible');
+                if (sidebarBackdrop) sidebarBackdrop.classList.add('show');
+                document.body.style.overflow = 'hidden';
+            }
+
+            function closeSidebar() {
+                if (sidebar) sidebar.classList.remove('visible');
+                if (sidebarBackdrop) sidebarBackdrop.classList.remove('show');
+                document.body.style.overflow = '';
+            }
 
             if (sidebarToggler) {
-                sidebarToggler.addEventListener('click', function () {
-                    sidebar.classList.toggle('visible');
+                sidebarToggler.addEventListener('click', function (e) {
+                    e.stopPropagation();
+                    if (sidebar && sidebar.classList.contains('visible')) {
+                        closeSidebar();
+                    } else {
+                        openSidebar();
+                    }
                 });
             }
+
+            if (sidebarCloseBtn) {
+                sidebarCloseBtn.addEventListener('click', closeSidebar);
+            }
+
+            if (sidebarBackdrop) {
+                sidebarBackdrop.addEventListener('click', closeSidebar);
+            }
+
+            // Cerrar menú al hacer clic en un enlace de navegación en móviles
+            document.querySelectorAll('.sidebar .nav-link').forEach(link => {
+                if (!link.classList.contains('theme-toggle-btn')) {
+                    link.addEventListener('click', function() {
+                        if (window.innerWidth < 992) {
+                            closeSidebar();
+                        }
+                    });
+                }
+            });
+
+            // Cerrar menú con tecla Escape
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape' && sidebar && sidebar.classList.contains('visible')) {
+                    closeSidebar();
+                }
+            });
 
 
             // Lógica de Notificaciones
@@ -473,7 +558,7 @@
                                     <li>
                                         <a class="dropdown-item d-flex align-items-start gap-3 py-2 ${bgClass}" href="/notificaciones/leer/${n.id}/">
                                             <i class="bi bi-envelope-paper-fill mt-1 ${iconClass}"></i>
-                                            <div class="text-wrap" style="width: 250px; line-height: 1.3;">
+                                            <div class="text-wrap flex-grow-1" style="max-width: 220px; line-height: 1.3;">
                                                 <span class="small d-block mb-1 text-wrap" style="white-space: normal;">${n.mensaje}</span>
                                                 <small class="text-muted" style="font-size: 0.75rem;">${n.fecha}</small>
                                             </div>

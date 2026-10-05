@@ -84,6 +84,28 @@
     body.dark-mode .admin-nav-blocks .badge {
         border-color: #2c3034;
     }
+    @media (max-width: 575.98px) {
+        .admin-nav-blocks {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 0.75rem !important;
+        }
+        .admin-nav-blocks .nav-link {
+            padding: 1rem 0.5rem !important;
+            font-size: 0.82rem !important;
+            border-radius: 12px !important;
+            letter-spacing: 0 !important;
+        }
+        .admin-nav-blocks .nav-link i {
+            font-size: 1.85rem !important;
+            margin-bottom: 0.4rem !important;
+        }
+        .admin-nav-blocks .badge {
+            top: 6px !important;
+            right: 6px !important;
+            font-size: 0.7rem !important;
+            padding: 0.25em 0.5em !important;
+        }
+    }
     .admin-card {
         border: none;
         border-radius: 1rem;

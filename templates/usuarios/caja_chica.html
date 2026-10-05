@@ -29,9 +29,9 @@
     <div class="row align-items-center mb-4 g-3">
         <div class="col-md-6">
             {% if request.user.is_superuser %}
-            <form method="get" class="d-flex align-items-center gap-2">
+            <form method="get" class="d-flex align-items-center gap-2 flex-wrap">
                 <label for="compania" class="form-label mb-0 fw-bold">Filtrar por:</label>
-                <select name="compania" id="compania" class="form-select w-auto" onchange="this.form.submit()">
+                <select name="compania" id="compania" class="form-select flex-grow-1 flex-md-grow-0 w-auto" onchange="this.form.submit()">
                     <option value="todas" {% if filtro_compania == 'todas' %}selected{% endif %}>Todas las Cajas (General + Compañía)</option>
                     <option value="general" {% if filtro_compania == 'general' %}selected{% endif %}>Caja General</option>
                     {% if companias %}
@@ -48,8 +48,8 @@
             </h5>
             {% endif %}
         </div>
-        <div class="col-md-6 text-md-end">
-            <div class="card shadow-sm d-inline-block text-center px-4 py-2 border-0 bg-light">
+        <div class="col-md-6 text-start text-md-end">
+            <div class="card shadow-sm d-block d-md-inline-block text-center px-4 py-2 border-0 bg-light">
                 <h6 class="card-title force-black-text mb-1 text-uppercase small">Saldo Actual: {{ nombre_caja }}</h6>
                 <p class="card-text fs-3 fw-bold mb-0 {% if saldo_actual < 0 %}text-danger{% else %}text-success{% endif %}">
                     ${{ saldo_actual|floatformat:0|intcomma }}

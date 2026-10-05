@@ -452,3 +452,154 @@ body.dark-mode .custom-scroll-list .form-check {
 body.dark-mode .custom-scroll-list .form-check:hover {
     background-color: rgba(255, 255, 255, 0.1);
 }
+
+/* ==========================================================================
+   OPTIMIZACIONES MÓVILES (Smartphones & Dispositivos Táctiles)
+   ========================================================================== */
+
+/* 1. Márgenes de contenedor adaptables en móviles */
+@media (max-width: 767.98px) {
+    .page-content {
+        padding: 1rem 0.75rem !important;
+    }
+
+    /* 2. Encabezados de páginas adaptables (apilan título y botones sin desbordar) */
+    .page-content > header,
+    main > header:first-child,
+    .page-content > .d-flex.border-bottom {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 0.75rem !important;
+    }
+
+    .page-content > header h1,
+    main > header:first-child h1,
+    .page-content > .d-flex.border-bottom h1 {
+        font-size: 1.4rem !important;
+        line-height: 1.25;
+        margin-bottom: 0 !important;
+    }
+
+    .page-content > header > div:last-child,
+    .page-content > header > button,
+    .page-content > header > .btn,
+    .page-content > .d-flex.border-bottom > div:last-child {
+        width: 100% !important;
+    }
+
+    .page-content > header .btn-group,
+    .page-content > header .d-flex.gap-2,
+    .page-content > .d-flex.border-bottom .d-flex.gap-2 {
+        width: 100% !important;
+        display: flex !important;
+        flex-wrap: wrap !important;
+    }
+
+    .page-content > header .btn,
+    .page-content > .d-flex.border-bottom .btn {
+        justify-content: center;
+    }
+
+    /* 3. Pestañas (Tabs) scroll horizontal tipo aplicación móvil */
+    .nav-tabs,
+    .nav-pills:not(.flex-column),
+    .nav-pills-custom,
+    .custom-nav-pills {
+        display: flex !important;
+        flex-wrap: nowrap !important;
+        overflow-x: auto !important;
+        overflow-y: hidden !important;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none !important; /* Firefox */
+        padding-bottom: 6px !important;
+        margin-bottom: 1rem !important;
+        gap: 0.35rem;
+    }
+
+    .nav-tabs::-webkit-scrollbar,
+    .nav-pills:not(.flex-column)::-webkit-scrollbar,
+    .nav-pills-custom::-webkit-scrollbar,
+    .custom-nav-pills::-webkit-scrollbar {
+        display: none !important; /* Chrome, Safari, Edge */
+    }
+
+    .nav-tabs .nav-item,
+    .nav-pills:not(.flex-column) .nav-item,
+    .nav-pills-custom .nav-item,
+    .custom-nav-pills .nav-item {
+        flex: 0 0 auto !important;
+    }
+
+    .nav-tabs .nav-link,
+    .nav-pills-custom .nav-link,
+    .custom-nav-pills .nav-link {
+        white-space: nowrap !important;
+        padding: 0.5rem 0.85rem !important;
+        font-size: 0.875rem !important;
+    }
+
+    /* 4. Tablas responsivas táctiles */
+    .table-responsive {
+        border-radius: 0.5rem;
+        -webkit-overflow-scrolling: touch;
+        margin-bottom: 0.75rem;
+    }
+
+    .table {
+        font-size: 0.85rem;
+    }
+
+    .table td, .table th {
+        padding: 0.55rem 0.5rem;
+        vertical-align: middle;
+    }
+
+    /* Botones dentro de tablas compactos para tocar cómodamente */
+    .table .btn-sm {
+        padding: 0.25rem 0.45rem;
+        font-size: 0.78rem;
+    }
+
+    /* 5. Tarjetas compactas en móvil */
+    .card {
+        border-radius: 0.75rem;
+    }
+
+    .card-body {
+        padding: 1rem;
+    }
+
+    .card-header {
+        padding: 0.75rem 1rem;
+    }
+
+    /* 6. Form controls: evitar zoom automático en iOS (Safari requiere font-size >= 16px) */
+    .form-control,
+    .form-select {
+        font-size: 16px !important;
+    }
+
+    /* 7. Modales en teléfonos: buen margen y bordes redondeados */
+    .modal-dialog {
+        margin: 0.75rem !important;
+    }
+
+    .modal-content {
+        border-radius: 1rem !important;
+    }
+
+    .modal-body {
+        padding: 1.25rem 1rem !important;
+    }
+}
+
+/* Ajustes especiales para pantallas extra pequeñas (< 576px) */
+@media (max-width: 575.98px) {
+    .h2, h2 {
+        font-size: 1.35rem;
+    }
+    
+    .fs-2 {
+        font-size: 1.5rem !important;
+    }
+}

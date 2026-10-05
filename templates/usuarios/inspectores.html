@@ -5,7 +5,7 @@
 {% block content %}
 
 <!-- Header del contenido principal -->
-<header class="d-flex align-items-center justify-content-between pb-3 mb-4 border-bottom">
+<header class="d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-3 pb-3 mb-4 border-bottom">
     <div>
         <h1 class="h2 mb-0">Gestión de Inspectores</h1>
         {% if not request.user.is_superuser %}
@@ -16,7 +16,7 @@
         {% endif %}
     </div>
     {% if request.user.is_superuser or request.user.rol.editar_inspectores %}
-        <div class="d-flex gap-2 flex-wrap justify-content-end">
+        <div class="d-flex gap-2 flex-wrap justify-content-start justify-content-sm-end">
             <button class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#createCarpetaModal">
                 <i class="bi bi-folder-plus me-1"></i> Crear Carpeta
             </button>

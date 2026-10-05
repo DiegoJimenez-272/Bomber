@@ -4,7 +4,7 @@
 
 {% block content %}
 <!-- Header del contenido principal -->
-<header class="d-flex align-items-center justify-content-between pb-3 mb-4 border-bottom">
+<header class="d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-3 pb-3 mb-4 border-bottom">
     <h1 class="h2 mb-0">Proyectos</h1>
     {% if request.user.is_superuser or request.user.rol.editar_proyectos %}
     <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#createProjectModal">
