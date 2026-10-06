@@ -59,6 +59,15 @@
     </div>
 
     <!-- Formulario de Búsqueda y Filtros en Tiempo Real -->
+    <!-- Botón Desplegar / Reducir Filtros (Móvil) -->
+    <div class="d-md-none mb-3">
+        <button class="btn btn-outline-danger w-100 d-flex align-items-center justify-content-between py-2 px-3 shadow-sm rounded-3 filter-toggle-btn" type="button" data-bs-toggle="collapse" data-bs-target="#cajaFilterCollapse" aria-expanded="false" aria-controls="cajaFilterCollapse">
+            <span class="fw-semibold"><i class="bi bi-funnel-fill me-2"></i>Filtros de Búsqueda</span>
+            <span class="badge bg-danger-subtle text-danger border border-danger-subtle"><span class="filter-toggle-state">Desplegar</span> <i class="bi bi-chevron-down ms-1"></i></span>
+        </button>
+    </div>
+
+    <div class="collapse d-md-block" id="cajaFilterCollapse">
     <div class="card shadow-sm mb-4">
         <div class="card-body">
             <div class="row g-3 align-items-center">
@@ -77,6 +86,7 @@
                 </div>
             </div>
         </div>
+    </div>
     </div>
 
     <!-- Tabla de Movimientos -->

@@ -47,44 +47,54 @@
 
         <!-- ===== PESTAÑA: CURSOS OFICIALES ===== -->
         <div class="tab-pane fade show active" id="cursos" role="tabpanel">
-            <div class="card filter-panel shadow-sm mb-4">
-                <div class="card-body p-3">
-                    <div class="row g-2 align-items-end">
-                        <div class="col-12 col-md-6 col-lg-3">
-                            <label for="cursoSearchInput" class="form-label filter-label"><i class="bi bi-search me-1"></i>Buscar Curso</label>
-                            <div class="input-group">
-                                <span class="input-group-text"><i class="bi bi-search"></i></span>
-                                <input class="form-control" type="search" id="cursoSearchInput" placeholder="Nombre, instructor o lugar...">
+            <!-- Botón Desplegar / Reducir Filtros para Celulares -->
+            <div class="d-md-none mb-3">
+                <button class="btn btn-outline-danger w-100 d-flex align-items-center justify-content-between py-2 px-3 shadow-sm rounded-3 filter-toggle-btn" type="button" data-bs-toggle="collapse" data-bs-target="#cursoFilterCollapse" aria-expanded="false" aria-controls="cursoFilterCollapse">
+                    <span class="fw-semibold"><i class="bi bi-funnel-fill me-2"></i>Filtros de Cursos</span>
+                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle"><span class="filter-toggle-state">Desplegar</span> <i class="bi bi-chevron-down ms-1"></i></span>
+                </button>
+            </div>
+
+            <div class="collapse d-md-block" id="cursoFilterCollapse">
+                <div class="card filter-panel shadow-sm mb-4">
+                    <div class="card-body p-3">
+                        <div class="row g-2 align-items-end">
+                            <div class="col-12 col-md-6 col-lg-3">
+                                <label for="cursoSearchInput" class="form-label filter-label"><i class="bi bi-search me-1"></i>Buscar Curso</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="bi bi-search"></i></span>
+                                    <input class="form-control" type="search" id="cursoSearchInput" placeholder="Nombre, instructor o lugar...">
+                                </div>
                             </div>
-                        </div>
-                        <div class="col-12 col-md-6 col-lg-2">
-                            <label for="mallaFilter" class="form-label filter-label">Malla / Nivel</label>
-                            <select id="mallaFilter" class="form-select">
-                                <option value="">Todas las Mallas</option>
-                                {% for choice in form.malla.field.choices %}
-                                    <option value="{{ choice.0 }}">{{ choice.1 }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="col-12 col-md-6 col-lg-2">
-                            <label for="cursoCompaniaFilter" class="form-label filter-label"><i class="bi bi-building me-1"></i>Compañía</label>
-                            <select id="cursoCompaniaFilter" class="form-select">
-                                <option value="">Todas las Compañías</option>
-                                {% for comp in companias %}
-                                    <option value="{{ comp.id }}">{{ comp.nombre }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="col-12 col-md-6 col-lg-3">
-                            <label class="form-label filter-label"><i class="bi bi-calendar3 me-1"></i>Periodo (Desde - Hasta)</label>
-                            <div class="input-group">
-                                <input type="date" id="cursoFechaDesde" class="form-control" aria-label="Fecha desde">
-                                <span class="input-group-text px-2">a</span>
-                                <input type="date" id="cursoFechaHasta" class="form-control" aria-label="Fecha hasta">
+                            <div class="col-12 col-md-6 col-lg-2">
+                                <label for="mallaFilter" class="form-label filter-label">Malla / Nivel</label>
+                                <select id="mallaFilter" class="form-select">
+                                    <option value="">Todas las Mallas</option>
+                                    {% for choice in form.malla.field.choices %}
+                                        <option value="{{ choice.0 }}">{{ choice.1 }}</option>
+                                    {% endfor %}
+                                </select>
                             </div>
-                        </div>
-                        <div class="col-12 col-md-6 col-lg-2 d-grid">
-                            <button type="button" id="cursoFilterButton" class="btn btn-danger"><i class="bi bi-funnel-fill me-1"></i>Filtrar</button>
+                            <div class="col-12 col-md-6 col-lg-2">
+                                <label for="cursoCompaniaFilter" class="form-label filter-label"><i class="bi bi-building me-1"></i>Compañía</label>
+                                <select id="cursoCompaniaFilter" class="form-select">
+                                    <option value="">Todas las Compañías</option>
+                                    {% for comp in companias %}
+                                        <option value="{{ comp.id }}">{{ comp.nombre }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-12 col-md-6 col-lg-3">
+                                <label class="form-label filter-label"><i class="bi bi-calendar3 me-1"></i>Periodo (Desde - Hasta)</label>
+                                <div class="input-group">
+                                    <input type="date" id="cursoFechaDesde" class="form-control" aria-label="Fecha desde">
+                                    <span class="input-group-text px-2">a</span>
+                                    <input type="date" id="cursoFechaHasta" class="form-control" aria-label="Fecha hasta">
+                                </div>
+                            </div>
+                            <div class="col-12 col-md-6 col-lg-2 d-grid">
+                                <button type="button" id="cursoFilterButton" class="btn btn-danger"><i class="bi bi-funnel-fill me-1"></i>Filtrar</button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -179,47 +189,57 @@
         <!-- ===== PESTAÑA: CAPACITACIONES INTERNAS ===== -->
         <div class="tab-pane fade" id="actividades" role="tabpanel">
 
-            <!-- Filtro de búsqueda capacitaciones -->
-            <div class="card filter-panel shadow-sm mb-4">
-                <div class="card-body p-3">
-                    <div class="row g-2 align-items-end">
-                        <div class="col-12 col-md-6 col-lg-3">
-                            <label for="capInternSearchInput" class="form-label filter-label"><i class="bi bi-search me-1"></i>Buscar Actividad</label>
-                            <div class="input-group">
-                                <span class="input-group-text"><i class="bi bi-search"></i></span>
-                                <input class="form-control" type="search" id="capInternSearchInput" placeholder="Nombre, instructor o lugar...">
+            <!-- Botón Desplegar / Reducir Filtros para Celulares -->
+            <div class="d-md-none mb-3">
+                <button class="btn btn-outline-danger w-100 d-flex align-items-center justify-content-between py-2 px-3 shadow-sm rounded-3 filter-toggle-btn" type="button" data-bs-toggle="collapse" data-bs-target="#actividadFilterCollapse" aria-expanded="false" aria-controls="actividadFilterCollapse">
+                    <span class="fw-semibold"><i class="bi bi-funnel-fill me-2"></i>Filtros de Actividades</span>
+                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle"><span class="filter-toggle-state">Desplegar</span> <i class="bi bi-chevron-down ms-1"></i></span>
+                </button>
+            </div>
+
+            <div class="collapse d-md-block" id="actividadFilterCollapse">
+                <!-- Filtro de búsqueda capacitaciones -->
+                <div class="card filter-panel shadow-sm mb-4">
+                    <div class="card-body p-3">
+                        <div class="row g-2 align-items-end">
+                            <div class="col-12 col-md-6 col-lg-3">
+                                <label for="capInternSearchInput" class="form-label filter-label"><i class="bi bi-search me-1"></i>Buscar Actividad</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="bi bi-search"></i></span>
+                                    <input class="form-control" type="search" id="capInternSearchInput" placeholder="Nombre, instructor o lugar...">
+                                </div>
                             </div>
-                        </div>
-                        <div class="col-12 col-md-6 col-lg-2">
-                            <label for="tipoFilter" class="form-label filter-label">Tipo</label>
-                            <select id="tipoFilter" class="form-select">
-                                <option value="">Todos los tipos de actividad</option>
-                                {% for choice in form.tipo_actividad.field.choices %}
-                                    {% if choice.0 != 'Curso' %}
-                                    <option value="{{ choice.0 }}">{{ choice.1 }}</option>
-                                    {% endif %}
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="col-12 col-md-6 col-lg-2">
-                            <label for="capInternCompaniaFilter" class="form-label filter-label"><i class="bi bi-building me-1"></i>Compañía</label>
-                            <select id="capInternCompaniaFilter" class="form-select">
-                                <option value="">Todas las Compañías</option>
-                                {% for comp in companias %}
-                                    <option value="{{ comp.id }}">{{ comp.nombre }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="col-12 col-md-6 col-lg-3">
-                            <label class="form-label filter-label"><i class="bi bi-calendar3 me-1"></i>Periodo (Desde - Hasta)</label>
-                            <div class="input-group">
-                                <input type="date" id="activityFechaDesde" class="form-control" aria-label="Fecha desde">
-                                <span class="input-group-text px-2">a</span>
-                                <input type="date" id="activityFechaHasta" class="form-control" aria-label="Fecha hasta">
+                            <div class="col-12 col-md-6 col-lg-2">
+                                <label for="tipoFilter" class="form-label filter-label">Tipo</label>
+                                <select id="tipoFilter" class="form-select">
+                                    <option value="">Todos los tipos de actividad</option>
+                                    {% for choice in form.tipo_actividad.field.choices %}
+                                        {% if choice.0 != 'Curso' %}
+                                        <option value="{{ choice.0 }}">{{ choice.1 }}</option>
+                                        {% endif %}
+                                    {% endfor %}
+                                </select>
                             </div>
-                        </div>
-                        <div class="col-12 col-md-6 col-lg-2 d-grid">
-                            <button type="button" id="activityFilterButton" class="btn btn-danger"><i class="bi bi-funnel-fill me-1"></i>Filtrar</button>
+                            <div class="col-12 col-md-6 col-lg-2">
+                                <label for="capInternCompaniaFilter" class="form-label filter-label"><i class="bi bi-building me-1"></i>Compañía</label>
+                                <select id="capInternCompaniaFilter" class="form-select">
+                                    <option value="">Todas las Compañías</option>
+                                    {% for comp in companias %}
+                                        <option value="{{ comp.id }}">{{ comp.nombre }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-12 col-md-6 col-lg-3">
+                                <label class="form-label filter-label"><i class="bi bi-calendar3 me-1"></i>Periodo (Desde - Hasta)</label>
+                                <div class="input-group">
+                                    <input type="date" id="activityFechaDesde" class="form-control" aria-label="Fecha desde">
+                                    <span class="input-group-text px-2">a</span>
+                                    <input type="date" id="activityFechaHasta" class="form-control" aria-label="Fecha hasta">
+                                </div>
+                            </div>
+                            <div class="col-12 col-md-6 col-lg-2 d-grid">
+                                <button type="button" id="activityFilterButton" class="btn btn-danger"><i class="bi bi-funnel-fill me-1"></i>Filtrar</button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -453,64 +473,74 @@
     <!-- Pestaña Lista de Abono -->
     <div class="tab-pane fade" id="abono" role="tabpanel" aria-labelledby="abono-tab">
         
-        <!-- Tarjeta de Filtros Moderna -->
-        <div class="card shadow-sm border-0 mb-4 bg-white rounded-3">
-            <div class="card-body p-3">
-                <form method="get" class="row g-2 align-items-end" id="abonoFilterForm">
-                    <input type="hidden" name="tab" value="abono">
-                    
-                    <!-- Búsqueda en tiempo real -->
-                    <div class="col-12 col-md-6 col-lg-3">
-                        <label class="form-label small fw-semibold text-muted mb-1">
-                            <i class="bi bi-search me-1"></i>Buscar Bombero
-                        </label>
-                        <div class="input-group input-group-sm">
-                            <span class="input-group-text bg-light"><i class="bi bi-search text-muted"></i></span>
-                            <input class="form-control" type="search" id="abonoSearchInput" placeholder="Escribe nombre o RUT...">
+        <!-- Botón Desplegar / Reducir Filtros para Celulares -->
+        <div class="d-md-none mb-3">
+            <button class="btn btn-outline-danger w-100 d-flex align-items-center justify-content-between py-2 px-3 shadow-sm rounded-3 filter-toggle-btn" type="button" data-bs-toggle="collapse" data-bs-target="#abonoFilterCollapse" aria-expanded="{% if fecha_inicio_filtro or fecha_fin_filtro or compania_filtro %}true{% else %}false{% endif %}" aria-controls="abonoFilterCollapse">
+                <span class="fw-semibold"><i class="bi bi-funnel-fill me-2"></i>Filtros de Asistencias</span>
+                <span class="badge bg-danger-subtle text-danger border border-danger-subtle"><span class="filter-toggle-state">{% if fecha_inicio_filtro or fecha_fin_filtro or compania_filtro %}Reducir{% else %}Desplegar{% endif %}</span> <i class="bi bi-chevron-{% if fecha_inicio_filtro or fecha_fin_filtro or compania_filtro %}up{% else %}down{% endif %} ms-1"></i></span>
+            </button>
+        </div>
+
+        <div class="collapse d-md-block {% if fecha_inicio_filtro or fecha_fin_filtro or compania_filtro %}show{% endif %}" id="abonoFilterCollapse">
+            <!-- Tarjeta de Filtros Moderna -->
+            <div class="card shadow-sm border-0 mb-4 bg-white rounded-3">
+                <div class="card-body p-3">
+                    <form method="get" class="row g-2 align-items-end" id="abonoFilterForm">
+                        <input type="hidden" name="tab" value="abono">
+
+                        <!-- Búsqueda en tiempo real -->
+                        <div class="col-12 col-md-6 col-lg-3">
+                            <label class="form-label small fw-semibold text-muted mb-1">
+                                <i class="bi bi-search me-1"></i>Buscar Bombero
+                            </label>
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text bg-light"><i class="bi bi-search text-muted"></i></span>
+                                <input class="form-control" type="search" id="abonoSearchInput" placeholder="Escribe nombre o RUT...">
+                            </div>
                         </div>
-                    </div>
 
-                    <!-- Filtro por Compañía -->
-                    <div class="col-12 col-md-6 col-lg-3">
-                        <label class="form-label small fw-semibold text-muted mb-1">
-                            <i class="bi bi-building me-1"></i>Compañía
-                        </label>
-                        <select name="compania" class="form-select form-select-sm" onchange="this.form.submit()">
-                            <option value="">Todas las Compañías</option>
-                            {% for comp in companias %}
-                            <option value="{{ comp.id }}" {% if compania_filtro == comp.id|stringformat:"s" %}selected{% endif %}>
-                                {{ comp.nombre }}
-                            </option>
-                            {% endfor %}
-                            <option value="sin_compania" {% if compania_filtro == 'sin_compania' %}selected{% endif %}>Sin Compañía asignada</option>
-                        </select>
-                    </div>
-
-                    <!-- Rango de Fechas -->
-                    <div class="col-12 col-md-8 col-lg-4">
-                        <label class="form-label small fw-semibold text-muted mb-1">
-                            <i class="bi bi-calendar3 me-1"></i>Periodo (Desde - Hasta)
-                        </label>
-                        <div class="input-group input-group-sm">
-                            <input type="date" name="fecha_inicio" class="form-control" value="{{ fecha_inicio_filtro }}" title="Fecha Inicio">
-                            <span class="input-group-text bg-light text-muted px-2">a</span>
-                            <input type="date" name="fecha_fin" class="form-control" value="{{ fecha_fin_filtro }}" title="Fecha Fin">
+                        <!-- Filtro por Compañía -->
+                        <div class="col-12 col-md-6 col-lg-3">
+                            <label class="form-label small fw-semibold text-muted mb-1">
+                                <i class="bi bi-building me-1"></i>Compañía
+                            </label>
+                            <select name="compania" class="form-select form-select-sm" onchange="this.form.submit()">
+                                <option value="">Todas las Compañías</option>
+                                {% for comp in companias %}
+                                <option value="{{ comp.id }}" {% if compania_filtro == comp.id|stringformat:"s" %}selected{% endif %}>
+                                    {{ comp.nombre }}
+                                </option>
+                                {% endfor %}
+                                <option value="sin_compania" {% if compania_filtro == 'sin_compania' %}selected{% endif %}>Sin Compañía asignada</option>
+                            </select>
                         </div>
-                    </div>
 
-                    <!-- Botones de Acción -->
-                    <div class="col-12 col-md-4 col-lg-2 d-flex gap-2">
-                        <button type="submit" class="btn btn-sm btn-danger text-white flex-grow-1 shadow-sm d-flex align-items-center justify-content-center gap-1">
-                            <i class="bi bi-funnel-fill"></i>
-                            <span>Filtrar</span>
-                        </button>
-                        {% if fecha_inicio_filtro or fecha_fin_filtro or compania_filtro %}
-                        <a href="?tab=abono" class="btn btn-sm btn-outline-secondary d-flex align-items-center justify-content-center px-2" title="Limpiar todos los filtros">
-                            <i class="bi bi-arrow-counterclockwise"></i>
-                        </a>
-                        {% endif %}
-                    </div>
-                </form>
+                        <!-- Rango de Fechas -->
+                        <div class="col-12 col-md-8 col-lg-4">
+                            <label class="form-label small fw-semibold text-muted mb-1">
+                                <i class="bi bi-calendar3 me-1"></i>Periodo (Desde - Hasta)
+                            </label>
+                            <div class="input-group input-group-sm">
+                                <input type="date" name="fecha_inicio" class="form-control" value="{{ fecha_inicio_filtro }}" title="Fecha Inicio">
+                                <span class="input-group-text bg-light text-muted px-2">a</span>
+                                <input type="date" name="fecha_fin" class="form-control" value="{{ fecha_fin_filtro }}" title="Fecha Fin">
+                            </div>
+                        </div>
+
+                        <!-- Botones de Acción -->
+                        <div class="col-12 col-md-4 col-lg-2 d-flex gap-2">
+                            <button type="submit" class="btn btn-sm btn-danger text-white flex-grow-1 shadow-sm d-flex align-items-center justify-content-center gap-1">
+                                <i class="bi bi-funnel-fill"></i>
+                                <span>Filtrar</span>
+                            </button>
+                            {% if fecha_inicio_filtro or fecha_fin_filtro or compania_filtro %}
+                            <a href="?tab=abono" class="btn btn-sm btn-outline-secondary d-flex align-items-center justify-content-center px-2" title="Limpiar todos los filtros">
+                                <i class="bi bi-arrow-counterclockwise"></i>
+                            </a>
+                            {% endif %}
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
 

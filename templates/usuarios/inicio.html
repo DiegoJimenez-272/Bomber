@@ -48,18 +48,58 @@
     <hr class="mb-4">
     {% endif %}
 
+    <style>
+        .module-home-card {
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .module-home-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1) !important;
+        }
+        @media (max-width: 767.98px) {
+            .module-home-card .card-body {
+                padding: 0.85rem 0.5rem !important;
+            }
+            .module-icon-wrapper {
+                width: 44px !important;
+                height: 44px !important;
+                margin-bottom: 0.4rem !important;
+            }
+            .module-icon-wrapper i {
+                font-size: 1.3rem !important;
+            }
+            .module-home-title {
+                font-size: 0.82rem !important;
+                font-weight: 700 !important;
+                line-height: 1.25 !important;
+                min-height: 2.1rem;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                margin-bottom: 0.35rem !important;
+            }
+            .module-home-btn {
+                padding: 0.25rem 0.4rem !important;
+                font-size: 0.75rem !important;
+                border-radius: 6px;
+            }
+        }
+    </style>
+
     <h2 class="h5 mb-3 text-dark">Módulos Disponibles</h2>
-    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+    <div class="row row-cols-2 row-cols-md-2 row-cols-lg-3 g-1 g-md-4">
         {% for module in modules %}
             <div class="col">
-                <div class="card h-100 shadow-sm border-light-subtle">
-                    <div class="card-body text-center">
-                        <div class="d-inline-flex align-items-center justify-content-center bg-light rounded-circle mb-3" style="width: 64px; height: 64px;">
-                            <i class="{{ module.icon }} fs-2 text-danger"></i>
+                <div class="card h-100 shadow-sm border-light-subtle module-home-card">
+                    <div class="card-body text-center p-2 p-sm-3 p-md-4 d-flex flex-column justify-content-between">
+                        <div>
+                            <div class="d-inline-flex align-items-center justify-content-center bg-light rounded-circle mb-2 mb-md-3 module-icon-wrapper" style="width: 56px; height: 56px;">
+                                <i class="{{ module.icon }} fs-3 fs-md-2 text-danger"></i>
+                            </div>
+                            <h5 class="card-title module-home-title mb-1 mb-md-2">{{ module.title }}</h5>
+                            <p class="card-text text-muted small d-none d-md-block mb-2">{{ module.desc }}</p>
                         </div>
-                        <h5 class="card-title">{{ module.title }}</h5>
-                        <p class="card-text text-muted small">{{ module.desc }}</p>
-                        <a href="{% if module.url_name != '#' %}{% url module.url_name %}{% else %}#{% endif %}" class="btn btn-outline-danger mt-auto{% if module.url_name == '#' %} disabled{% endif %}">
+                        <a href="{% if module.url_name != '#' %}{% url module.url_name %}{% else %}#{% endif %}" class="btn btn-sm btn-outline-danger w-100 mt-2 mt-md-3 module-home-btn{% if module.url_name == '#' %} disabled{% endif %}">
                             Acceder
                         </a>
                     </div>
@@ -67,7 +107,5 @@
             </div>
         {% endfor %}
     </div>
-
-
-
+</main>
 {% endblock %}

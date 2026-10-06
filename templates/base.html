@@ -460,6 +460,27 @@
                 }
             });
 
+            // --- Lógica Universal de Botones de Filtros Colapsables (Móvil) ---
+            document.querySelectorAll('.filter-toggle-btn').forEach(function(btn) {
+                const targetId = btn.getAttribute('data-bs-target');
+                if (!targetId) return;
+                const collapseEl = document.querySelector(targetId);
+                if (!collapseEl) return;
+
+                collapseEl.addEventListener('show.bs.collapse', function() {
+                    const stateSpan = btn.querySelector('.filter-toggle-state');
+                    const chevron = btn.querySelector('.bi-chevron-down, .bi-chevron-up');
+                    if (stateSpan) stateSpan.textContent = 'Reducir';
+                    if (chevron) { chevron.classList.remove('bi-chevron-down'); chevron.classList.add('bi-chevron-up'); }
+                });
+
+                collapseEl.addEventListener('hide.bs.collapse', function() {
+                    const stateSpan = btn.querySelector('.filter-toggle-state');
+                    const chevron = btn.querySelector('.bi-chevron-down, .bi-chevron-up');
+                    if (stateSpan) stateSpan.textContent = 'Desplegar';
+                    if (chevron) { chevron.classList.remove('bi-chevron-up'); chevron.classList.add('bi-chevron-down'); }
+                });
+            });
 
             // Lógica de Notificaciones
             const notifBell = document.getElementById('userNotificationsBell');
