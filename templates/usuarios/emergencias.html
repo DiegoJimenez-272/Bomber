@@ -102,6 +102,14 @@
                             <td>{{ emergencia.fecha_hora_alarma|date:"d/m/Y H:i" }}</td>
                             <td>{{ emergencia.unidades_despachadas }}</td>
                             <td>
+                                {% if emergencia.asistencia_anterior %}
+                                    <div class="mb-1">
+                                        <strong>Asistencia anterior (sin unidad):</strong>
+                                        {% for usuario in emergencia.asistencia_anterior %}
+                                            {{ usuario.get_full_name }}{% if not forloop.last %}, {% endif %}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
                                 {% for detalle in emergencia.detalles_unidades %}
                                     <div class="mb-1">
                                         <strong>{{ detalle.unidad.nombre }}:</strong>
@@ -115,7 +123,7 @@
                                     {% for unidad_nombre in emergencia.unidades_sin_asistencia %}
                                         <div class="mb-1"><strong>{{ unidad_nombre }}:</strong> <span class="text-muted">Sin asistencia marcada</span></div>
                                     {% empty %}
-                                        <span class="text-muted">Sin detalle de asistencia</span>
+                                        {% if not emergencia.asistencia_anterior %}<span class="text-muted">Sin detalle de asistencia</span>{% endif %}
                                     {% endfor %}
                                 {% endfor %}
                             </td>

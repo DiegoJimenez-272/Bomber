@@ -1622,6 +1622,7 @@ def emergencias_view(request):
     ordenar_por = request.GET.get('ordenar_por', '-fecha_hora_alarma')
 
     emergencias = Emergencia.objects.select_related('oficial_a_cargo').prefetch_related(
+        'asistentes',
         Prefetch(
             'unidades_asistencia',
             queryset=EmergenciaUnidad.objects.select_related('unidad').prefetch_related('asistentes'),
@@ -1660,6 +1661,9 @@ def emergencias_view(request):
         unidades_por_nombre.setdefault(unidad.nombre.strip().casefold(), []).append(unidad.pk)
 
     for emergencia in emergencias:
+        # Asistentes guardados antes de la asistencia por unidad quedan como
+        # asistencia histórica sin carro asignado.
+        emergencia.asistencia_anterior = list(emergencia.asistentes.all())
         detalles = list(emergencia.unidades_asistencia.all())
         emergencia.detalles_unidades = detalles
         asistencia = {
