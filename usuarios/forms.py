@@ -251,7 +251,7 @@ class ProyectoForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['responsable'].queryset = Usuario.objects.all()
+        self.fields['responsable'].queryset = Usuario.objects.filter(compania__isnull=False).order_by('nombre')
         self.fields['responsable'].empty_label = "Seleccionar responsable"
         self.fields['responsable'].required = False # Hacemos que este campo no sea obligatorio
         
@@ -452,7 +452,7 @@ class SalidaTerrenoForm(forms.ModelForm):
         self.fields['unidades'].label_from_instance = lambda unidad: unidad.nombre
         self.fields['kilometraje_salida'].required = True
         self.fields['kilometraje_regreso'].required = True
-        self.fields['personal_a_cargo'].queryset = Usuario.objects.filter(is_active=True).order_by('nombre')
+        self.fields['personal_a_cargo'].queryset = Usuario.objects.miembros_activos().order_by('nombre')
         self.fields['personal_a_cargo'].empty_label = "Seleccionar responsable"
         self.fields['personal_a_cargo'].label_from_instance = lambda usuario: usuario.get_full_name()
         if self.errors:
@@ -496,7 +496,7 @@ class SalidaTerrenoForm(forms.ModelForm):
 
         usuarios_ids = {usuario_id for ids in asistencia.values() for usuario_id in ids}
         usuarios_activos = set(
-            Usuario.objects.filter(is_active=True, pk__in=usuarios_ids).values_list('pk', flat=True)
+            Usuario.objects.miembros_activos().filter(pk__in=usuarios_ids).values_list('pk', flat=True)
         )
         if usuarios_ids - usuarios_activos:
             self.add_error('asistencia_unidades', 'La lista incluye usuarios inactivos o inexistentes.')
@@ -551,7 +551,7 @@ class EmergenciaForm(forms.ModelForm):
             unidades = unidades.filter(compania_id=user.compania_id)
         self.fields['unidades'].queryset = unidades
         self.fields['unidades'].label_from_instance = lambda unidad: unidad.nombre
-        self.fields['oficial_a_cargo'].queryset = Usuario.objects.filter(is_active=True).order_by('nombre')
+        self.fields['oficial_a_cargo'].queryset = Usuario.objects.miembros_activos().order_by('nombre')
         self.fields['oficial_a_cargo'].empty_label = "Seleccionar oficial a cargo"
         self.fields['direccion'].required = False
         self.fields['fecha_hora_alarma'].required = False
@@ -599,7 +599,7 @@ class EmergenciaForm(forms.ModelForm):
 
         usuarios_ids = set(todos_los_usuarios)
         usuarios_activos = set(
-            Usuario.objects.filter(is_active=True, pk__in=usuarios_ids).values_list('pk', flat=True)
+            Usuario.objects.miembros_activos().filter(pk__in=usuarios_ids).values_list('pk', flat=True)
         )
         if usuarios_ids - usuarios_activos:
             self.add_error('asistencia_unidades', 'La lista incluye usuarios inactivos o inexistentes.')
@@ -639,6 +639,10 @@ class ReunionForm(forms.ModelForm):
             'companias_invitadas': forms.CheckboxSelectMultiple(attrs={'class': 'form-check-input comp-filter-cb'}),
             'documento_adjunto': forms.FileInput(attrs={'class': 'form-control'}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['asistentes'].queryset = Usuario.objects.miembros_activos().order_by('nombre')
         
     def save(self, commit=True):
         instance = super().save(commit=False)
@@ -688,7 +692,7 @@ class CapacitacionForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['asistentes'].queryset = Usuario.objects.filter(is_active=True).order_by('nombre')
+        self.fields['asistentes'].queryset = Usuario.objects.miembros_activos().order_by('nombre')
         self.fields['asistentes'].required = False
         self.fields['companias_invitadas'].queryset = Compania.objects.all().order_by('nombre')
         self.fields['companias_invitadas'].required = False
@@ -754,7 +758,7 @@ class MantenimientoForm(forms.ModelForm):
         elif 'caja_descuento' in self.fields:
             del self.fields['caja_descuento']
 
-        self.fields['responsable'].queryset = Usuario.objects.filter(is_active=True).order_by('nombre')
+        self.fields['responsable'].queryset = Usuario.objects.miembros_activos().order_by('nombre')
         self.fields['responsable'].empty_label = "Seleccionar responsable"
         self.fields['responsable'].required = True
 
@@ -901,10 +905,10 @@ class InventarioEditForm(forms.ModelForm):
         
         # Filtrar usuarios y vehículos por la compañía a la que pertenece el ítem
         if self.instance and self.instance.pk and self.instance.compania:
-            self.fields['asignado_a'].queryset = Usuario.objects.filter(is_active=True, compania=self.instance.compania).order_by('nombre')
+            self.fields['asignado_a'].queryset = Usuario.objects.miembros_activos().filter(compania=self.instance.compania).order_by('nombre')
             self.fields['asignado_a_vehiculo'].queryset = Vehiculo.objects.filter(compania=self.instance.compania).order_by('nombre')
         else:
-            self.fields['asignado_a'].queryset = Usuario.objects.filter(is_active=True).order_by('nombre')
+            self.fields['asignado_a'].queryset = Usuario.objects.miembros_activos().order_by('nombre')
             self.fields['asignado_a_vehiculo'].queryset = Vehiculo.objects.filter().order_by('nombre')
             
         self.fields['asignado_a'].empty_label = "Sin asignar / Bodega"
@@ -972,7 +976,7 @@ class InventarioGroupEditForm(forms.Form):
 
 class AvisoForm(forms.ModelForm):
     usuarios = forms.ModelMultipleChoiceField(
-        queryset=Usuario.objects.filter(is_active=True).order_by('nombre'),
+        queryset=Usuario.objects.miembros_activos().order_by('nombre'),
         widget=forms.CheckboxSelectMultiple(attrs={'class': 'form-check-input'}),
         label="Seleccionar Destinatarios"
     )

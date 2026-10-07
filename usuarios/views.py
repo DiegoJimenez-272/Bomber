@@ -888,9 +888,13 @@ def documentos_view(request):
         documentos = documentos.order_by(ordenar_por)
 
     if not request.user.is_superuser and request.user.compania:
-        usuarios_con_docs = Usuario.objects.filter(Q(documento__compania=request.user.compania) | Q(documento__compania__isnull=True), documento__isnull=False, documento__es_de_inspector=False).distinct().order_by('nombre')
+        usuarios_con_docs = Usuario.objects.filter(
+            Q(compania__isnull=False) & (Q(documento__compania=request.user.compania) | Q(documento__compania__isnull=True)),
+            documento__isnull=False,
+            documento__es_de_inspector=False,
+        ).distinct().order_by('nombre')
     else:
-        usuarios_con_docs = Usuario.objects.filter(documento__isnull=False, documento__es_de_inspector=False).distinct().order_by('nombre')
+        usuarios_con_docs = Usuario.objects.filter(compania__isnull=False, documento__isnull=False, documento__es_de_inspector=False).distinct().order_by('nombre')
 
     context = {
         'form': form, 
@@ -1086,7 +1090,7 @@ def inventario_view(request):
         }
 
     # Datos para el nuevo panel de asignación
-    usuarios_activos = Usuario.objects.filter(is_active=True).order_by('nombre')
+    usuarios_activos = Usuario.objects.miembros_activos().order_by('nombre')
     # Si el usuario no es superusuario, filtramos para que solo vea/asigne a miembros de su compañía
     if not request.user.is_superuser and request.user.compania:
         usuarios_activos = usuarios_activos.filter(compania=request.user.compania)
@@ -1531,20 +1535,21 @@ def salidas_terreno_view(request):
     if ordenar_por in valid_sorts:
         salidas = salidas.order_by(ordenar_por)
 
-    usuarios_con_salidas = Usuario.objects.filter(salidas_a_cargo__isnull=False).distinct().order_by('nombre')
+    usuarios_con_salidas = Usuario.objects.filter(compania__isnull=False, salidas_a_cargo__isnull=False).distinct().order_by('nombre')
     motivos_unicos = SalidaTerreno.objects.values_list('motivo', flat=True).distinct().order_by('motivo')
     unidades_seleccionadas = form['unidades'].value() or []
     unidades_seleccionadas = [str(getattr(unidad, 'pk', unidad)) for unidad in unidades_seleccionadas]
     for salida in salidas:
         detalles_asistencia = list(salida.asistencias_unidades.all())
         salida.detalles_asistencia = detalles_asistencia
-        salida.asistencia_unidades_json = json.dumps({
-            str(detalle.unidad_id): [usuario.pk for usuario in detalle.asistentes.all()]
-            for detalle in detalles_asistencia
-        })
+        asistencia_visible = {}
+        for detalle in detalles_asistencia:
+            detalle.asistentes_visibles = [usuario for usuario in detalle.asistentes.all() if usuario.compania_id]
+            asistencia_visible[str(detalle.unidad_id)] = [usuario.pk for usuario in detalle.asistentes_visibles]
+        salida.asistencia_unidades_json = json.dumps(asistencia_visible)
     usuarios_asistencia = [
         {'id': usuario.pk, 'nombre': usuario.get_full_name()}
-        for usuario in Usuario.objects.filter(is_active=True).only('id', 'nombre', 'apellido').order_by('nombre', 'apellido')
+        for usuario in Usuario.objects.miembros_activos().only('id', 'nombre', 'apellido').order_by('nombre', 'apellido')
     ]
     
     context = {
@@ -1652,7 +1657,7 @@ def emergencias_view(request):
     if ordenar_por in valid_sorts:
         emergencias = emergencias.order_by(ordenar_por)
 
-    usuarios_con_emergencias = Usuario.objects.filter(emergencias_a_cargo__isnull=False).distinct().order_by('nombre')
+    usuarios_con_emergencias = Usuario.objects.filter(compania__isnull=False, emergencias_a_cargo__isnull=False).distinct().order_by('nombre')
 
     unidades_disponibles = list(form.fields['unidades'].queryset)
     unidades_por_nombre = {}
@@ -1663,11 +1668,13 @@ def emergencias_view(request):
     for emergencia in emergencias:
         # Asistentes guardados antes de la asistencia por unidad quedan como
         # asistencia histórica sin carro asignado.
-        emergencia.asistencia_anterior = list(emergencia.asistentes.all())
+        emergencia.asistencia_anterior = [usuario for usuario in emergencia.asistentes.all() if usuario.compania_id]
         detalles = list(emergencia.unidades_asistencia.all())
         emergencia.detalles_unidades = detalles
+        for detalle in detalles:
+            detalle.asistentes_visibles = [usuario for usuario in detalle.asistentes.all() if usuario.compania_id]
         asistencia = {
-            str(detalle.unidad_id): [usuario.pk for usuario in detalle.asistentes.all()]
+            str(detalle.unidad_id): [usuario.pk for usuario in detalle.asistentes_visibles]
             for detalle in detalles
         }
         unidades_ids = [detalle.unidad_id for detalle in detalles]
@@ -1689,7 +1696,7 @@ def emergencias_view(request):
     unidades_seleccionadas = [str(getattr(unidad, 'pk', unidad)) for unidad in unidades_seleccionadas]
     usuarios_asistencia = [
         {'id': usuario.pk, 'nombre': usuario.get_full_name()}
-        for usuario in Usuario.objects.filter(is_active=True).only('id', 'nombre', 'apellido').order_by('nombre', 'apellido')
+        for usuario in Usuario.objects.miembros_activos().only('id', 'nombre', 'apellido').order_by('nombre', 'apellido')
     ]
 
     context = {
@@ -1836,7 +1843,7 @@ def capacitaciones_view(request):
                         compania__in=capacitacion.companias_invitadas.all()
                     ) if capacitacion.companias_invitadas.exists() else Usuario.objects.none()
                 else:
-                    usuarios_a_notificar = capacitacion.asistentes.all()
+                    usuarios_a_notificar = capacitacion.asistentes.filter(compania__isnull=False)
 
                 notificaciones = []
                 for usuario in usuarios_a_notificar:
@@ -1875,9 +1882,17 @@ def capacitaciones_view(request):
                 Q(creado_por=request.user) | Q(asistentes=request.user)
             ).distinct()
 
+    capacitaciones = capacitaciones.prefetch_related(
+        Prefetch(
+            'asistentes',
+            queryset=Usuario.objects.filter(compania__isnull=False).select_related('compania'),
+            to_attr='asistentes_visibles',
+        ),
+    )
+
     reuniones = list(
         capacitaciones.filter(tipo_actividad='Reunión')
-        .prefetch_related('asistentes__compania', 'companias_invitadas')
+        .prefetch_related('companias_invitadas')
         .order_by('-fecha_inicio')
     )
     for reunion in reuniones:
@@ -1885,16 +1900,14 @@ def capacitaciones_view(request):
         if not companias_participantes:
             companias_participantes = {
                 asistente.compania_id: asistente.compania
-                for asistente in reunion.asistentes.all()
+                for asistente in reunion.asistentes_visibles
                 if asistente.compania_id and asistente.compania
             }
         reunion.companias_asistentes = sorted(companias_participantes.values(), key=lambda compania: compania.nombre.lower())
         reunion.companias_filtro_ids = ','.join(str(compania_id) for compania_id in companias_participantes)
-        if any(asistente.compania_id is None for asistente in reunion.asistentes.all()):
-            reunion.companias_filtro_ids += (',' if reunion.companias_filtro_ids else '') + 'sin_compania'
     actividades_internas = list(
         capacitaciones.exclude(tipo_actividad__in=['Curso', 'Reunión'])
-        .prefetch_related('companias_invitadas', 'asistentes__compania')
+        .prefetch_related('companias_invitadas')
         .select_related('creado_por__compania')
     )
     for actividad in actividades_internas:
@@ -1902,15 +1915,13 @@ def capacitaciones_view(request):
         if not companias_actividad:
             companias_actividad = {
                 asistente.compania_id: asistente.compania
-                for asistente in actividad.asistentes.all()
+                for asistente in actividad.asistentes_visibles
                 if asistente.compania_id and asistente.compania
             }
         actividad.companias_actividad = sorted(companias_actividad.values(), key=lambda compania: compania.nombre.lower())
         actividad.companias_filtro_ids = ','.join(str(compania_id) for compania_id in companias_actividad)
-        if any(asistente.compania_id is None for asistente in actividad.asistentes.all()):
-            actividad.companias_filtro_ids += (',' if actividad.companias_filtro_ids else '') + 'sin_compania'
     companias = Compania.objects.all().order_by('nombre')
-    usuarios_info = list(Usuario.objects.filter(is_active=True).values('id', 'compania_id'))
+    usuarios_info = list(Usuario.objects.miembros_activos().values('id', 'compania_id'))
     usuarios_companias = {u['id']: u['compania_id'] for u in usuarios_info}
 
     # --- Lógica de Lista de Abono (Asistencias) ---
@@ -1929,11 +1940,9 @@ def capacitaciones_view(request):
         base_filter &= Q(capacitaciones_asistidas__fecha_inicio__lte=f"{fecha_fin_filtro} 23:59:59")
         base_filter_em &= Q(emergencias_asistidas__fecha_hora_alarma__lte=f"{fecha_fin_filtro} 23:59:59")
 
-    usuarios_abono = Usuario.objects.filter(is_active=True).select_related('compania')
+    usuarios_abono = Usuario.objects.miembros_activos().select_related('compania')
     if compania_filtro:
-        if compania_filtro == 'sin_compania':
-            usuarios_abono = usuarios_abono.filter(compania__isnull=True)
-        elif compania_filtro.isdigit():
+        if compania_filtro.isdigit():
             usuarios_abono = usuarios_abono.filter(compania_id=compania_filtro)
 
     lista_abono = usuarios_abono.annotate(
@@ -1986,7 +1995,7 @@ def capacitacion_edit_view(request, capacitacion_id):
                 if audiencia == 'general':
                     usuarios_a_notificar = Usuario.objects.filter(is_active=True, compania__in=capacitacion.companias_invitadas.all()) if capacitacion.companias_invitadas.exists() else Usuario.objects.none()
                 else:
-                    usuarios_a_notificar = capacitacion.asistentes.all()
+                    usuarios_a_notificar = capacitacion.asistentes.filter(compania__isnull=False)
                 notificaciones = []
                 for u in usuarios_a_notificar:
                     mensaje = f"Actualización de {capacitacion.get_tipo_actividad_display().lower()}: {capacitacion.nombre}."
@@ -2114,7 +2123,7 @@ def mantenimiento_view(request):
     if ordenar_por in valid_sorts:
         mantenimientos = mantenimientos.order_by(ordenar_por)
 
-    usuarios_con_mantenimientos = Usuario.objects.filter(mantenimientos_responsable__isnull=False).distinct().order_by('nombre')
+    usuarios_con_mantenimientos = Usuario.objects.filter(compania__isnull=False, mantenimientos_responsable__isnull=False).distinct().order_by('nombre')
 
     context = {'form': form, 'archivo_form': archivo_form, 'mantenimientos': mantenimientos, 'usuarios_con_mantenimientos': usuarios_con_mantenimientos}
     return render(request, 'usuarios/mantenimiento.html', context)

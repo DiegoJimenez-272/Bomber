@@ -53,6 +53,9 @@ class Compania(models.Model):
         return self.nombre 
 
 class UsuarioManager(BaseUserManager):
+    def miembros_activos(self):
+        return self.filter(is_active=True, compania__isnull=False)
+
     def create_user(self, email, password=None, **extra_fields):
         if not email:
             raise ValueError('El email es obligatorio')

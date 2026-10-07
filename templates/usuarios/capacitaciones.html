@@ -152,7 +152,7 @@
                                 <p class="small">{{ cap.descripcion|linebreaksbr }}</p>
                                 <h6 class="small fw-bold text-muted mt-3">ASISTENTES</h6>
                                 <ul class="list-unstyled small mb-0">
-                                    {% for asistente in cap.asistentes.all %}
+                                    {% for asistente in cap.asistentes_visibles %}
                                         <li><i class="bi bi-person-check-fill text-danger me-2"></i>{{ asistente.get_full_name }}</li>
                                     {% empty %}
                                         <li class="text-muted">No hay asistentes registrados.</li>
@@ -163,7 +163,7 @@
                         <div class="card-footer d-flex justify-content-between align-items-center">
                             <div class="text-muted small">
                                 <i class="bi bi-people-fill me-1"></i>
-                                {{ cap.asistentes.count }} Asistente(s)
+                                {{ cap.asistentes_visibles|length }} Asistente(s)
                                 {% if cap.cupos %}/ {{ cap.cupos }} Cupos{% endif %}
                             </div>
                             {% if request.user.is_superuser or request.user.rol.editar_capacitaciones %}
@@ -303,7 +303,7 @@
                                 <p class="small">{{ cap.descripcion|linebreaksbr }}</p>
                                 <h6 class="small fw-bold text-muted mt-3">ASISTENTES</h6>
                                 <ul class="list-unstyled small mb-0">
-                                    {% for asistente in cap.asistentes.all %}
+                                    {% for asistente in cap.asistentes_visibles %}
                                         <li><i class="bi bi-person-check-fill text-danger me-2"></i>{{ asistente.get_full_name }}</li>
                                     {% empty %}
                                         <li class="text-muted">No hay asistentes registrados.</li>
@@ -314,7 +314,7 @@
                         <div class="card-footer d-flex justify-content-between align-items-center">
                             <div class="text-muted small">
                                 <i class="bi bi-people-fill me-1"></i>
-                                {{ cap.asistentes.count }} Asistente(s)
+                                {{ cap.asistentes_visibles|length }} Asistente(s)
                                 {% if cap.cupos %}/ {{ cap.cupos }} Cupos{% endif %}
                             </div>
                             {% if request.user.is_superuser or request.user.rol.editar_capacitaciones %}
@@ -374,7 +374,7 @@
                                 </div>
                                 <div class="d-flex align-items-center text-secondary">
                                     <i class="bi bi-people text-danger fs-5 me-3 w-20px text-center"></i>
-                                    <span class="fs-6">{{ item.asistentes.count }} asistentes</span>
+                                    <span class="fs-6">{{ item.asistentes_visibles|length }} asistentes</span>
                                 </div>
                                 <div class="d-flex align-items-start text-secondary">
                                     <i class="bi bi-building text-danger fs-5 me-3 w-20px text-center"></i>
@@ -443,9 +443,9 @@
                                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
                             </div>
                             <div class="modal-body">
-                                <p class="text-muted small mb-3">{{ item.asistentes.count }} asistente(s) registrado(s)</p>
+                                <p class="text-muted small mb-3">{{ item.asistentes_visibles|length }} asistente(s) registrado(s)</p>
                                 <ul class="list-group list-group-flush">
-                                    {% for asistente in item.asistentes.all %}
+                                    {% for asistente in item.asistentes_visibles %}
                                     <li class="list-group-item px-0">
                                         <i class="bi bi-person-check text-success me-2"></i>{{ asistente.get_full_name }}
                                     </li>
@@ -511,7 +511,6 @@
                                     {{ comp.nombre }}
                                 </option>
                                 {% endfor %}
-                                <option value="sin_compania" {% if compania_filtro == 'sin_compania' %}selected{% endif %}>Sin Compañía asignada</option>
                             </select>
                         </div>
 
@@ -566,7 +565,6 @@
                                 {% for comp in companias %}
                                     {% if compania_filtro == comp.id|stringformat:"s" %}{{ comp.nombre }}{% endif %}
                                 {% endfor %}
-                                {% if compania_filtro == 'sin_compania' %}Sin Compañía{% endif %}
                             </span>
                         {% endif %}
                     </div>
