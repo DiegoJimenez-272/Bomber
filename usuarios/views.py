@@ -1526,9 +1526,12 @@ def salidas_terreno_view(request):
 
     usuarios_con_salidas = Usuario.objects.filter(salidas_a_cargo__isnull=False).distinct().order_by('nombre')
     motivos_unicos = SalidaTerreno.objects.values_list('motivo', flat=True).distinct().order_by('motivo')
+    unidades_seleccionadas = form['unidades'].value() or []
+    unidades_seleccionadas = [str(getattr(unidad, 'pk', unidad)) for unidad in unidades_seleccionadas]
     
     context = {
         'form': form, 
+        'unidades_seleccionadas': unidades_seleccionadas,
         'salidas': salidas,
         'usuarios_con_salidas': usuarios_con_salidas,
         'motivos_unicos': motivos_unicos
