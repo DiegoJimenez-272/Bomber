@@ -269,14 +269,14 @@
                             {% endfor %}
                         </div>
                         <div class="col-md-6">
-                            <label for="{{ form.kilometraje_salida.id_for_label }}" class="form-label">Kilometraje de Salida (Opcional)</label>
+                            <label for="{{ form.kilometraje_salida.id_for_label }}" class="form-label">Kilometraje de Salida *</label>
                             {{ form.kilometraje_salida }}
                             {% for error in form.kilometraje_salida.errors %}
                                 <div class="invalid-feedback d-block">{{ error }}</div>
                             {% endfor %}
                         </div>
                         <div class="col-md-6">
-                            <label for="{{ form.kilometraje_regreso.id_for_label }}" class="form-label">Kilometraje de Regreso (Opcional)</label>
+                            <label for="{{ form.kilometraje_regreso.id_for_label }}" class="form-label">Kilometraje de Regreso *</label>
                             {{ form.kilometraje_regreso }}
                             {% for error in form.kilometraje_regreso.errors %}
                                 <div class="invalid-feedback d-block">{{ error }}</div>
@@ -329,12 +329,12 @@
                             <input type="datetime-local" id="edit_fecha_hora_regreso" name="fecha_hora_regreso" class="form-control">
                         </div>
                         <div class="col-md-6">
-                            <label for="edit_kilometraje_salida" class="form-label">Kilometraje de Salida</label>
-                            <input type="number" id="edit_kilometraje_salida" name="kilometraje_salida" class="form-control">
+                            <label for="edit_kilometraje_salida" class="form-label">Kilometraje de Salida *</label>
+                            <input type="number" id="edit_kilometraje_salida" name="kilometraje_salida" class="form-control" min="0" required>
                         </div>
                         <div class="col-md-6">
-                            <label for="edit_kilometraje_regreso" class="form-label">Kilometraje de Regreso</label>
-                            <input type="number" id="edit_kilometraje_regreso" name="kilometraje_regreso" class="form-control">
+                            <label for="edit_kilometraje_regreso" class="form-label">Kilometraje de Regreso *</label>
+                            <input type="number" id="edit_kilometraje_regreso" name="kilometraje_regreso" class="form-control" min="0" required>
                         </div>
                         <div class="col-12">
                             <label class="form-label">Unidades y asistencia</label>

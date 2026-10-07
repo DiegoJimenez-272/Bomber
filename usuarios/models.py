@@ -209,8 +209,8 @@ class SalidaTerreno(models.Model):
         related_name='salidas_terreno',
         verbose_name="Unidades involucradas",
     )
-    kilometraje_salida = models.PositiveIntegerField(verbose_name="Kilometraje de Salida", default=0)
-    kilometraje_regreso = models.PositiveIntegerField(verbose_name="Kilometraje de Regreso", null=True, blank=True)
+    kilometraje_salida = models.PositiveIntegerField(verbose_name="Kilometraje de Salida")
+    kilometraje_regreso = models.PositiveIntegerField(verbose_name="Kilometraje de Regreso", null=True)
     personal_a_cargo = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='salidas_a_cargo')
     descripcion = models.TextField(verbose_name="Reporte / Novedades", blank=True)
     creado_por = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='salidas_creadas')

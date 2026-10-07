@@ -436,8 +436,8 @@ class SalidaTerrenoForm(forms.ModelForm):
             'direccion': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Calle Falsa 123, Comuna'}),
             'fecha_hora_salida': forms.DateTimeInput(attrs={'class': 'form-control', 'type': 'datetime-local'}),
             'fecha_hora_regreso': forms.DateTimeInput(attrs={'class': 'form-control', 'type': 'datetime-local'}),
-            'kilometraje_salida': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Km al salir del cuartel'}),
-            'kilometraje_regreso': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Km al regresar al cuartel'}),
+            'kilometraje_salida': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Km al salir del cuartel', 'min': 0, 'required': True}),
+            'kilometraje_regreso': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Km al regresar al cuartel', 'min': 0, 'required': True}),
             'personal_a_cargo': forms.Select(attrs={'class': 'form-select'}),
             'descripcion': forms.Textarea(attrs={'class': 'form-control', 'rows': 4, 'placeholder': 'Detalles del servicio, novedades, etc.'}),
         }
@@ -450,6 +450,8 @@ class SalidaTerrenoForm(forms.ModelForm):
             unidades = unidades.filter(compania_id=user.compania_id)
         self.fields['unidades'].queryset = unidades
         self.fields['unidades'].label_from_instance = lambda unidad: unidad.nombre
+        self.fields['kilometraje_salida'].required = True
+        self.fields['kilometraje_regreso'].required = True
         self.fields['personal_a_cargo'].queryset = Usuario.objects.filter(is_active=True).order_by('nombre')
         self.fields['personal_a_cargo'].empty_label = "Seleccionar responsable"
         self.fields['personal_a_cargo'].label_from_instance = lambda usuario: usuario.get_full_name()
