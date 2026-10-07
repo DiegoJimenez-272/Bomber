@@ -5,7 +5,7 @@ from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.contrib import messages
 from django.contrib.auth import update_session_auth_hash
-from django.db.models import Sum, Case, When, DecimalField, F, Q, Count
+from django.db.models import Sum, Case, When, DecimalField, F, Q, Count, Prefetch
 from django.utils import timezone
 from django.db.models.functions import TruncDay
 from datetime import datetime, timedelta
@@ -24,7 +24,7 @@ from reportlab.lib.pagesizes import letter
 import openpyxl
 from reportlab.lib.units import inch
 from .forms import RegistroForm, LoginForm, ProyectoForm, ArchivoProyectoForm, DocumentoForm, CarpetaForm, SalidaTerrenoForm, EmergenciaForm, PerfilForm, PasswordChangeForm, CapacitacionForm, ReunionForm, MantenimientoForm, ArchivoMantenimientoForm, InventarioForm, CajaChicaForm, AdminUserCreationForm, AdminUserChangeForm, RolForm, CompaniaForm, InventarioEditForm, InventarioGroupEditForm, AvisoForm, PasswordResetRequestForm, PasswordResetVerifyForm, PasswordResetNewPasswordForm, VehiculoForm
-from .models import Rol, Compania, Proyecto, ArchivoProyecto, Documento, Carpeta, SalidaTerreno, Emergencia, Usuario, Capacitacion, Mantenimiento, ArchivoMantenimiento, Inventario, CajaChica, Notificacion, Aviso, AvisoDestinatario, PasswordResetCode, Vehiculo
+from .models import Rol, Compania, Proyecto, ArchivoProyecto, Documento, Carpeta, SalidaTerreno, SalidaTerrenoUnidad, Emergencia, Usuario, Capacitacion, Mantenimiento, ArchivoMantenimiento, Inventario, CajaChica, Notificacion, Aviso, AvisoDestinatario, PasswordResetCode, Vehiculo
 from .decorators import admin_required, permiso_requerido, pertenencia_compania
 import logging
 
@@ -1488,6 +1488,7 @@ def salidas_terreno_view(request):
             salida.creado_por = request.user
             salida.save()
             form.save_m2m()
+            form.save_unit_attendance(salida)
             messages.success(request, f'Salida a terreno por "{salida.motivo}" registrada.')
             return redirect('salidas_terreno')
         else:
@@ -1501,7 +1502,13 @@ def salidas_terreno_view(request):
     motivo_filtro = request.GET.get('motivo')
     ordenar_por = request.GET.get('ordenar_por', '-fecha_hora_salida')
 
-    salidas = SalidaTerreno.objects.select_related('personal_a_cargo').prefetch_related('unidades__compania').all()
+    salidas = SalidaTerreno.objects.select_related('personal_a_cargo').prefetch_related(
+        'unidades__compania',
+        Prefetch(
+            'asistencias_unidades',
+            queryset=SalidaTerrenoUnidad.objects.select_related('unidad').prefetch_related('asistentes'),
+        ),
+    ).all()
 
     if query:
         salidas = salidas.filter(
@@ -1528,10 +1535,22 @@ def salidas_terreno_view(request):
     motivos_unicos = SalidaTerreno.objects.values_list('motivo', flat=True).distinct().order_by('motivo')
     unidades_seleccionadas = form['unidades'].value() or []
     unidades_seleccionadas = [str(getattr(unidad, 'pk', unidad)) for unidad in unidades_seleccionadas]
+    for salida in salidas:
+        detalles_asistencia = list(salida.asistencias_unidades.all())
+        salida.detalles_asistencia = detalles_asistencia
+        salida.asistencia_unidades_json = json.dumps({
+            str(detalle.unidad_id): [usuario.pk for usuario in detalle.asistentes.all()]
+            for detalle in detalles_asistencia
+        })
+    usuarios_asistencia = [
+        {'id': usuario.pk, 'nombre': usuario.get_full_name()}
+        for usuario in Usuario.objects.filter(is_active=True).only('id', 'nombre', 'apellido').order_by('nombre', 'apellido')
+    ]
     
     context = {
         'form': form, 
         'unidades_seleccionadas': unidades_seleccionadas,
+        'usuarios_asistencia': usuarios_asistencia,
         'salidas': salidas,
         'usuarios_con_salidas': usuarios_con_salidas,
         'motivos_unicos': motivos_unicos

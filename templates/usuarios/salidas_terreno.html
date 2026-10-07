@@ -74,11 +74,12 @@
                             <th scope="col">Unidades</th>
                             <th scope="col">Km Recorridos</th>
                             <th scope="col">A Cargo</th>
+                            <th scope="col">Asistencia por unidad</th>
                             <th scope="col">Acciones</th>
                         </tr>
                     </thead>
                 <tbody id="salidasTableBody">
-                    <tr id="no-salidas-found" style="display: none;"><td colspan="7" class="text-center text-muted py-4">No se encontraron salidas con los filtros aplicados.</td></tr>
+                    <tr id="no-salidas-found" style="display: none;"><td colspan="8" class="text-center text-muted py-4">No se encontraron salidas con los filtros aplicados.</td></tr>
                         {% for salida in salidas %}
                         <tr>
                             <td>
@@ -101,6 +102,24 @@
                             </td>
                             <td>{{ salida.personal_a_cargo.get_full_name|default:"N/A" }}</td>
                             <td>
+                                {% for detalle in salida.detalles_asistencia %}
+                                    <div class="mb-1">
+                                        <strong>{{ detalle.unidad.nombre }}:</strong>
+                                        {% for usuario in detalle.asistentes.all %}
+                                            {{ usuario.get_full_name }}{% if not forloop.last %}, {% endif %}
+                                        {% empty %}
+                                            <span class="text-muted">Sin asistencia marcada</span>
+                                        {% endfor %}
+                                    </div>
+                                {% empty %}
+                                    {% for unidad in salida.unidades.all %}
+                                        <div class="mb-1"><strong>{{ unidad.nombre }}:</strong> <span class="text-muted">Sin asistencia marcada</span></div>
+                                    {% empty %}
+                                        <span class="text-muted">Sin detalle de asistencia</span>
+                                    {% endfor %}
+                                {% endfor %}
+                            </td>
+                            <td>
                                 {% if request.user.is_superuser or request.user.rol.editar_salidas_terreno %}
                                 <div class="btn-group" role="group">
                                     <button type="button" class="btn btn-sm btn-outline-primary"
@@ -115,6 +134,7 @@
                                             data-salida-kilometraje_salida="{{ salida.kilometraje_salida }}"
                                             data-salida-kilometraje_regreso="{{ salida.kilometraje_regreso }}"
                                             data-salida-personal_a_cargo="{{ salida.personal_a_cargo.id }}"
+                                            data-salida-asistencia="{{ salida.asistencia_unidades_json }}"
                                             data-salida-descripcion="{{ salida.descripcion }}">
                                         <i class="bi bi-pencil-fill"></i>
                                     </button>
@@ -131,7 +151,7 @@
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="7" class="text-center text-muted py-4">No hay salidas registradas todavía.</td>
+                            <td colspan="8" class="text-center text-muted py-4">No hay salidas registradas todavía.</td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -140,6 +160,30 @@
         </div>
     </div>
 </main>
+
+<!-- Selección secuencial de unidades y asistencia por carro -->
+<template id="unidadAsistenciaGroupTemplate">
+    <div class="unidad-asistencia-card border rounded p-3 mb-3" data-unidad-asistencia>
+        <div class="d-flex justify-content-between align-items-center gap-2 mb-2">
+            <label class="form-label mb-0">Unidad</label>
+            <button type="button" class="btn btn-sm btn-outline-danger" data-remove-unidad aria-label="Quitar unidad">
+                <i class="bi bi-trash"></i> Quitar
+            </button>
+        </div>
+        <select class="form-select unidad-asistencia-select" data-unidad-select>
+            <option value="">Seleccionar carro</option>
+            {% for choice in form.unidades.field.choices %}
+                {% if choice.0 %}<option value="{{ choice.0 }}">{{ choice.1 }}</option>{% endif %}
+            {% endfor %}
+        </select>
+        <div class="mt-3" data-asistencia-panel hidden>
+            <label class="form-label fw-semibold" data-asistencia-titulo>Asistencia</label>
+            <input type="search" class="form-control form-control-sm mb-2" data-asistencia-search placeholder="Buscar bombero...">
+            <div class="unidad-asistencia-list border rounded p-2 overflow-auto" data-asistencia-list style="max-height: 220px;"></div>
+        </div>
+    </div>
+</template>
+{{ usuarios_asistencia|json_script:"salida-usuarios-asistencia" }}
 
 <!-- Modal Registrar Salida -->
 <div class="modal fade" id="createSalidaModal" tabindex="-1" aria-labelledby="createSalidaModalLabel" aria-hidden="true">
@@ -182,28 +226,19 @@
                             {% endfor %}
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">Unidades Involucradas</label>
-                            <div class="dropdown">
-                                <button class="form-select text-start d-flex justify-content-between align-items-center" type="button" id="createUnidadesDropdownButton" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
-                                    <span id="createUnidadesSelectedLabel" class="text-truncate">Seleccionar unidades</span>
-                                </button>
-                                <div class="dropdown-menu w-100 p-2 overflow-auto" aria-labelledby="createUnidadesDropdownButton" style="max-height: 220px;">
-                                    {% for choice in form.unidades.field.choices %}
-                                        {% if choice.0 %}
-                                        <label class="dropdown-item d-flex align-items-center gap-2 rounded" for="create_unidad_{{ choice.0 }}" style="white-space: nowrap; cursor: pointer;">
-                                            <input class="form-check-input m-0 flex-shrink-0" type="checkbox" id="create_unidad_{{ choice.0 }}" name="unidades" value="{{ choice.0 }}" {% if choice.0|stringformat:"s" in unidades_seleccionadas %}checked{% endif %}>
-                                            <span>{{ choice.1 }}</span>
-                                        </label>
-                                        {% endif %}
-                                    {% empty %}
-                                        <span class="dropdown-item-text text-muted">No hay unidades registradas.</span>
-                                    {% endfor %}
-                                </div>
-                            </div>
-                            <div class="form-text">Selecciona una o varias unidades registradas en el inventario.</div>
+                            <label class="form-label">Unidades y asistencia</label>
+                            {{ form.asistencia_unidades }}
+                            <div id="createUnidadAsistenciaGroups" data-unidad-groups data-initial-units="{{ unidades_seleccionadas|join:',' }}"></div>
+                            <button type="button" class="btn btn-sm btn-outline-danger" data-add-unidad="createUnidadAsistenciaGroups">
+                                <i class="bi bi-plus-lg me-1"></i>Agregar otro carro
+                            </button>
                             {% for error in form.unidades.errors %}
                                 <div class="invalid-feedback d-block">{{ error }}</div>
                             {% endfor %}
+                            {% for error in form.asistencia_unidades.errors %}
+                                <div class="invalid-feedback d-block">{{ error }}</div>
+                            {% endfor %}
+                            <div class="form-text">Al elegir cada carro se abrirá su lista para marcar quién asistió en esa unidad.</div>
                         </div>
                         <div class="col-md-6">
                             <label for="createPersonalDropdownButton" class="form-label">Personal a Cargo</label>
@@ -291,25 +326,13 @@
                             <input type="number" id="edit_kilometraje_regreso" name="kilometraje_regreso" class="form-control">
                         </div>
                         <div class="col-12">
-                            <label class="form-label">Unidades Involucradas</label>
-                            <div class="dropdown">
-                                <button class="form-select text-start d-flex justify-content-between align-items-center" type="button" id="editUnidadesDropdownButton" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
-                                    <span id="editUnidadesSelectedLabel" class="text-truncate">Seleccionar unidades</span>
-                                </button>
-                                <div class="dropdown-menu w-100 p-2 overflow-auto" aria-labelledby="editUnidadesDropdownButton" style="max-height: 220px;">
-                                    {% for choice in form.unidades.field.choices %}
-                                        {% if choice.0 %}
-                                        <label class="dropdown-item d-flex align-items-center gap-2 rounded" for="edit_unidad_{{ choice.0 }}" style="white-space: nowrap; cursor: pointer;">
-                                            <input class="form-check-input m-0 flex-shrink-0" type="checkbox" id="edit_unidad_{{ choice.0 }}" name="unidades" value="{{ choice.0 }}">
-                                            <span>{{ choice.1 }}</span>
-                                        </label>
-                                        {% endif %}
-                                    {% empty %}
-                                        <span class="text-muted">No hay unidades registradas.</span>
-                                    {% endfor %}
-                                </div>
-                            </div>
-                            <div class="form-text">Selecciona una o varias unidades registradas en el inventario.</div>
+                            <label class="form-label">Unidades y asistencia</label>
+                            <input type="hidden" id="edit_asistencia_unidades" name="asistencia_unidades" value="{}">
+                            <div id="editUnidadAsistenciaGroups" data-unidad-groups></div>
+                            <button type="button" class="btn btn-sm btn-outline-danger" data-add-unidad="editUnidadAsistenciaGroups">
+                                <i class="bi bi-plus-lg me-1"></i>Agregar otro carro
+                            </button>
+                            <div class="form-text">Al elegir cada carro se abrirá su lista para marcar quién asistió en esa unidad.</div>
                         </div>
                         
                         <div class="col-12">
@@ -382,9 +405,132 @@
         color: #fff;
         background-color: #dc3545;
     }
+    .unidad-asistencia-select:focus {
+        border-color: #dc3545;
+        box-shadow: 0 0 0 .25rem rgba(220, 53, 69, .25);
+    }
+    .unidad-asistencia-list .form-check-input:checked {
+        background-color: #dc3545;
+        border-color: #dc3545;
+    }
 </style>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+    const asistentesDisponibles = JSON.parse(document.getElementById('salida-usuarios-asistencia').textContent);
+    const grupoUnidadTemplate = document.getElementById('unidadAsistenciaGroupTemplate');
+
+    function syncAsistenciaUnidades(container) {
+        const hiddenInput = container.closest('form').querySelector('[name="asistencia_unidades"]');
+        const asistencia = {};
+        container.querySelectorAll('[data-unidad-asistencia]').forEach(function (group) {
+            const unidadId = group.querySelector('[data-unidad-select]').value;
+            if (!unidadId) return;
+            asistencia[unidadId] = Array.from(group.querySelectorAll('[data-asistente]:checked')).map(function (checkbox) {
+                return Number(checkbox.value);
+            });
+        });
+        hiddenInput.value = JSON.stringify(asistencia);
+    }
+
+    function refreshUnidadOptions(container) {
+        const selectedIds = Array.from(container.querySelectorAll('[data-unidad-select]'))
+            .map(function (select) { return select.value; })
+            .filter(Boolean);
+        container.querySelectorAll('[data-unidad-select]').forEach(function (select) {
+            Array.from(select.options).forEach(function (option) {
+                option.disabled = Boolean(option.value && selectedIds.includes(option.value) && select.value !== option.value);
+            });
+        });
+        container.querySelectorAll('[data-remove-unidad]').forEach(function (button) {
+            button.hidden = container.querySelectorAll('[data-unidad-asistencia]').length <= 1;
+        });
+    }
+
+    function populateAsistencia(group, selectedIds) {
+        const container = group.closest('[data-unidad-groups]');
+        const select = group.querySelector('[data-unidad-select]');
+        const unidadId = select.value;
+        const panel = group.querySelector('[data-asistencia-panel]');
+        const list = group.querySelector('[data-asistencia-list]');
+        const oldUnitInput = group.querySelector('input[name="unidades"]');
+        if (oldUnitInput) oldUnitInput.remove();
+        list.replaceChildren();
+        if (!unidadId) {
+            panel.hidden = true;
+            refreshUnidadOptions(container);
+            syncAsistenciaUnidades(container);
+            return;
+        }
+
+        const option = select.options[select.selectedIndex];
+        group.querySelector('[data-asistencia-titulo]').textContent = 'Asistencia en ' + option.textContent.trim();
+        panel.hidden = false;
+        const unitInput = document.createElement('input');
+        unitInput.type = 'hidden';
+        unitInput.name = 'unidades';
+        unitInput.value = unidadId;
+        group.appendChild(unitInput);
+
+        asistentesDisponibles.forEach(function (usuario) {
+            const wrapper = document.createElement('label');
+            wrapper.className = 'form-check d-flex align-items-center gap-2 py-1 m-0';
+            wrapper.dataset.asistenteRow = '';
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.className = 'form-check-input mt-0';
+            checkbox.value = usuario.id;
+            checkbox.dataset.asistente = '';
+            checkbox.checked = selectedIds.includes(Number(usuario.id));
+            checkbox.addEventListener('change', function () { syncAsistenciaUnidades(container); });
+            const name = document.createElement('span');
+            name.textContent = usuario.nombre;
+            wrapper.append(checkbox, name);
+            list.appendChild(wrapper);
+        });
+        refreshUnidadOptions(container);
+        syncAsistenciaUnidades(container);
+    }
+
+    function addUnidadGroup(container, unidadId, asistentes = []) {
+        const group = grupoUnidadTemplate.content.firstElementChild.cloneNode(true);
+        container.appendChild(group);
+        const select = group.querySelector('[data-unidad-select]');
+        if (unidadId) select.value = String(unidadId);
+        select.addEventListener('change', function () { populateAsistencia(group, []); });
+        group.querySelector('[data-remove-unidad]').addEventListener('click', function () {
+            group.remove();
+            if (!container.querySelector('[data-unidad-asistencia]')) addUnidadGroup(container);
+            refreshUnidadOptions(container);
+            syncAsistenciaUnidades(container);
+        });
+        group.querySelector('[data-asistencia-search]').addEventListener('input', function (event) {
+            const search = event.target.value.trim().toLocaleLowerCase();
+            group.querySelectorAll('[data-asistente-row]').forEach(function (row) {
+                row.hidden = !row.textContent.toLocaleLowerCase().includes(search);
+            });
+        });
+        populateAsistencia(group, asistentes.map(Number));
+    }
+
+    document.querySelectorAll('[data-add-unidad]').forEach(function (button) {
+        button.addEventListener('click', function () {
+            addUnidadGroup(document.getElementById(button.dataset.addUnidad));
+        });
+    });
+
+    const createUnidadGroups = document.getElementById('createUnidadAsistenciaGroups');
+    const initialCreateAttendanceRaw = document.getElementById('id_asistencia_unidades').value;
+    let initialCreateAttendance = {};
+    try { initialCreateAttendance = JSON.parse(initialCreateAttendanceRaw || '{}'); } catch (error) { initialCreateAttendance = {}; }
+    const initialCreateUnits = createUnidadGroups.dataset.initialUnits.split(',').filter(Boolean);
+    if (initialCreateUnits.length) {
+        initialCreateUnits.forEach(function (unidadId) {
+            addUnidadGroup(createUnidadGroups, unidadId, initialCreateAttendance[unidadId] || []);
+        });
+    } else {
+        addUnidadGroup(createUnidadGroups);
+    }
+
     function setPersonalSelection(inputId, labelId, selectedId) {
         const input = document.getElementById(inputId);
         const label = document.getElementById(labelId);
@@ -412,27 +558,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
     setPersonalSelection('id_personal_a_cargo', 'createPersonalSelectedLabel', document.getElementById('id_personal_a_cargo')?.value);
 
-    function updateUnidadesLabel(form, label) {
-        const nombres = Array.from(form.querySelectorAll('input[name="unidades"]:checked'))
-            .map(function (input) {
-                const optionLabel = form.querySelector('label[for="' + input.id + '"]');
-                return optionLabel ? optionLabel.textContent.trim() : input.value;
-            });
-        label.textContent = nombres.length ? nombres.join(', ') : 'Seleccionar unidades';
-        label.title = nombres.join(', ');
-    }
-
-    const createForm = document.getElementById('createSalidaForm');
-    const createUnidadesLabel = document.getElementById('createUnidadesSelectedLabel');
-    if (createForm && createUnidadesLabel) {
-        createForm.querySelectorAll('input[name="unidades"]').forEach(function (input) {
-            input.addEventListener('change', function () {
-                updateUnidadesLabel(createForm, createUnidadesLabel);
-            });
-        });
-        updateUnidadesLabel(createForm, createUnidadesLabel);
-    }
-
     // Si hay errores en el formulario de creación, reabrir el modal.
     {% if form.errors %}
         var createSalidaModal = new bootstrap.Modal(document.getElementById('createSalidaModal'));
@@ -449,21 +574,22 @@ document.addEventListener('DOMContentLoaded', function () {
         form.querySelector('#edit_direccion').value = button.dataset.salidaDireccion;
         form.querySelector('#edit_fecha_hora_salida').value = button.dataset.salidaFecha_hora_salida;
         form.querySelector('#edit_fecha_hora_regreso').value = button.dataset.salidaFecha_hora_regreso;
+        const editUnidadGroups = document.getElementById('editUnidadAsistenciaGroups');
+        editUnidadGroups.replaceChildren();
+        let asistenciaGuardada = {};
+        try { asistenciaGuardada = JSON.parse(button.dataset.salidaAsistencia || '{}'); } catch (error) { asistenciaGuardada = {}; }
         const selectedUnits = (button.dataset.salidaUnidades || '').split(',').filter(Boolean);
-        form.querySelectorAll('input[name="unidades"]').forEach(function (input) {
-            input.checked = selectedUnits.includes(input.value);
-        });
-        updateUnidadesLabel(form, document.getElementById('editUnidadesSelectedLabel'));
+        if (selectedUnits.length) {
+            selectedUnits.forEach(function (unidadId) {
+                addUnidadGroup(editUnidadGroups, unidadId, asistenciaGuardada[unidadId] || []);
+            });
+        } else {
+            addUnidadGroup(editUnidadGroups);
+        }
         form.querySelector('#edit_kilometraje_salida').value = button.dataset.salidaKilometraje_salida;
         form.querySelector('#edit_kilometraje_regreso').value = button.dataset.salidaKilometraje_regreso;
         setPersonalSelection('edit_personal_a_cargo', 'editPersonalSelectedLabel', button.dataset.salidaPersonal_a_cargo);
         form.querySelector('#edit_descripcion').value = button.dataset.salidaDescripcion;
-    });
-
-    document.querySelectorAll('#editSalidaForm input[name="unidades"]').forEach(function (input) {
-        input.addEventListener('change', function () {
-            updateUnidadesLabel(document.getElementById('editSalidaForm'), document.getElementById('editUnidadesSelectedLabel'));
-        });
     });
 
     // Lógica para el modal de eliminación

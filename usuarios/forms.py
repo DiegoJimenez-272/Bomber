@@ -1,8 +1,10 @@
+import json
 from django import forms
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm, PasswordChangeForm as AuthPasswordChangeForm
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import Sum, Case, When, DecimalField, F, Q
-from .models import Usuario, Compania, Rol, Proyecto, Documento, Carpeta, SalidaTerreno, Emergencia, Capacitacion, Mantenimiento, Inventario, CajaChica, Aviso, PasswordResetCode, Vehiculo
+from .models import Usuario, Compania, Rol, Proyecto, Documento, Carpeta, SalidaTerreno, SalidaTerrenoUnidad, Emergencia, Capacitacion, Mantenimiento, Inventario, CajaChica, Aviso, PasswordResetCode, Vehiculo
 from .validators import validar_rut_chileno, formatear_rut
 
 
@@ -419,6 +421,7 @@ class PasswordChangeForm(AuthPasswordChangeForm):
         self.fields['old_password'].help_text = None
 
 class SalidaTerrenoForm(forms.ModelForm):
+    asistencia_unidades = forms.CharField(required=False, widget=forms.HiddenInput())
     unidades = forms.ModelMultipleChoiceField(
         queryset=Vehiculo.objects.none(),
         label="Unidades Involucradas",
@@ -427,7 +430,7 @@ class SalidaTerrenoForm(forms.ModelForm):
 
     class Meta:
         model = SalidaTerreno
-        fields = ['motivo', 'direccion', 'fecha_hora_salida', 'fecha_hora_regreso', 'unidades', 'kilometraje_salida', 'kilometraje_regreso', 'personal_a_cargo', 'descripcion']
+        fields = ['motivo', 'direccion', 'fecha_hora_salida', 'fecha_hora_regreso', 'unidades', 'asistencia_unidades', 'kilometraje_salida', 'kilometraje_regreso', 'personal_a_cargo', 'descripcion']
         widgets = {
             'motivo': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej: 10-0-1 (Llamado estructural)'}),
             'direccion': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Calle Falsa 123, Comuna'}),
@@ -450,12 +453,58 @@ class SalidaTerrenoForm(forms.ModelForm):
         self.fields['personal_a_cargo'].queryset = Usuario.objects.filter(is_active=True).order_by('nombre')
         self.fields['personal_a_cargo'].empty_label = "Seleccionar responsable"
         self.fields['personal_a_cargo'].label_from_instance = lambda usuario: usuario.get_full_name()
-
         if self.errors:
             for field_name in self.errors:
                 if field_name in self.fields:
                     existing_classes = self.fields[field_name].widget.attrs.get('class', '')
                     self.fields[field_name].widget.attrs['class'] = f'{existing_classes} is-invalid'.strip()
+
+    def clean_asistencia_unidades(self):
+        raw_value = self.cleaned_data.get('asistencia_unidades') or '{}'
+        try:
+            asistencia = json.loads(raw_value)
+        except (TypeError, ValueError):
+            raise ValidationError('No se pudo leer la asistencia asignada a las unidades.')
+
+        if not isinstance(asistencia, dict):
+            raise ValidationError('La asistencia debe estar organizada por unidad.')
+
+        normalizada = {}
+        try:
+            for unidad_id, usuarios_ids in asistencia.items():
+                unidad_id = str(int(unidad_id))
+                if not isinstance(usuarios_ids, list):
+                    raise ValueError
+                normalizada[unidad_id] = list(dict.fromkeys(int(usuario_id) for usuario_id in usuarios_ids))
+        except (TypeError, ValueError):
+            raise ValidationError('La lista de asistencia contiene datos inválidos.')
+        return normalizada
+
+    def clean(self):
+        cleaned_data = super().clean()
+        asistencia = cleaned_data.get('asistencia_unidades') or {}
+        unidades = cleaned_data.get('unidades') or []
+        unidades_ids = {str(unidad.pk) for unidad in unidades}
+        if set(asistencia) - unidades_ids:
+            self.add_error('asistencia_unidades', 'La asistencia incluye una unidad que no fue seleccionada.')
+
+        usuarios_ids = {usuario_id for ids in asistencia.values() for usuario_id in ids}
+        usuarios_activos = set(
+            Usuario.objects.filter(is_active=True, pk__in=usuarios_ids).values_list('pk', flat=True)
+        )
+        if usuarios_ids - usuarios_activos:
+            self.add_error('asistencia_unidades', 'La lista incluye usuarios inactivos o inexistentes.')
+        return cleaned_data
+
+    def save_unit_attendance(self, salida):
+        asistencia = self.cleaned_data.get('asistencia_unidades') or {}
+        unidades = list(salida.unidades.all())
+        unidades_ids = [unidad.pk for unidad in unidades]
+        SalidaTerrenoUnidad.objects.filter(salida=salida).exclude(unidad_id__in=unidades_ids).delete()
+
+        for unidad in unidades:
+            detalle, _ = SalidaTerrenoUnidad.objects.get_or_create(salida=salida, unidad=unidad)
+            detalle.asistentes.set(asistencia.get(str(unidad.pk), []))
 
     def save(self, commit=True):
         salida = super().save(commit=False)
@@ -464,6 +513,7 @@ class SalidaTerrenoForm(forms.ModelForm):
         if commit:
             salida.save()
             self.save_m2m()
+            self.save_unit_attendance(salida)
         return salida
 
 class EmergenciaForm(forms.ModelForm):

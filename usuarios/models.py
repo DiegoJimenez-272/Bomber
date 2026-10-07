@@ -228,6 +228,31 @@ class SalidaTerreno(models.Model):
             return self.kilometraje_regreso - self.kilometraje_salida
         return None
 
+class SalidaTerrenoUnidad(models.Model):
+    salida = models.ForeignKey(
+        SalidaTerreno,
+        on_delete=models.CASCADE,
+        related_name='asistencias_unidades',
+    )
+    unidad = models.ForeignKey(
+        'Vehiculo',
+        on_delete=models.CASCADE,
+        related_name='asistencias_salidas',
+    )
+    asistentes = models.ManyToManyField(
+        settings.AUTH_USER_MODEL,
+        blank=True,
+        related_name='asistencias_salidas_terreno',
+    )
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['salida', 'unidad'], name='unique_unidad_por_salida_terreno'),
+        ]
+
+    def __str__(self):
+        return f"{self.unidad.nombre} - {self.salida.motivo}"
+
 class Emergencia(models.Model):
     TIPO_EMERGENCIA_CHOICES = [
         ('10-0-1', 'Llamado Estructural'),
