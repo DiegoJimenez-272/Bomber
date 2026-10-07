@@ -149,7 +149,7 @@
                 <h5 class="modal-title" id="createSalidaModalLabel">Registrar Nueva Salida a Terreno</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form method="post">
+            <form id="createSalidaForm" method="post">
                 {% csrf_token %}
                 <div class="modal-body">
                     <div class="row g-3">
@@ -183,8 +183,13 @@
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Unidades Involucradas</label>
-                            <div class="border rounded p-2 bg-white overflow-auto" style="max-height: 140px;">
-                                {{ form.unidades }}
+                            <div class="dropdown">
+                                <button class="form-select text-start d-flex justify-content-between align-items-center" type="button" id="createUnidadesDropdownButton" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                                    <span id="createUnidadesSelectedLabel">Seleccionar unidades</span>
+                                </button>
+                                <div class="dropdown-menu w-100 p-2 overflow-auto" aria-labelledby="createUnidadesDropdownButton" style="max-height: 180px;">
+                                    {{ form.unidades }}
+                                </div>
                             </div>
                             <div class="form-text">Selecciona una o varias unidades registradas en el inventario.</div>
                             {% for error in form.unidades.errors %}
@@ -268,17 +273,22 @@
                         </div>
                         <div class="col-12">
                             <label class="form-label">Unidades Involucradas</label>
-                            <div class="border rounded p-2 bg-white overflow-auto" style="max-height: 140px;">
-                                {% for choice in form.unidades.field.choices %}
-                                    {% if choice.0 %}
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" id="edit_unidad_{{ choice.0 }}" name="unidades" value="{{ choice.0 }}">
-                                        <label class="form-check-label" for="edit_unidad_{{ choice.0 }}">{{ choice.1 }}</label>
-                                    </div>
-                                    {% endif %}
-                                {% empty %}
-                                    <span class="text-muted">No hay unidades registradas.</span>
-                                {% endfor %}
+                            <div class="dropdown">
+                                <button class="form-select text-start d-flex justify-content-between align-items-center" type="button" id="editUnidadesDropdownButton" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                                    <span id="editUnidadesSelectedLabel">Seleccionar unidades</span>
+                                </button>
+                                <div class="dropdown-menu w-100 p-2 overflow-auto" aria-labelledby="editUnidadesDropdownButton" style="max-height: 180px;">
+                                    {% for choice in form.unidades.field.choices %}
+                                        {% if choice.0 %}
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="edit_unidad_{{ choice.0 }}" name="unidades" value="{{ choice.0 }}">
+                                            <label class="form-check-label" for="edit_unidad_{{ choice.0 }}">{{ choice.1 }}</label>
+                                        </div>
+                                        {% endif %}
+                                    {% empty %}
+                                        <span class="text-muted">No hay unidades registradas.</span>
+                                    {% endfor %}
+                                </div>
                             </div>
                             <div class="form-text">Selecciona una o varias unidades registradas en el inventario.</div>
                         </div>
@@ -334,6 +344,27 @@
 {{ block.super }}
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+    function updateUnidadesLabel(form, label) {
+        const nombres = Array.from(form.querySelectorAll('input[name="unidades"]:checked'))
+            .map(function (input) {
+                const optionLabel = form.querySelector('label[for="' + input.id + '"]');
+                return optionLabel ? optionLabel.textContent.trim() : input.value;
+            });
+        label.textContent = nombres.length ? nombres.join(', ') : 'Seleccionar unidades';
+        label.title = nombres.join(', ');
+    }
+
+    const createForm = document.getElementById('createSalidaForm');
+    const createUnidadesLabel = document.getElementById('createUnidadesSelectedLabel');
+    if (createForm && createUnidadesLabel) {
+        createForm.querySelectorAll('input[name="unidades"]').forEach(function (input) {
+            input.addEventListener('change', function () {
+                updateUnidadesLabel(createForm, createUnidadesLabel);
+            });
+        });
+        updateUnidadesLabel(createForm, createUnidadesLabel);
+    }
+
     // Si hay errores en el formulario de creación, reabrir el modal.
     {% if form.errors %}
         var createSalidaModal = new bootstrap.Modal(document.getElementById('createSalidaModal'));
@@ -354,10 +385,17 @@ document.addEventListener('DOMContentLoaded', function () {
         form.querySelectorAll('input[name="unidades"]').forEach(function (input) {
             input.checked = selectedUnits.includes(input.value);
         });
+        updateUnidadesLabel(form, document.getElementById('editUnidadesSelectedLabel'));
         form.querySelector('#edit_kilometraje_salida').value = button.dataset.salidaKilometraje_salida;
         form.querySelector('#edit_kilometraje_regreso').value = button.dataset.salidaKilometraje_regreso;
         form.querySelector('#edit_personal_a_cargo').value = button.dataset.salidaPersonal_a_cargo;
         form.querySelector('#edit_descripcion').value = button.dataset.salidaDescripcion;
+    });
+
+    document.querySelectorAll('#editSalidaForm input[name="unidades"]').forEach(function (input) {
+        input.addEventListener('change', function () {
+            updateUnidadesLabel(document.getElementById('editSalidaForm'), document.getElementById('editUnidadesSelectedLabel'));
+        });
     });
 
     // Lógica para el modal de eliminación
