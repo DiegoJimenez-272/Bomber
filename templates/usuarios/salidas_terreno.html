@@ -464,6 +464,49 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
+    function filtrarAsistenciaGroup(group) {
+        const search = normalizarTexto(group.querySelector('[data-asistencia-search]').value);
+        const rows = Array.from(group.querySelectorAll('[data-asistente-row]'));
+        let coincidencias = 0;
+        rows.forEach(function (row) {
+            const bloqueado = row.dataset.asignadoOtraUnidad === 'true';
+            const coincide = !bloqueado && row.dataset.searchText.includes(search);
+            row.classList.toggle('d-none', !coincide);
+            if (coincide) coincidencias++;
+        });
+        const mensaje = group.querySelector('[data-asistencia-sin-resultados]');
+        if (mensaje) {
+            mensaje.textContent = rows.length === 0
+                ? 'No hay bomberos activos.'
+                : (search ? 'No se encontraron bomberos disponibles.' : 'Todos los bomberos ya están asignados a otro carro.');
+            mensaje.classList.toggle('d-none', coincidencias > 0);
+        }
+    }
+
+    function refreshAsistenciaOptions(container) {
+        const asignadosA = new Map();
+        container.querySelectorAll('[data-unidad-asistencia]').forEach(function (group) {
+            const unidadId = group.querySelector('[data-unidad-select]').value;
+            if (!unidadId) return;
+            group.querySelectorAll('[data-asistente]:checked').forEach(function (checkbox) {
+                if (!asignadosA.has(checkbox.value)) asignadosA.set(checkbox.value, unidadId);
+            });
+        });
+
+        container.querySelectorAll('[data-unidad-asistencia]').forEach(function (group) {
+            const unidadId = group.querySelector('[data-unidad-select]').value;
+            group.querySelectorAll('[data-asistente-row]').forEach(function (row) {
+                const checkbox = row.querySelector('[data-asistente]');
+                const otraUnidadId = asignadosA.get(checkbox.value);
+                const bloqueado = Boolean(otraUnidadId && otraUnidadId !== unidadId);
+                if (bloqueado && checkbox.checked) checkbox.checked = false;
+                checkbox.disabled = bloqueado;
+                row.dataset.asignadoOtraUnidad = bloqueado ? 'true' : 'false';
+            });
+            filtrarAsistenciaGroup(group);
+        });
+    }
+
     function updateAsistenciaSummary(group) {
         const count = group.querySelectorAll('[data-asistente]:checked').length;
         group.querySelector('[data-asistencia-resumen]').textContent =
@@ -484,6 +527,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (!unidadId) {
             panel.hidden = true;
             refreshUnidadOptions(container);
+            refreshAsistenciaOptions(container);
             syncAsistenciaUnidades(container);
             return;
         }
@@ -510,6 +554,7 @@ document.addEventListener('DOMContentLoaded', function () {
             checkbox.checked = selectedIds.includes(Number(usuario.id));
             checkbox.addEventListener('change', function () {
                 group.querySelector('[data-asistencia-summary]').hidden = true;
+                refreshAsistenciaOptions(container);
                 syncAsistenciaUnidades(container);
             });
             const name = document.createElement('span');
@@ -523,6 +568,7 @@ document.addEventListener('DOMContentLoaded', function () {
         sinResultados.textContent = 'No se encontraron bomberos.';
         list.appendChild(sinResultados);
         refreshUnidadOptions(container);
+        refreshAsistenciaOptions(container);
         syncAsistenciaUnidades(container);
         if (collapseAfterLoad) {
             panel.hidden = true;
@@ -550,18 +596,11 @@ document.addEventListener('DOMContentLoaded', function () {
             group.remove();
             if (!container.querySelector('[data-unidad-asistencia]')) addUnidadGroup(container);
             refreshUnidadOptions(container);
+            refreshAsistenciaOptions(container);
             syncAsistenciaUnidades(container);
         });
         group.querySelector('[data-asistencia-search]').addEventListener('input', function (event) {
-            const search = normalizarTexto(event.target.value);
-            let coincidencias = 0;
-            group.querySelectorAll('[data-asistente-row]').forEach(function (row) {
-                const coincide = row.dataset.searchText.includes(search);
-                row.classList.toggle('d-none', !coincide);
-                if (coincide) coincidencias++;
-            });
-            const mensaje = group.querySelector('[data-asistencia-sin-resultados]');
-            if (mensaje) mensaje.classList.toggle('d-none', coincidencias > 0);
+            filtrarAsistenciaGroup(group);
         });
         populateAsistencia(group, asistentes.map(Number), collapseAfterLoad);
     }

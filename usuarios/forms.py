@@ -488,6 +488,10 @@ class SalidaTerrenoForm(forms.ModelForm):
         if set(asistencia) - unidades_ids:
             self.add_error('asistencia_unidades', 'La asistencia incluye una unidad que no fue seleccionada.')
 
+        todos_los_usuarios = [usuario_id for ids in asistencia.values() for usuario_id in ids]
+        if len(todos_los_usuarios) != len(set(todos_los_usuarios)):
+            self.add_error('asistencia_unidades', 'Un bombero no puede quedar asignado a más de un carro en la misma salida.')
+
         usuarios_ids = {usuario_id for ids in asistencia.values() for usuario_id in ids}
         usuarios_activos = set(
             Usuario.objects.filter(is_active=True, pk__in=usuarios_ids).values_list('pk', flat=True)
