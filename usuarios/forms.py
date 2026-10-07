@@ -446,11 +446,7 @@ class SalidaTerrenoForm(forms.ModelForm):
         if user and not user.is_superuser and user.compania_id:
             unidades = unidades.filter(compania_id=user.compania_id)
         self.fields['unidades'].queryset = unidades
-        self.fields['unidades'].label_from_instance = lambda unidad: (
-            f"Carro: {unidad.nombre}"
-            + (f" · Patente: {unidad.patente}" if unidad.patente else "")
-            + f" · {unidad.compania.nombre}"
-        )
+        self.fields['unidades'].label_from_instance = lambda unidad: unidad.nombre
         self.fields['personal_a_cargo'].queryset = Usuario.objects.filter(is_active=True).order_by('nombre')
         self.fields['personal_a_cargo'].empty_label = "Seleccionar responsable"
 
