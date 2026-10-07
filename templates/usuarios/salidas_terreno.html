@@ -433,6 +433,9 @@
 document.addEventListener('DOMContentLoaded', function () {
     const asistentesDisponibles = JSON.parse(document.getElementById('salida-usuarios-asistencia').textContent);
     const grupoUnidadTemplate = document.getElementById('unidadAsistenciaGroupTemplate');
+    const normalizarTexto = function (texto) {
+        return String(texto || '').toLocaleLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+    };
 
     function syncAsistenciaUnidades(container) {
         const hiddenInput = container.closest('form').querySelector('[name="asistencia_unidades"]');
@@ -498,6 +501,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const wrapper = document.createElement('label');
             wrapper.className = 'form-check d-flex align-items-center gap-2 py-1 m-0';
             wrapper.dataset.asistenteRow = '';
+            wrapper.dataset.searchText = normalizarTexto(usuario.nombre);
             const checkbox = document.createElement('input');
             checkbox.type = 'checkbox';
             checkbox.className = 'form-check-input mt-0';
@@ -513,6 +517,11 @@ document.addEventListener('DOMContentLoaded', function () {
             wrapper.append(checkbox, name);
             list.appendChild(wrapper);
         });
+        const sinResultados = document.createElement('div');
+        sinResultados.className = 'd-none text-muted small p-2';
+        sinResultados.dataset.asistenciaSinResultados = '';
+        sinResultados.textContent = 'No se encontraron bomberos.';
+        list.appendChild(sinResultados);
         refreshUnidadOptions(container);
         syncAsistenciaUnidades(container);
         if (collapseAfterLoad) {
@@ -544,10 +553,15 @@ document.addEventListener('DOMContentLoaded', function () {
             syncAsistenciaUnidades(container);
         });
         group.querySelector('[data-asistencia-search]').addEventListener('input', function (event) {
-            const search = event.target.value.trim().toLocaleLowerCase();
+            const search = normalizarTexto(event.target.value);
+            let coincidencias = 0;
             group.querySelectorAll('[data-asistente-row]').forEach(function (row) {
-                row.hidden = !row.textContent.toLocaleLowerCase().includes(search);
+                const coincide = row.dataset.searchText.includes(search);
+                row.classList.toggle('d-none', !coincide);
+                if (coincide) coincidencias++;
             });
+            const mensaje = group.querySelector('[data-asistencia-sin-resultados]');
+            if (mensaje) mensaje.classList.toggle('d-none', coincidencias > 0);
         });
         populateAsistencia(group, asistentes.map(Number), collapseAfterLoad);
     }
