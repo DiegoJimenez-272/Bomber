@@ -180,6 +180,17 @@
             <label class="form-label fw-semibold" data-asistencia-titulo>Asistencia</label>
             <input type="search" class="form-control form-control-sm mb-2" data-asistencia-search placeholder="Buscar bombero...">
             <div class="unidad-asistencia-list border rounded p-2 overflow-auto" data-asistencia-list style="max-height: 220px;"></div>
+            <div class="text-end mt-2">
+                <button type="button" class="btn btn-sm btn-danger" data-save-asistencia>
+                    <i class="bi bi-check-lg me-1"></i>Guardar asistencia
+                </button>
+            </div>
+        </div>
+        <div class="d-flex justify-content-between align-items-center gap-2 mt-2" data-asistencia-summary hidden>
+            <small class="text-success" data-asistencia-resumen></small>
+            <button type="button" class="btn btn-sm btn-outline-secondary" data-edit-asistencia>
+                <i class="bi bi-pencil me-1"></i>Editar asistencia
+            </button>
         </div>
     </div>
 </template>
@@ -446,7 +457,14 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    function populateAsistencia(group, selectedIds) {
+    function updateAsistenciaSummary(group) {
+        const count = group.querySelectorAll('[data-asistente]:checked').length;
+        group.querySelector('[data-asistencia-resumen]').textContent =
+            'Asistencia guardada: ' + count + (count === 1 ? ' bombero' : ' bomberos');
+        group.querySelector('[data-asistencia-summary]').hidden = false;
+    }
+
+    function populateAsistencia(group, selectedIds, collapseAfterLoad = false) {
         const container = group.closest('[data-unidad-groups]');
         const select = group.querySelector('[data-unidad-select]');
         const unidadId = select.value;
@@ -455,6 +473,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const oldUnitInput = group.querySelector('input[name="unidades"]');
         if (oldUnitInput) oldUnitInput.remove();
         list.replaceChildren();
+        group.querySelector('[data-asistencia-summary]').hidden = true;
         if (!unidadId) {
             panel.hidden = true;
             refreshUnidadOptions(container);
@@ -481,7 +500,10 @@ document.addEventListener('DOMContentLoaded', function () {
             checkbox.value = usuario.id;
             checkbox.dataset.asistente = '';
             checkbox.checked = selectedIds.includes(Number(usuario.id));
-            checkbox.addEventListener('change', function () { syncAsistenciaUnidades(container); });
+            checkbox.addEventListener('change', function () {
+                group.querySelector('[data-asistencia-summary]').hidden = true;
+                syncAsistenciaUnidades(container);
+            });
             const name = document.createElement('span');
             name.textContent = usuario.nombre;
             wrapper.append(checkbox, name);
@@ -489,14 +511,28 @@ document.addEventListener('DOMContentLoaded', function () {
         });
         refreshUnidadOptions(container);
         syncAsistenciaUnidades(container);
+        if (collapseAfterLoad) {
+            panel.hidden = true;
+            updateAsistenciaSummary(group);
+        }
     }
 
-    function addUnidadGroup(container, unidadId, asistentes = []) {
+    function addUnidadGroup(container, unidadId, asistentes = [], collapseAfterLoad = false) {
         const group = grupoUnidadTemplate.content.firstElementChild.cloneNode(true);
         container.appendChild(group);
         const select = group.querySelector('[data-unidad-select]');
         if (unidadId) select.value = String(unidadId);
         select.addEventListener('change', function () { populateAsistencia(group, []); });
+        group.querySelector('[data-save-asistencia]').addEventListener('click', function () {
+            syncAsistenciaUnidades(container);
+            group.querySelector('[data-asistencia-panel]').hidden = true;
+            updateAsistenciaSummary(group);
+        });
+        group.querySelector('[data-edit-asistencia]').addEventListener('click', function () {
+            group.querySelector('[data-asistencia-summary]').hidden = true;
+            group.querySelector('[data-asistencia-panel]').hidden = false;
+            group.querySelector('[data-asistencia-search]').focus();
+        });
         group.querySelector('[data-remove-unidad]').addEventListener('click', function () {
             group.remove();
             if (!container.querySelector('[data-unidad-asistencia]')) addUnidadGroup(container);
@@ -509,7 +545,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 row.hidden = !row.textContent.toLocaleLowerCase().includes(search);
             });
         });
-        populateAsistencia(group, asistentes.map(Number));
+        populateAsistencia(group, asistentes.map(Number), collapseAfterLoad);
     }
 
     document.querySelectorAll('[data-add-unidad]').forEach(function (button) {
@@ -581,7 +617,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const selectedUnits = (button.dataset.salidaUnidades || '').split(',').filter(Boolean);
         if (selectedUnits.length) {
             selectedUnits.forEach(function (unidadId) {
-                addUnidadGroup(editUnidadGroups, unidadId, asistenciaGuardada[unidadId] || []);
+                addUnidadGroup(editUnidadGroups, unidadId, asistenciaGuardada[unidadId] || [], true);
             });
         } else {
             addUnidadGroup(editUnidadGroups);
