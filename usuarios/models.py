@@ -288,6 +288,31 @@ class Emergencia(models.Model):
     def __str__(self):
         return f"{self.get_tipo_display()} - {self.direccion}"
 
+class EmergenciaUnidad(models.Model):
+    emergencia = models.ForeignKey(
+        Emergencia,
+        on_delete=models.CASCADE,
+        related_name='unidades_asistencia',
+    )
+    unidad = models.ForeignKey(
+        'Vehiculo',
+        on_delete=models.CASCADE,
+        related_name='asistencias_emergencias',
+    )
+    asistentes = models.ManyToManyField(
+        settings.AUTH_USER_MODEL,
+        blank=True,
+        related_name='asistencias_emergencias_unidad',
+    )
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['emergencia', 'unidad'], name='unique_unidad_por_emergencia'),
+        ]
+
+    def __str__(self):
+        return f"{self.unidad.nombre} - {self.emergencia.get_tipo_display()}"
+
 class Capacitacion(models.Model):
     MALLA_CHOICES = [
         ('Nivel postulante', 'Nivel postulante'),

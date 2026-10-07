@@ -4,7 +4,7 @@ from django.contrib.auth.forms import UserCreationForm, AuthenticationForm, Pass
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import Sum, Case, When, DecimalField, F, Q
-from .models import Usuario, Compania, Rol, Proyecto, Documento, Carpeta, SalidaTerreno, SalidaTerrenoUnidad, Emergencia, Capacitacion, Mantenimiento, Inventario, CajaChica, Aviso, PasswordResetCode, Vehiculo
+from .models import Usuario, Compania, Rol, Proyecto, Documento, Carpeta, SalidaTerreno, SalidaTerrenoUnidad, Emergencia, EmergenciaUnidad, Capacitacion, Mantenimiento, Inventario, CajaChica, Aviso, PasswordResetCode, Vehiculo
 from .validators import validar_rut_chileno, formatear_rut
 
 
@@ -521,31 +521,39 @@ class SalidaTerrenoForm(forms.ModelForm):
         return salida
 
 class EmergenciaForm(forms.ModelForm):
+    unidades = forms.ModelMultipleChoiceField(
+        queryset=Vehiculo.objects.none(),
+        required=False,
+        label='Unidades despachadas',
+    )
+    asistencia_unidades = forms.CharField(required=False, widget=forms.HiddenInput())
+
     class Meta:
         model = Emergencia
-        fields = ['tipo', 'direccion', 'fecha_hora_alarma', 'descripcion', 'unidades_despachadas', 'oficial_a_cargo', 'estado', 'asistentes', 'documento_adjunto']
+        fields = ['tipo', 'direccion', 'fecha_hora_alarma', 'descripcion', 'unidades', 'asistencia_unidades', 'oficial_a_cargo', 'estado', 'documento_adjunto']
         widgets = {
             'tipo': forms.Select(attrs={'class': 'form-select'}),
             'direccion': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Calle Falsa 123, Comuna'}),
             'fecha_hora_alarma': forms.DateTimeInput(attrs={'class': 'form-control', 'type': 'datetime-local'}),
             'descripcion': forms.Textarea(attrs={'class': 'form-control', 'rows': 4, 'placeholder': 'Detalles del incidente, puntos de referencia, etc.'}),
-            'unidades_despachadas': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'B-1, R-2...'}),
             'oficial_a_cargo': forms.Select(attrs={'class': 'form-select'}),
             'estado': forms.Select(attrs={'class': 'form-select'}),
-            'asistentes': forms.CheckboxSelectMultiple(attrs={'class': 'form-check-input'}),
             'documento_adjunto': forms.FileInput(attrs={'class': 'form-control'}),
         }
 
     def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
+        unidades = Vehiculo.objects.select_related('compania').order_by('compania__nombre', 'nombre')
+        if user and not user.is_superuser and user.compania_id:
+            unidades = unidades.filter(compania_id=user.compania_id)
+        self.fields['unidades'].queryset = unidades
+        self.fields['unidades'].label_from_instance = lambda unidad: unidad.nombre
         self.fields['oficial_a_cargo'].queryset = Usuario.objects.filter(is_active=True).order_by('nombre')
         self.fields['oficial_a_cargo'].empty_label = "Seleccionar oficial a cargo"
-        self.fields['asistentes'].queryset = Usuario.objects.filter(is_active=True).order_by('nombre')
-        self.fields['asistentes'].required = False
         self.fields['direccion'].required = False
         self.fields['fecha_hora_alarma'].required = False
         self.fields['descripcion'].required = False
-        self.fields['unidades_despachadas'].required = False
         self.fields['documento_adjunto'].required = False
 
         if self.errors:
@@ -553,6 +561,69 @@ class EmergenciaForm(forms.ModelForm):
                 if field_name in self.fields:
                     existing_classes = self.fields[field_name].widget.attrs.get('class', '')
                     self.fields[field_name].widget.attrs['class'] = f'{existing_classes} is-invalid'.strip()
+
+    def clean_asistencia_unidades(self):
+        raw_value = self.cleaned_data.get('asistencia_unidades') or '{}'
+        try:
+            asistencia = json.loads(raw_value)
+        except (TypeError, ValueError):
+            raise ValidationError('No se pudo leer la asistencia asignada a las unidades.')
+
+        if not isinstance(asistencia, dict):
+            raise ValidationError('La asistencia debe estar organizada por unidad.')
+
+        normalizada = {}
+        try:
+            for unidad_id, usuarios_ids in asistencia.items():
+                unidad_id = str(int(unidad_id))
+                if not isinstance(usuarios_ids, list):
+                    raise ValueError
+                normalizada[unidad_id] = list(dict.fromkeys(int(usuario_id) for usuario_id in usuarios_ids))
+        except (TypeError, ValueError):
+            raise ValidationError('La lista de asistencia contiene datos inválidos.')
+        return normalizada
+
+    def clean(self):
+        cleaned_data = super().clean()
+        asistencia = cleaned_data.get('asistencia_unidades') or {}
+        unidades = cleaned_data.get('unidades') or []
+        unidades_ids = {str(unidad.pk) for unidad in unidades}
+        if set(asistencia) - unidades_ids:
+            self.add_error('asistencia_unidades', 'La asistencia incluye una unidad que no fue seleccionada.')
+
+        todos_los_usuarios = [usuario_id for ids in asistencia.values() for usuario_id in ids]
+        if len(todos_los_usuarios) != len(set(todos_los_usuarios)):
+            self.add_error('asistencia_unidades', 'Un bombero no puede quedar asignado a más de un carro en la emergencia.')
+
+        usuarios_ids = set(todos_los_usuarios)
+        usuarios_activos = set(
+            Usuario.objects.filter(is_active=True, pk__in=usuarios_ids).values_list('pk', flat=True)
+        )
+        if usuarios_ids - usuarios_activos:
+            self.add_error('asistencia_unidades', 'La lista incluye usuarios inactivos o inexistentes.')
+        return cleaned_data
+
+    def save_unit_attendance(self, emergencia):
+        asistencia = self.cleaned_data.get('asistencia_unidades') or {}
+        unidades = list(self.cleaned_data.get('unidades') or [])
+        unidades_ids = [unidad.pk for unidad in unidades]
+        EmergenciaUnidad.objects.filter(emergencia=emergencia).exclude(unidad_id__in=unidades_ids).delete()
+        emergencia.unidades_despachadas = ', '.join(unidad.nombre for unidad in unidades)[:100]
+        emergencia.save(update_fields=['unidades_despachadas'])
+
+        for unidad in unidades:
+            detalle, _ = EmergenciaUnidad.objects.get_or_create(emergencia=emergencia, unidad=unidad)
+            detalle.asistentes.set(asistencia.get(str(unidad.pk), []))
+
+    def save(self, commit=True):
+        emergencia = super().save(commit=False)
+        unidades = list(self.cleaned_data.get('unidades') or [])
+        emergencia.unidades_despachadas = ', '.join(unidad.nombre for unidad in unidades)[:100]
+        if commit:
+            emergencia.save()
+            self.save_m2m()
+            self.save_unit_attendance(emergencia)
+        return emergencia
 
 class ReunionForm(forms.ModelForm):
     class Meta:

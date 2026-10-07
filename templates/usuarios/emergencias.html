@@ -85,13 +85,14 @@
                             <th scope="col">Tipo / Dirección</th>
                             <th scope="col">Fecha y Hora Alarma</th>
                             <th scope="col">Unidades</th>
+                            <th scope="col">Asistencia por unidad</th>
                             <th scope="col">Oficial a Cargo</th>
                             <th scope="col">Estado</th>
                             <th scope="col">Acciones</th>
                         </tr>
                     </thead>
                 <tbody id="emergenciasTableBody">
-                    <tr id="no-ems-found" style="display: none;"><td colspan="6" class="text-center text-muted py-4">No se encontraron emergencias con los filtros aplicados.</td></tr>
+                    <tr id="no-ems-found" style="display: none;"><td colspan="7" class="text-center text-muted py-4">No se encontraron emergencias con los filtros aplicados.</td></tr>
                         {% for emergencia in emergencias %}
                         <tr {% if not emergencia.registro_completado %}class="table-warning"{% endif %}>
                             <td>
@@ -100,6 +101,24 @@
                             </td>
                             <td>{{ emergencia.fecha_hora_alarma|date:"d/m/Y H:i" }}</td>
                             <td>{{ emergencia.unidades_despachadas }}</td>
+                            <td>
+                                {% for detalle in emergencia.detalles_unidades %}
+                                    <div class="mb-1">
+                                        <strong>{{ detalle.unidad.nombre }}:</strong>
+                                        {% for usuario in detalle.asistentes.all %}
+                                            {{ usuario.get_full_name }}{% if not forloop.last %}, {% endif %}
+                                        {% empty %}
+                                            <span class="text-muted">Sin asistencia marcada</span>
+                                        {% endfor %}
+                                    </div>
+                                {% empty %}
+                                    {% for unidad_nombre in emergencia.unidades_sin_asistencia %}
+                                        <div class="mb-1"><strong>{{ unidad_nombre }}:</strong> <span class="text-muted">Sin asistencia marcada</span></div>
+                                    {% empty %}
+                                        <span class="text-muted">Sin detalle de asistencia</span>
+                                    {% endfor %}
+                                {% endfor %}
+                            </td>
                             <td>{{ emergencia.oficial_a_cargo.get_full_name|default:"N/A" }}</td>
                             <td>
                                 {% if emergencia.estado == 'Activa' %}
@@ -130,10 +149,10 @@
                                             data-emergencia-direccion="{{ emergencia.direccion }}"
                                             data-emergencia-fecha_hora_alarma="{{ emergencia.fecha_hora_alarma|date:'Y-m-d\TH:i' }}"
                                             data-emergencia-descripcion="{{ emergencia.descripcion }}"
-                                            data-emergencia-unidades_despachadas="{{ emergencia.unidades_despachadas }}"
                                             data-emergencia-oficial_a_cargo="{{ emergencia.oficial_a_cargo.id }}"
                                             data-emergencia-estado="{{ emergencia.estado }}"
-                                            data-emergencia-asistentes="{% for a in emergencia.asistentes.all %}{{ a.id }}{% if not forloop.last %},{% endif %}{% endfor %}">
+                                            data-emergencia-unidades="{% for unidad_id in emergencia.unidades_ids %}{{ unidad_id }}{% if not forloop.last %},{% endif %}{% endfor %}"
+                                            data-emergencia-asistencia="{{ emergencia.asistencia_unidades_json }}">
                                         <i class="bi bi-pencil-fill"></i>
                                     </button>
                                     <button type="button" class="btn btn-sm btn-outline-danger"
@@ -149,7 +168,7 @@
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="6" class="text-center text-muted py-4">No hay emergencias registradas todavía.</td>
+                            <td colspan="7" class="text-center text-muted py-4">No hay emergencias registradas todavía.</td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -159,6 +178,40 @@
     </div>
 </main>
 
+<template id="emUnidadAsistenciaGroupTemplate">
+    <div class="unidad-asistencia-card border rounded p-3 mb-3" data-em-unidad-asistencia>
+        <div class="d-flex justify-content-between align-items-center gap-2 mb-2">
+            <label class="form-label mb-0">Unidad</label>
+            <button type="button" class="btn btn-sm btn-outline-danger" data-em-remove-unidad aria-label="Quitar unidad">
+                <i class="bi bi-trash"></i> Quitar
+            </button>
+        </div>
+        <select class="form-select em-unidad-asistencia-select" data-em-unidad-select>
+            <option value="">Seleccionar carro</option>
+            {% for choice in form.unidades.field.choices %}
+                {% if choice.0 %}<option value="{{ choice.0 }}">{{ choice.1 }}</option>{% endif %}
+            {% endfor %}
+        </select>
+        <div class="mt-3" data-em-asistencia-panel hidden>
+            <label class="form-label fw-semibold" data-em-asistencia-titulo>Asistencia</label>
+            <input type="search" class="form-control form-control-sm mb-2" data-em-asistencia-search placeholder="Buscar bombero...">
+            <div class="em-unidad-asistencia-list border rounded p-2 overflow-auto" data-em-asistencia-list style="max-height: 220px;"></div>
+            <div class="text-end mt-2">
+                <button type="button" class="btn btn-sm btn-danger attendance-action-button" data-em-save-asistencia>
+                    <i class="bi bi-check-lg me-1"></i>Guardar asistencia
+                </button>
+            </div>
+        </div>
+        <div class="d-flex justify-content-between align-items-center gap-2 mt-2" data-em-asistencia-summary hidden>
+            <small class="text-success" data-em-asistencia-resumen></small>
+            <button type="button" class="btn btn-sm btn-outline-secondary attendance-action-button" data-em-edit-asistencia>
+                <i class="bi bi-pencil me-1"></i>Editar asistencia
+            </button>
+        </div>
+    </div>
+</template>
+{{ usuarios_asistencia|json_script:"emergencia-usuarios-asistencia" }}
+
 <!-- Modal Registrar Emergencia -->
 <div class="modal fade" id="createEmergenciaModal" tabindex="-1" aria-labelledby="createEmergenciaModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
@@ -167,7 +220,7 @@
                 <h5 class="modal-title" id="createEmergenciaModalLabel">Registrar Nueva Emergencia</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form method="post" enctype="multipart/form-data" novalidate>
+            <form id="createEmergenciaForm" method="post" enctype="multipart/form-data" novalidate>
                 {% csrf_token %}
                 <div class="modal-body">
                     <div class="row g-3">
@@ -200,11 +253,19 @@
                             {% endfor %}
                         </div>
                         <div class="col-md-6">
-                            <label for="{{ form.unidades_despachadas.id_for_label }}" class="form-label">Unidades Despachadas</label>
-                            {{ form.unidades_despachadas }}
-                            {% for error in form.unidades_despachadas.errors %}
+                            <label class="form-label">Unidades y asistencia</label>
+                            {{ form.asistencia_unidades }}
+                            <div id="createEmergenciaUnitGroups" data-em-unidad-groups data-initial-units="{{ unidades_seleccionadas|join:',' }}"></div>
+                            <button type="button" class="btn btn-sm btn-outline-danger" data-em-add-unidad="createEmergenciaUnitGroups">
+                                <i class="bi bi-plus-lg me-1"></i>Agregar otro carro
+                            </button>
+                            {% for error in form.unidades.errors %}
                                 <div class="invalid-feedback d-block">{{ error }}</div>
                             {% endfor %}
+                            {% for error in form.asistencia_unidades.errors %}
+                                <div class="invalid-feedback d-block">{{ error }}</div>
+                            {% endfor %}
+                            <div class="form-text">Al elegir cada carro se abrirá su lista para marcar quién asistió en esa unidad.</div>
                         </div>
                         <div class="col-md-6">
                             <label for="{{ form.oficial_a_cargo.id_for_label }}" class="form-label">Oficial a Cargo</label>
@@ -219,18 +280,6 @@
                             {% for error in form.descripcion.errors %}
                                 <div class="invalid-feedback d-block">{{ error }}</div>
                             {% endfor %}
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label fw-bold"><i class="bi bi-people-fill me-1 text-danger"></i>Personal Asistente</label>
-                            <div class="border rounded p-2" style="max-height: 200px; overflow-y: auto;">
-                                {% for checkbox in form.asistentes %}
-                                <div class="form-check">
-                                    {{ checkbox.tag }}
-                                    <label class="form-check-label w-100" for="{{ checkbox.id_for_label }}">{{ checkbox.choice_label }}</label>
-                                </div>
-                                {% endfor %}
-                            </div>
-                            <div class="form-text text-muted mt-1"><i class="bi bi-info-circle me-1"></i>Marca los bomberos que participaron en esta emergencia.</div>
                         </div>
                     </div>
                 </div>
@@ -288,8 +337,13 @@
                             </select>
                         </div>
                         <div class="col-md-6">
-                            <label for="edit_unidades_despachadas" class="form-label">Unidades Despachadas</label>
-                            <input type="text" id="edit_unidades_despachadas" name="unidades_despachadas" class="form-control">
+                            <label class="form-label">Unidades y asistencia</label>
+                            <input type="hidden" id="edit_em_asistencia_unidades" name="asistencia_unidades" value="{}">
+                            <div id="editEmergenciaUnitGroups" data-em-unidad-groups></div>
+                            <button type="button" class="btn btn-sm btn-outline-danger" data-em-add-unidad="editEmergenciaUnitGroups">
+                                <i class="bi bi-plus-lg me-1"></i>Agregar otro carro
+                            </button>
+                            <div class="form-text">Al elegir cada carro se abrirá su lista para marcar quién asistió en esa unidad.</div>
                         </div>
                         <div class="col-md-6">
                             <label for="edit_oficial_a_cargo" class="form-label">Oficial a Cargo</label>
@@ -300,18 +354,6 @@
                         <div class="col-12">
                             <label for="edit_descripcion" class="form-label">Detalles del Incidente</label>
                             <textarea id="edit_descripcion" name="descripcion" class="form-control" rows="4"></textarea>
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label fw-bold"><i class="bi bi-people-fill me-1 text-danger"></i>Personal Asistente</label>
-                            <div class="border rounded p-2" style="max-height: 200px; overflow-y: auto;" id="edit-asistentes-list">
-                                {% for checkbox in form.asistentes %}
-                                <div class="form-check">
-                                    {{ checkbox.tag }}
-                                    <label class="form-check-label w-100" for="edit_{{ checkbox.id_for_label }}">{{ checkbox.choice_label }}</label>
-                                </div>
-                                {% endfor %}
-                            </div>
-                            <div class="form-text text-muted mt-1"><i class="bi bi-info-circle me-1"></i>Marca los bomberos que participaron en esta emergencia.</div>
                         </div>
                     </div>
                 </div>
@@ -362,8 +404,208 @@
 
 {% block scripts %}
 {{ block.super }}
+<style>
+    .em-unidad-asistencia-select:focus {
+        border-color: #dc3545;
+        box-shadow: 0 0 0 .25rem rgba(220, 53, 69, .25);
+    }
+    .em-unidad-asistencia-list .form-check-input:checked {
+        background-color: #dc3545;
+        border-color: #dc3545;
+    }
+    .attendance-action-button {
+        width: 171px;
+        justify-content: center;
+    }
+</style>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+    const usuariosAsistencia = JSON.parse(document.getElementById('emergencia-usuarios-asistencia').textContent);
+    const unidadTemplate = document.getElementById('emUnidadAsistenciaGroupTemplate');
+    const normalizarTexto = function (texto) {
+        return String(texto || '').toLocaleLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+    };
+
+    function syncAsistencia(container) {
+        const hidden = container.closest('form').querySelector('[name="asistencia_unidades"]');
+        const mapping = {};
+        container.querySelectorAll('[data-em-unidad-asistencia]').forEach(function (group) {
+            const unidadId = group.querySelector('[data-em-unidad-select]').value;
+            if (!unidadId) return;
+            mapping[unidadId] = Array.from(group.querySelectorAll('[data-em-asistente]:checked')).map(function (checkbox) {
+                return Number(checkbox.value);
+            });
+        });
+        hidden.value = JSON.stringify(mapping);
+    }
+
+    function actualizarDisponibilidad(container) {
+        const seleccionadas = Array.from(container.querySelectorAll('[data-em-unidad-select]'))
+            .map(function (select) { return select.value; }).filter(Boolean);
+        container.querySelectorAll('[data-em-unidad-select]').forEach(function (select) {
+            Array.from(select.options).forEach(function (option) {
+                option.disabled = Boolean(option.value && seleccionadas.includes(option.value) && option.value !== select.value);
+            });
+        });
+        container.querySelectorAll('[data-em-remove-unidad]').forEach(function (button) {
+            button.hidden = container.querySelectorAll('[data-em-unidad-asistencia]').length <= 1;
+        });
+    }
+
+    function filtrarAsistencia(group) {
+        const query = normalizarTexto(group.querySelector('[data-em-asistencia-search]').value);
+        const rows = Array.from(group.querySelectorAll('[data-em-asistente-row]'));
+        let visibles = 0;
+        rows.forEach(function (row) {
+            const asignadoEnOtroCarro = row.dataset.asignadoOtraUnidad === 'true';
+            const coincide = !asignadoEnOtroCarro && row.dataset.searchText.includes(query);
+            row.classList.toggle('d-none', !coincide);
+            if (coincide) visibles++;
+        });
+        const mensaje = group.querySelector('[data-em-sin-resultados]');
+        if (mensaje) {
+            mensaje.textContent = rows.length === 0 ? 'No hay bomberos activos.' :
+                (query ? 'No se encontraron bomberos disponibles.' : 'Todos los bomberos ya están asignados a otro carro.');
+            mensaje.classList.toggle('d-none', visibles > 0);
+        }
+    }
+
+    function actualizarAsistentes(container) {
+        const asignadosA = new Map();
+        container.querySelectorAll('[data-em-unidad-asistencia]').forEach(function (group) {
+            const unidadId = group.querySelector('[data-em-unidad-select]').value;
+            if (!unidadId) return;
+            group.querySelectorAll('[data-em-asistente]:checked').forEach(function (checkbox) {
+                if (!asignadosA.has(checkbox.value)) asignadosA.set(checkbox.value, unidadId);
+            });
+        });
+
+        container.querySelectorAll('[data-em-unidad-asistencia]').forEach(function (group) {
+            const unidadId = group.querySelector('[data-em-unidad-select]').value;
+            group.querySelectorAll('[data-em-asistente-row]').forEach(function (row) {
+                const checkbox = row.querySelector('[data-em-asistente]');
+                const ownerId = asignadosA.get(checkbox.value);
+                const bloqueado = Boolean(ownerId && ownerId !== unidadId);
+                if (bloqueado && checkbox.checked) checkbox.checked = false;
+                checkbox.disabled = bloqueado;
+                row.dataset.asignadoOtraUnidad = bloqueado ? 'true' : 'false';
+            });
+            filtrarAsistencia(group);
+        });
+    }
+
+    function actualizarResumen(group) {
+        const cantidad = group.querySelectorAll('[data-em-asistente]:checked').length;
+        group.querySelector('[data-em-asistencia-resumen]').textContent =
+            'Asistencia guardada: ' + cantidad + (cantidad === 1 ? ' bombero' : ' bomberos');
+        group.querySelector('[data-em-asistencia-summary]').hidden = false;
+    }
+
+    function poblarAsistencia(group, selectedIds, contraer = false) {
+        const container = group.closest('[data-em-unidad-groups]');
+        const select = group.querySelector('[data-em-unidad-select]');
+        const unidadId = select.value;
+        const panel = group.querySelector('[data-em-asistencia-panel]');
+        const list = group.querySelector('[data-em-asistencia-list]');
+        const oldInput = group.querySelector('input[name="unidades"]');
+        if (oldInput) oldInput.remove();
+        list.replaceChildren();
+        group.querySelector('[data-em-asistencia-summary]').hidden = true;
+        if (!unidadId) {
+            panel.hidden = true;
+            actualizarDisponibilidad(container);
+            actualizarAsistentes(container);
+            syncAsistencia(container);
+            return;
+        }
+
+        const option = select.options[select.selectedIndex];
+        group.querySelector('[data-em-asistencia-titulo]').textContent = 'Asistencia en ' + option.textContent.trim();
+        panel.hidden = false;
+        const unitInput = document.createElement('input');
+        unitInput.type = 'hidden';
+        unitInput.name = 'unidades';
+        unitInput.value = unidadId;
+        group.appendChild(unitInput);
+
+        usuariosAsistencia.forEach(function (usuario) {
+            const row = document.createElement('label');
+            row.className = 'form-check d-flex align-items-center gap-2 py-1 m-0';
+            row.dataset.emAsistenteRow = '';
+            row.dataset.searchText = normalizarTexto(usuario.nombre);
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.className = 'form-check-input mt-0';
+            checkbox.value = usuario.id;
+            checkbox.dataset.emAsistente = '';
+            checkbox.checked = selectedIds.includes(Number(usuario.id));
+            checkbox.addEventListener('change', function () {
+                group.querySelector('[data-em-asistencia-summary]').hidden = true;
+                actualizarAsistentes(container);
+                syncAsistencia(container);
+            });
+            const name = document.createElement('span');
+            name.textContent = usuario.nombre;
+            row.append(checkbox, name);
+            list.appendChild(row);
+        });
+        const noResults = document.createElement('div');
+        noResults.className = 'd-none text-muted small p-2';
+        noResults.dataset.emSinResultados = '';
+        list.appendChild(noResults);
+        actualizarDisponibilidad(container);
+        actualizarAsistentes(container);
+        syncAsistencia(container);
+        if (contraer) {
+            panel.hidden = true;
+            actualizarResumen(group);
+        }
+    }
+
+    function agregarUnidad(container, unidadId, asistentes = [], contraer = false) {
+        const group = unidadTemplate.content.firstElementChild.cloneNode(true);
+        container.appendChild(group);
+        const select = group.querySelector('[data-em-unidad-select]');
+        if (unidadId) select.value = String(unidadId);
+        select.addEventListener('change', function () { poblarAsistencia(group, []); });
+        group.querySelector('[data-em-save-asistencia]').addEventListener('click', function () {
+            syncAsistencia(container);
+            group.querySelector('[data-em-asistencia-panel]').hidden = true;
+            actualizarResumen(group);
+        });
+        group.querySelector('[data-em-edit-asistencia]').addEventListener('click', function () {
+            group.querySelector('[data-em-asistencia-summary]').hidden = true;
+            group.querySelector('[data-em-asistencia-panel]').hidden = false;
+            group.querySelector('[data-em-asistencia-search]').focus();
+        });
+        group.querySelector('[data-em-remove-unidad]').addEventListener('click', function () {
+            group.remove();
+            if (!container.querySelector('[data-em-unidad-asistencia]')) agregarUnidad(container);
+            actualizarDisponibilidad(container);
+            actualizarAsistentes(container);
+            syncAsistencia(container);
+        });
+        group.querySelector('[data-em-asistencia-search]').addEventListener('input', function () { filtrarAsistencia(group); });
+        poblarAsistencia(group, asistentes.map(Number), contraer);
+    }
+
+    document.querySelectorAll('[data-em-add-unidad]').forEach(function (button) {
+        button.addEventListener('click', function () {
+            agregarUnidad(document.getElementById(button.dataset.emAddUnidad));
+        });
+    });
+
+    const createUnitGroups = document.getElementById('createEmergenciaUnitGroups');
+    const createAttendanceValue = document.getElementById('id_asistencia_unidades').value;
+    let createAttendance = {};
+    try { createAttendance = JSON.parse(createAttendanceValue || '{}'); } catch (error) { createAttendance = {}; }
+    const createUnitIds = createUnitGroups.dataset.initialUnits.split(',').filter(Boolean);
+    if (createUnitIds.length) {
+        createUnitIds.forEach(function (unitId) { agregarUnidad(createUnitGroups, unitId, createAttendance[unitId] || []); });
+    } else {
+        agregarUnidad(createUnitGroups);
+    }
+
     {% if form.errors %}
         var createEmergenciaModal = new bootstrap.Modal(document.getElementById('createEmergenciaModal'));
         createEmergenciaModal.show();
@@ -379,25 +621,17 @@ document.addEventListener('DOMContentLoaded', function () {
         form.querySelector('#edit_direccion').value = button.dataset.emergenciaDireccion;
         form.querySelector('#edit_fecha_hora_alarma').value = button.dataset.emergenciaFecha_hora_alarma;
         form.querySelector('#edit_descripcion').value = button.dataset.emergenciaDescripcion;
-        form.querySelector('#edit_unidades_despachadas').value = button.dataset.emergenciaUnidades_despachadas;
         form.querySelector('#edit_oficial_a_cargo').value = button.dataset.emergenciaOficial_a_cargo;
         form.querySelector('#edit_estado').value = button.dataset.emergenciaEstado;
-
-        // Limpiar checkboxes previos
-        var checkboxes = form.querySelectorAll('input[name="asistentes"]');
-        checkboxes.forEach(function(cb) {
-            cb.checked = false;
-        });
-
-        // Marcar checkboxes correspondientes
-        var asistentesData = button.dataset.emergenciaAsistentes;
-        if (asistentesData) {
-            var asistentesIds = asistentesData.split(',');
-            checkboxes.forEach(function(cb) {
-                if (asistentesIds.includes(cb.value)) {
-                    cb.checked = true;
-                }
-            });
+        const editUnitGroups = document.getElementById('editEmergenciaUnitGroups');
+        editUnitGroups.replaceChildren();
+        let savedAttendance = {};
+        try { savedAttendance = JSON.parse(button.dataset.emergenciaAsistencia || '{}'); } catch (error) { savedAttendance = {}; }
+        const selectedUnits = (button.dataset.emergenciaUnidades || '').split(',').filter(Boolean);
+        if (selectedUnits.length) {
+            selectedUnits.forEach(function (unitId) { agregarUnidad(editUnitGroups, unitId, savedAttendance[unitId] || [], true); });
+        } else {
+            agregarUnidad(editUnitGroups);
         }
     });
 
@@ -432,7 +666,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             const textContent = row.textContent.toLowerCase();
             const typeCell = row.children[0].textContent.toLowerCase();
-            const userCell = row.children[3].textContent.toLowerCase();
+            const userCell = row.children[4].textContent.toLowerCase();
 
             const matchesSearch = searchText === "" || textContent.includes(searchText);
             const matchesType = selectedType === "" || typeCell.includes(selectedType);

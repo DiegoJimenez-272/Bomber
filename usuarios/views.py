@@ -24,7 +24,7 @@ from reportlab.lib.pagesizes import letter
 import openpyxl
 from reportlab.lib.units import inch
 from .forms import RegistroForm, LoginForm, ProyectoForm, ArchivoProyectoForm, DocumentoForm, CarpetaForm, SalidaTerrenoForm, EmergenciaForm, PerfilForm, PasswordChangeForm, CapacitacionForm, ReunionForm, MantenimientoForm, ArchivoMantenimientoForm, InventarioForm, CajaChicaForm, AdminUserCreationForm, AdminUserChangeForm, RolForm, CompaniaForm, InventarioEditForm, InventarioGroupEditForm, AvisoForm, PasswordResetRequestForm, PasswordResetVerifyForm, PasswordResetNewPasswordForm, VehiculoForm
-from .models import Rol, Compania, Proyecto, ArchivoProyecto, Documento, Carpeta, SalidaTerreno, SalidaTerrenoUnidad, Emergencia, Usuario, Capacitacion, Mantenimiento, ArchivoMantenimiento, Inventario, CajaChica, Notificacion, Aviso, AvisoDestinatario, PasswordResetCode, Vehiculo
+from .models import Rol, Compania, Proyecto, ArchivoProyecto, Documento, Carpeta, SalidaTerreno, SalidaTerrenoUnidad, Emergencia, EmergenciaUnidad, Usuario, Capacitacion, Mantenimiento, ArchivoMantenimiento, Inventario, CajaChica, Notificacion, Aviso, AvisoDestinatario, PasswordResetCode, Vehiculo
 from .decorators import admin_required, permiso_requerido, pertenencia_compania
 import logging
 
@@ -1598,19 +1598,20 @@ def emergencias_view(request):
             messages.error(request, 'No tienes permiso para registrar emergencias.')
             return redirect('emergencias')
             
-        form = EmergenciaForm(request.POST, request.FILES)
+        form = EmergenciaForm(request.POST, request.FILES, user=request.user)
         if form.is_valid():
             emergencia = form.save(commit=False)
             emergencia.creado_por = request.user
             emergencia.registro_completado = 'guardar_incompleto' not in request.POST
             emergencia.save()
             form.save_m2m()
+            form.save_unit_attendance(emergencia)
             messages.success(request, f'Emergencia "{emergencia.get_tipo_display()}" registrada exitosamente.')
             return redirect('emergencias')
         else:
             messages.error(request, 'Error al registrar la emergencia. Por favor, revisa el formulario.')
     else:
-        form = EmergenciaForm()
+        form = EmergenciaForm(user=request.user)
 
     # --- Lógica de Búsqueda y Filtros ---
     query = request.GET.get('q')
@@ -1620,7 +1621,12 @@ def emergencias_view(request):
     usuario_id = request.GET.get('usuario')
     ordenar_por = request.GET.get('ordenar_por', '-fecha_hora_alarma')
 
-    emergencias = Emergencia.objects.select_related('oficial_a_cargo').all()
+    emergencias = Emergencia.objects.select_related('oficial_a_cargo').prefetch_related(
+        Prefetch(
+            'unidades_asistencia',
+            queryset=EmergenciaUnidad.objects.select_related('unidad').prefetch_related('asistentes'),
+        ),
+    ).all()
 
     if query:
         emergencias = emergencias.filter(
@@ -1647,7 +1653,48 @@ def emergencias_view(request):
 
     usuarios_con_emergencias = Usuario.objects.filter(emergencias_a_cargo__isnull=False).distinct().order_by('nombre')
 
-    context = {'form': form, 'emergencias': emergencias, 'usuarios_con_emergencias': usuarios_con_emergencias}
+    unidades_disponibles = list(form.fields['unidades'].queryset)
+    unidades_por_nombre = {}
+    unidades_por_id = {unidad.pk: unidad for unidad in unidades_disponibles}
+    for unidad in unidades_disponibles:
+        unidades_por_nombre.setdefault(unidad.nombre.strip().casefold(), []).append(unidad.pk)
+
+    for emergencia in emergencias:
+        detalles = list(emergencia.unidades_asistencia.all())
+        emergencia.detalles_unidades = detalles
+        asistencia = {
+            str(detalle.unidad_id): [usuario.pk for usuario in detalle.asistentes.all()]
+            for detalle in detalles
+        }
+        unidades_ids = [detalle.unidad_id for detalle in detalles]
+        if not detalles:
+            for nombre in (emergencia.unidades_despachadas or '').replace(';', ',').split(','):
+                coincidencias = unidades_por_nombre.get(nombre.strip().casefold(), [])
+                if len(coincidencias) == 1:
+                    unidades_ids.append(coincidencias[0])
+                    asistencia[str(coincidencias[0])] = []
+        emergencia.unidades_ids = unidades_ids
+        emergencia.unidades_sin_asistencia = [
+            unidades_por_id[unidad_id].nombre
+            for unidad_id in unidades_ids
+            if unidad_id in unidades_por_id
+        ] if not detalles else []
+        emergencia.asistencia_unidades_json = json.dumps(asistencia)
+
+    unidades_seleccionadas = form['unidades'].value() or []
+    unidades_seleccionadas = [str(getattr(unidad, 'pk', unidad)) for unidad in unidades_seleccionadas]
+    usuarios_asistencia = [
+        {'id': usuario.pk, 'nombre': usuario.get_full_name()}
+        for usuario in Usuario.objects.filter(is_active=True).only('id', 'nombre', 'apellido').order_by('nombre', 'apellido')
+    ]
+
+    context = {
+        'form': form,
+        'emergencias': emergencias,
+        'usuarios_con_emergencias': usuarios_con_emergencias,
+        'unidades_seleccionadas': unidades_seleccionadas,
+        'usuarios_asistencia': usuarios_asistencia,
+    }
     return render(request, 'usuarios/emergencias.html', context)
 
 @login_required
@@ -1658,7 +1705,7 @@ def emergencia_edit_view(request, emergencia_id):
         return redirect('emergencias')
 
     if request.method == 'POST':
-        form = EmergenciaForm(request.POST, request.FILES, instance=emergencia)
+        form = EmergenciaForm(request.POST, request.FILES, instance=emergencia, user=request.user)
         if form.is_valid():
             emergencia = form.save(commit=False)
             if 'guardar_completo' in request.POST:
@@ -1667,6 +1714,7 @@ def emergencia_edit_view(request, emergencia_id):
                 emergencia.registro_completado = False
             emergencia.save()
             form.save_m2m()
+            form.save_unit_attendance(emergencia)
             messages.success(request, f'Emergencia "{emergencia.get_tipo_display()}" actualizada exitosamente.')
         else:
             messages.error(request, 'Error al actualizar la emergencia. Revisa el formulario.')
