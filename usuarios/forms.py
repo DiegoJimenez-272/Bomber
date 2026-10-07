@@ -449,6 +449,7 @@ class SalidaTerrenoForm(forms.ModelForm):
         self.fields['unidades'].label_from_instance = lambda unidad: unidad.nombre
         self.fields['personal_a_cargo'].queryset = Usuario.objects.filter(is_active=True).order_by('nombre')
         self.fields['personal_a_cargo'].empty_label = "Seleccionar responsable"
+        self.fields['personal_a_cargo'].label_from_instance = lambda usuario: usuario.get_full_name()
 
         if self.errors:
             for field_name in self.errors:
