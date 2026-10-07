@@ -1482,17 +1482,18 @@ def salidas_terreno_view(request):
             messages.error(request, 'No tienes permiso para registrar salidas.')
             return redirect('salidas_terreno')
             
-        form = SalidaTerrenoForm(request.POST)
+        form = SalidaTerrenoForm(request.POST, user=request.user)
         if form.is_valid():
             salida = form.save(commit=False)
             salida.creado_por = request.user
             salida.save()
+            form.save_m2m()
             messages.success(request, f'Salida a terreno por "{salida.motivo}" registrada.')
             return redirect('salidas_terreno')
         else:
             messages.error(request, 'Error al registrar la salida. Por favor, revisa el formulario.')
     else:
-        form = SalidaTerrenoForm()
+        form = SalidaTerrenoForm(user=request.user)
 
     # --- Lógica de Búsqueda y Filtros ---
     query = request.GET.get('q')
@@ -1500,17 +1501,18 @@ def salidas_terreno_view(request):
     motivo_filtro = request.GET.get('motivo')
     ordenar_por = request.GET.get('ordenar_por', '-fecha_hora_salida')
 
-    salidas = SalidaTerreno.objects.select_related('personal_a_cargo').all()
+    salidas = SalidaTerreno.objects.select_related('personal_a_cargo').prefetch_related('unidades__compania').all()
 
     if query:
         salidas = salidas.filter(
             Q(motivo__icontains=query) |
             Q(direccion__icontains=query) |
             Q(unidades_involucradas__icontains=query) |
+            Q(unidades__nombre__icontains=query) |
             Q(descripcion__icontains=query) |
             Q(personal_a_cargo__nombre__icontains=query) |
             Q(personal_a_cargo__apellido__icontains=query)
-        )
+        ).distinct()
 
     if usuario_id:
         salidas = salidas.filter(personal_a_cargo__id=usuario_id)
@@ -1541,7 +1543,7 @@ def salida_terreno_edit_view(request, salida_id):
         return redirect('salidas_terreno')
 
     if request.method == 'POST':
-        form = SalidaTerrenoForm(request.POST, instance=salida)
+        form = SalidaTerrenoForm(request.POST, instance=salida, user=request.user)
         if form.is_valid():
             form.save()
             messages.success(request, f'Salida por "{salida.motivo}" actualizada exitosamente.')

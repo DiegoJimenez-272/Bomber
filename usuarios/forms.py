@@ -419,15 +419,20 @@ class PasswordChangeForm(AuthPasswordChangeForm):
         self.fields['old_password'].help_text = None
 
 class SalidaTerrenoForm(forms.ModelForm):
+    unidades = forms.ModelMultipleChoiceField(
+        queryset=Vehiculo.objects.none(),
+        label="Unidades Involucradas",
+        widget=forms.CheckboxSelectMultiple(attrs={'class': 'form-check-input'}),
+    )
+
     class Meta:
         model = SalidaTerreno
-        fields = ['motivo', 'direccion', 'fecha_hora_salida', 'fecha_hora_regreso', 'unidades_involucradas', 'kilometraje_salida', 'kilometraje_regreso', 'personal_a_cargo', 'descripcion']
+        fields = ['motivo', 'direccion', 'fecha_hora_salida', 'fecha_hora_regreso', 'unidades', 'kilometraje_salida', 'kilometraje_regreso', 'personal_a_cargo', 'descripcion']
         widgets = {
             'motivo': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej: 10-0-1 (Llamado estructural)'}),
             'direccion': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Calle Falsa 123, Comuna'}),
             'fecha_hora_salida': forms.DateTimeInput(attrs={'class': 'form-control', 'type': 'datetime-local'}),
             'fecha_hora_regreso': forms.DateTimeInput(attrs={'class': 'form-control', 'type': 'datetime-local'}),
-            'unidades_involucradas': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'B-1, R-2...'}),
             'kilometraje_salida': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Km al salir del cuartel'}),
             'kilometraje_regreso': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Km al regresar al cuartel'}),
             'personal_a_cargo': forms.Select(attrs={'class': 'form-select'}),
@@ -435,7 +440,17 @@ class SalidaTerrenoForm(forms.ModelForm):
         }
     
     def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
+        unidades = Vehiculo.objects.select_related('compania').order_by('compania__nombre', 'nombre')
+        if user and not user.is_superuser and user.compania_id:
+            unidades = unidades.filter(compania_id=user.compania_id)
+        self.fields['unidades'].queryset = unidades
+        self.fields['unidades'].label_from_instance = lambda unidad: (
+            f"Carro: {unidad.nombre}"
+            + (f" · Patente: {unidad.patente}" if unidad.patente else "")
+            + f" · {unidad.compania.nombre}"
+        )
         self.fields['personal_a_cargo'].queryset = Usuario.objects.filter(is_active=True).order_by('nombre')
         self.fields['personal_a_cargo'].empty_label = "Seleccionar responsable"
 
@@ -444,6 +459,15 @@ class SalidaTerrenoForm(forms.ModelForm):
                 if field_name in self.fields:
                     existing_classes = self.fields[field_name].widget.attrs.get('class', '')
                     self.fields[field_name].widget.attrs['class'] = f'{existing_classes} is-invalid'.strip()
+
+    def save(self, commit=True):
+        salida = super().save(commit=False)
+        unidades = list(self.cleaned_data.get('unidades', []))
+        salida.unidades_involucradas = ', '.join(unidad.nombre for unidad in unidades)[:200]
+        if commit:
+            salida.save()
+            self.save_m2m()
+        return salida
 
 class EmergenciaForm(forms.ModelForm):
     class Meta:

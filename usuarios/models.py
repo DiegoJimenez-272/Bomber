@@ -203,6 +203,12 @@ class SalidaTerreno(models.Model):
     fecha_hora_salida = models.DateTimeField()
     fecha_hora_regreso = models.DateTimeField(null=True, blank=True)
     unidades_involucradas = models.CharField(max_length=200)
+    unidades = models.ManyToManyField(
+        'Vehiculo',
+        blank=True,
+        related_name='salidas_terreno',
+        verbose_name="Unidades involucradas",
+    )
     kilometraje_salida = models.PositiveIntegerField(verbose_name="Kilometraje de Salida", default=0)
     kilometraje_regreso = models.PositiveIntegerField(verbose_name="Kilometraje de Regreso", null=True, blank=True)
     personal_a_cargo = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='salidas_a_cargo')
