@@ -181,14 +181,14 @@
             <input type="search" class="form-control form-control-sm mb-2" data-asistencia-search placeholder="Buscar bombero...">
             <div class="unidad-asistencia-list border rounded p-2 overflow-auto" data-asistencia-list style="max-height: 220px;"></div>
             <div class="text-end mt-2">
-                <button type="button" class="btn btn-sm btn-danger" data-save-asistencia>
+                <button type="button" class="btn btn-sm btn-danger attendance-action-button" data-save-asistencia>
                     <i class="bi bi-check-lg me-1"></i>Guardar asistencia
                 </button>
             </div>
         </div>
         <div class="d-flex justify-content-between align-items-center gap-2 mt-2" data-asistencia-summary hidden>
             <small class="text-success" data-asistencia-resumen></small>
-            <button type="button" class="btn btn-sm btn-outline-secondary" data-edit-asistencia>
+            <button type="button" class="btn btn-sm btn-outline-secondary attendance-action-button" data-edit-asistencia>
                 <i class="bi bi-pencil me-1"></i>Editar asistencia
             </button>
         </div>
@@ -423,6 +423,10 @@
     .unidad-asistencia-list .form-check-input:checked {
         background-color: #dc3545;
         border-color: #dc3545;
+    }
+    .attendance-action-button {
+        width: 171px;
+        justify-content: center;
     }
 </style>
 <script>
