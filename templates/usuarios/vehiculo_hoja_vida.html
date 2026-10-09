@@ -133,6 +133,63 @@
 
         <div class="col-12">
             <section class="card shadow-sm">
+                <div class="card-header bg-transparent">
+                    <h2 class="h5 mb-0"><i class="bi bi-clipboard2-check text-danger me-2"></i>Rondas y hallazgos</h2>
+                </div>
+                {% if puede_registrar_ronda %}
+                <div class="card-body border-bottom">
+                    <p class="text-muted">Registra el resultado de la revisión, sus observaciones y el estado operativo del carro.</p>
+                    <form method="post" class="row g-3">
+                        {% csrf_token %}
+                        <input type="hidden" name="accion" value="registrar_ronda">
+                        {% if ronda_form.non_field_errors %}<div class="col-12"><div class="alert alert-danger mb-0">{{ ronda_form.non_field_errors }}</div></div>{% endif %}
+                        <div class="col-12 col-md-4">
+                            <label for="{{ ronda_form.tipo_hallazgo.id_for_label }}" class="form-label">Resultado de la ronda</label>
+                            {{ ronda_form.tipo_hallazgo }}
+                            {% for error in ronda_form.tipo_hallazgo.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                        </div>
+                        <div class="col-12 col-md-4">
+                            <label for="{{ ronda_form.estado_operativo.id_for_label }}" class="form-label">Estado operativo</label>
+                            {{ ronda_form.estado_operativo }}
+                            {% for error in ronda_form.estado_operativo.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                        </div>
+                        <div class="col-12">
+                            <label for="{{ ronda_form.detalle.id_for_label }}" class="form-label">Falla, observación o detalle</label>
+                            {{ ronda_form.detalle }}
+                            {% for error in ronda_form.detalle.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                        </div>
+                        <div class="col-12 d-flex justify-content-end"><button class="btn btn-danger" type="submit"><i class="bi bi-check2-circle me-1"></i>Guardar ronda</button></div>
+                    </form>
+                </div>
+                {% endif %}
+                <div class="card-body">
+                    <h3 class="h6">Registro de revisiones</h3>
+                    {% if rondas %}
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead><tr><th>Fecha</th><th>Resultado</th><th>Detalle</th><th>Estado operativo</th><th>Registrado por</th></tr></thead>
+                            <tbody>
+                                {% for ronda in rondas %}
+                                <tr>
+                                    <td>{{ ronda.fecha|date:"d/m/Y H:i" }}</td>
+                                    <td>{{ ronda.get_tipo_hallazgo_display }}</td>
+                                    <td>{{ ronda.detalle|linebreaksbr }}</td>
+                                    <td>{% if ronda.estado_operativo %}{{ ronda.get_estado_operativo_display }}{% else %}—{% endif %}</td>
+                                    <td>{{ ronda.registrado_por.get_full_name|default:"—" }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-muted mb-0">Todavía no hay rondas registradas para este carro.</p>
+                    {% endif %}
+                </div>
+            </section>
+        </div>
+
+        <div class="col-12">
+            <section class="card shadow-sm">
                 <div class="card-header bg-transparent d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2">
                     <h2 class="h5 mb-0"><i class="bi bi-wrench-adjustable-circle text-danger me-2"></i>Historial de reparaciones y mantenciones</h2>
                     {% if request.user.is_superuser or request.user.rol.editar_mantenimientos %}

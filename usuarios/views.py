@@ -23,8 +23,8 @@ from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter
 import openpyxl
 from reportlab.lib.units import inch
-from .forms import RegistroForm, LoginForm, ProyectoForm, ArchivoProyectoForm, DocumentoForm, CarpetaForm, SalidaTerrenoForm, EmergenciaForm, PerfilForm, PasswordChangeForm, CapacitacionForm, ReunionForm, MantenimientoForm, ArchivoMantenimientoForm, InventarioForm, CajaChicaForm, AdminUserCreationForm, AdminUserChangeForm, RolForm, CompaniaForm, InventarioEditForm, InventarioGroupEditForm, AvisoForm, PasswordResetRequestForm, PasswordResetVerifyForm, PasswordResetNewPasswordForm, VehiculoForm, VehiculoHojaVidaForm
-from .models import Rol, Compania, Proyecto, ArchivoProyecto, Documento, Carpeta, SalidaTerreno, SalidaTerrenoUnidad, Emergencia, EmergenciaUnidad, Usuario, Capacitacion, Mantenimiento, ArchivoMantenimiento, Inventario, CajaChica, Notificacion, Aviso, AvisoDestinatario, PasswordResetCode, Vehiculo
+from .forms import RegistroForm, LoginForm, ProyectoForm, ArchivoProyectoForm, DocumentoForm, CarpetaForm, SalidaTerrenoForm, EmergenciaForm, PerfilForm, PasswordChangeForm, CapacitacionForm, ReunionForm, MantenimientoForm, ArchivoMantenimientoForm, InventarioForm, CajaChicaForm, AdminUserCreationForm, AdminUserChangeForm, RolForm, CompaniaForm, InventarioEditForm, InventarioGroupEditForm, AvisoForm, PasswordResetRequestForm, PasswordResetVerifyForm, PasswordResetNewPasswordForm, VehiculoForm, VehiculoHojaVidaForm, RondaVehiculoForm
+from .models import Rol, Compania, Proyecto, ArchivoProyecto, Documento, Carpeta, SalidaTerreno, SalidaTerrenoUnidad, Emergencia, EmergenciaUnidad, Usuario, Capacitacion, Mantenimiento, ArchivoMantenimiento, Inventario, CajaChica, Notificacion, Aviso, AvisoDestinatario, PasswordResetCode, Vehiculo, RondaVehiculo
 from .decorators import admin_required, permiso_requerido, pertenencia_compania
 import logging
 
@@ -1220,19 +1220,39 @@ def vehiculo_edit_view(request, vehiculo_id):
 @login_required
 def vehiculo_hoja_vida_view(request, vehiculo_id):
     vehiculo = get_object_or_404(Vehiculo.objects.select_related('compania'), id=vehiculo_id)
-    if not request.user.is_superuser and not (request.user.rol and request.user.rol.ver_inventario):
-        messages.error(request, 'No tienes permiso para acceder al inventario.')
+    rol = getattr(request.user, 'rol', None)
+    puede_ver = request.user.is_superuser or bool(rol and (rol.ver_inventario or rol.ver_mantenimientos))
+    if not puede_ver:
+        messages.error(request, 'No tienes permiso para acceder a la hoja de vida del carro.')
         return redirect('dashboard')
     if not pertenencia_compania(request.user, vehiculo.compania):
         messages.error(request, 'No tienes acceso a carros de esta compañía.')
         return redirect('inventario')
 
-    puede_editar = request.user.is_superuser or bool(request.user.rol and request.user.rol.editar_inventario)
-    if request.method == 'POST' and not puede_editar:
-        messages.error(request, 'No tienes permiso para editar la hoja de vida del carro.')
-        return redirect('vehiculo_hoja_vida', vehiculo_id=vehiculo.id)
-
-    if request.method == 'POST':
+    puede_editar = request.user.is_superuser or bool(rol and rol.editar_inventario)
+    puede_registrar_ronda = request.user.is_superuser or bool(rol and (rol.editar_inventario or rol.editar_mantenimientos))
+    ronda_form = RondaVehiculoForm()
+    if request.method == 'POST' and request.POST.get('accion') == 'registrar_ronda':
+        if not puede_registrar_ronda:
+            messages.error(request, 'No tienes permiso para registrar rondas de vehículos.')
+            return redirect('vehiculo_hoja_vida', vehiculo_id=vehiculo.id)
+        ronda_form = RondaVehiculoForm(request.POST)
+        if ronda_form.is_valid():
+            ronda = ronda_form.save(commit=False)
+            ronda.vehiculo = vehiculo
+            ronda.registrado_por = request.user
+            ronda.save()
+            if ronda.estado_operativo and vehiculo.estado != ronda.estado_operativo:
+                vehiculo.estado = ronda.estado_operativo
+                vehiculo.save(update_fields=['estado'])
+            messages.success(request, 'La ronda del carro se registró correctamente.')
+            return redirect('vehiculo_hoja_vida', vehiculo_id=vehiculo.id)
+        messages.error(request, 'No se pudo registrar la ronda. Revisa los campos indicados.')
+        form = VehiculoHojaVidaForm(instance=vehiculo)
+    elif request.method == 'POST':
+        if not puede_editar:
+            messages.error(request, 'No tienes permiso para editar la hoja de vida del carro.')
+            return redirect('vehiculo_hoja_vida', vehiculo_id=vehiculo.id)
         form = VehiculoHojaVidaForm(request.POST, instance=vehiculo)
         if form.is_valid():
             form.save()
@@ -1265,6 +1285,9 @@ def vehiculo_hoja_vida_view(request, vehiculo_id):
         'form': form,
         'mantenimientos': mantenimientos,
         'puede_editar': puede_editar,
+        'puede_registrar_ronda': puede_registrar_ronda,
+        'ronda_form': ronda_form,
+        'rondas': vehiculo.rondas.select_related('registrado_por').all(),
         'vencimientos': vencimientos,
     })
 
@@ -2177,7 +2200,20 @@ def mantenimiento_view(request):
 
     usuarios_con_mantenimientos = Usuario.objects.filter(compania__isnull=False, mantenimientos_responsable__isnull=False).distinct().order_by('nombre')
 
-    context = {'form': form, 'archivo_form': archivo_form, 'mantenimientos': mantenimientos, 'usuarios_con_mantenimientos': usuarios_con_mantenimientos}
+    rol = getattr(request.user, 'rol', None)
+    puede_registrar_ronda = request.user.is_superuser or bool(rol and (rol.editar_mantenimientos or rol.editar_inventario))
+    vehiculos_para_ronda = Vehiculo.objects.select_related('compania').order_by('compania__nombre', 'nombre')
+    if not request.user.is_superuser:
+        vehiculos_para_ronda = vehiculos_para_ronda.filter(compania=request.user.compania) if request.user.compania_id else Vehiculo.objects.none()
+
+    context = {
+        'form': form,
+        'archivo_form': archivo_form,
+        'mantenimientos': mantenimientos,
+        'usuarios_con_mantenimientos': usuarios_con_mantenimientos,
+        'puede_registrar_ronda': puede_registrar_ronda,
+        'vehiculos_para_ronda': vehiculos_para_ronda,
+    }
     return render(request, 'usuarios/mantenimiento.html', context)
 
 @login_required

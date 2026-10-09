@@ -10,12 +10,45 @@
         <h1 class="h2 mb-0">Historial de Mantenimiento</h1>
         <p class="text-muted small mb-0">Gestiona y registra todos los mantenimientos de la flota.</p>
     </div>
-    {% if request.user.is_superuser or request.user.rol.editar_mantenimientos %}
-    <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#createMantenimientoModal">
-        <i class="bi bi-plus-lg me-1"></i> Nuevo Mantenimiento
-    </button>
-    {% endif %}
+    <div class="d-flex flex-wrap gap-2">
+        {% if puede_registrar_ronda %}
+        <button class="btn btn-outline-danger" type="button" data-bs-toggle="modal" data-bs-target="#selectVehicleForRoundModal">
+            <i class="bi bi-clipboard2-check me-1"></i> Realizar ronda
+        </button>
+        {% endif %}
+        {% if request.user.is_superuser or request.user.rol.editar_mantenimientos %}
+        <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#createMantenimientoModal">
+            <i class="bi bi-plus-lg me-1"></i> Nuevo Mantenimiento
+        </button>
+        {% endif %}
+    </div>
 </header>
+
+{% if puede_registrar_ronda %}
+<div class="modal fade" id="selectVehicleForRoundModal" tabindex="-1" aria-labelledby="selectVehicleForRoundLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title fs-5" id="selectVehicleForRoundLabel"><i class="bi bi-clipboard2-check text-danger me-2"></i>Seleccionar carro para la ronda</h2>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted">Elige el carro para abrir su hoja de vida y registrar la revisión.</p>
+                <div class="list-group">
+                    {% for vehiculo in vehiculos_para_ronda %}
+                    <a href="{% url 'vehiculo_hoja_vida' vehiculo.id %}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center gap-3">
+                        <span><strong>{{ vehiculo.nombre }}</strong><small class="d-block text-muted">{{ vehiculo.compania.nombre }}{% if vehiculo.patente %} · {{ vehiculo.patente }}{% endif %}</small></span>
+                        <i class="bi bi-chevron-right text-danger" aria-hidden="true"></i>
+                    </a>
+                    {% empty %}
+                    <div class="alert alert-light border mb-0">No hay carros disponibles para tu compañía.</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
 
 <!-- Contenido de Mantenimiento -->
 <main>

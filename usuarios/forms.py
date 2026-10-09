@@ -5,7 +5,7 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import Sum, Case, When, DecimalField, F, Q
 from django.utils import timezone
-from .models import Usuario, Compania, Rol, Proyecto, Documento, Carpeta, SalidaTerreno, SalidaTerrenoUnidad, Emergencia, EmergenciaUnidad, Capacitacion, Mantenimiento, Inventario, CajaChica, Aviso, PasswordResetCode, Vehiculo
+from .models import Usuario, Compania, Rol, Proyecto, Documento, Carpeta, SalidaTerreno, SalidaTerrenoUnidad, Emergencia, EmergenciaUnidad, Capacitacion, Mantenimiento, Inventario, CajaChica, Aviso, PasswordResetCode, Vehiculo, RondaVehiculo
 from .validators import validar_rut_chileno, formatear_rut
 
 
@@ -931,6 +931,21 @@ class VehiculoHojaVidaForm(forms.ModelForm):
             'neumaticos_estado': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Estado general de los neumáticos'}),
             'neumaticos_ultimo_cambio': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
             'bateria_fecha_instalacion': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+        }
+
+
+class RondaVehiculoForm(forms.ModelForm):
+    class Meta:
+        model = RondaVehiculo
+        fields = ['tipo_hallazgo', 'detalle', 'estado_operativo']
+        widgets = {
+            'tipo_hallazgo': forms.Select(attrs={'class': 'form-select'}),
+            'detalle': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'Describe la falla, observación o confirma que no hubo novedades.',
+            }),
+            'estado_operativo': forms.Select(attrs={'class': 'form-select'}),
         }
 
 class InventarioEditForm(forms.ModelForm):

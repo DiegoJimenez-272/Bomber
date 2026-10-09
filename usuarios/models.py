@@ -464,6 +464,36 @@ class Vehiculo(models.Model):
     def __str__(self):
         return f"{self.nombre} ({self.compania.nombre})"
 
+
+class RondaVehiculo(models.Model):
+    TIPO_HALLAZGO_CHOICES = [
+        ('Sin novedad', 'Sin novedad'),
+        ('Falla', 'Falla'),
+        ('Observación', 'Observación'),
+        ('Otro', 'Otro'),
+    ]
+
+    vehiculo = models.ForeignKey(Vehiculo, on_delete=models.CASCADE, related_name='rondas')
+    registrado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='rondas_vehiculos',
+    )
+    fecha = models.DateTimeField(auto_now_add=True)
+    tipo_hallazgo = models.CharField(max_length=20, choices=TIPO_HALLAZGO_CHOICES, default='Sin novedad')
+    detalle = models.TextField(verbose_name='Falla, observación o detalle')
+    estado_operativo = models.CharField(max_length=20, choices=Vehiculo.ESTADO_CHOICES, blank=True)
+
+    class Meta:
+        ordering = ['-fecha']
+        verbose_name = 'Ronda de vehículo'
+        verbose_name_plural = 'Rondas de vehículos'
+
+    def __str__(self):
+        return f"Ronda de {self.vehiculo.nombre} ({self.fecha:%d/%m/%Y})"
+
 class Inventario(models.Model):
     ESTADO_CHOICES = [
         ('Bueno', 'Bueno'),
