@@ -4,6 +4,7 @@ from django.contrib.auth.forms import UserCreationForm, AuthenticationForm, Pass
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import Sum, Case, When, DecimalField, F, Q
+from django.utils import timezone
 from .models import Usuario, Compania, Rol, Proyecto, Documento, Carpeta, SalidaTerreno, SalidaTerrenoUnidad, Emergencia, EmergenciaUnidad, Capacitacion, Mantenimiento, Inventario, CajaChica, Aviso, PasswordResetCode, Vehiculo
 from .validators import validar_rut_chileno, formatear_rut
 
@@ -851,9 +852,32 @@ class InventarioForm(forms.ModelForm):
                     self.fields[field_name].widget.attrs['class'] = f'{existing_classes} is-invalid'.strip()
 
 class VehiculoForm(forms.ModelForm):
+    marca = forms.CharField(
+        label="Marca",
+        max_length=80,
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej: Mercedes-Benz'})
+    )
+    modelo = forms.CharField(
+        label="Modelo",
+        max_length=80,
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej: Atego 1726'})
+    )
+    anio_fabricacion = forms.IntegerField(
+        label="Año de fabricación",
+        required=True,
+        min_value=1900,
+        widget=forms.NumberInput(attrs={'class': 'form-control', 'min': 1900, 'inputmode': 'numeric'})
+    )
+    anio_puesta_servicio = forms.IntegerField(
+        label="Año de puesta en servicio en la institución",
+        required=True,
+        min_value=1900,
+        widget=forms.NumberInput(attrs={'class': 'form-control', 'min': 1900, 'inputmode': 'numeric'})
+    )
+
     class Meta:
         model = Vehiculo
-        fields = ['nombre', 'compania', 'patente', 'descripcion', 'estado']
+        fields = ['nombre', 'compania', 'patente', 'descripcion', 'marca', 'modelo', 'anio_fabricacion', 'anio_puesta_servicio', 'estado']
         widgets = {
             'nombre': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej: B-1, RX-2'}),
             'compania': forms.Select(attrs={'class': 'form-select'}),
@@ -865,9 +889,49 @@ class VehiculoForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         self.user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
+        current_year = timezone.localdate().year
+        for field_name in ('anio_fabricacion', 'anio_puesta_servicio'):
+            self.fields[field_name].max_value = current_year
+            self.fields[field_name].widget.attrs['max'] = current_year
         if self.user and not self.user.is_superuser:
             if 'compania' in self.fields:
                 del self.fields['compania']
+
+    def clean(self):
+        cleaned_data = super().clean()
+        anio_fabricacion = cleaned_data.get('anio_fabricacion')
+        anio_puesta_servicio = cleaned_data.get('anio_puesta_servicio')
+        if anio_fabricacion and anio_puesta_servicio and anio_puesta_servicio < anio_fabricacion:
+            self.add_error('anio_puesta_servicio', 'El año de puesta en servicio no puede ser anterior al año de fabricación.')
+        return cleaned_data
+
+
+class VehiculoHojaVidaForm(forms.ModelForm):
+    class Meta:
+        model = Vehiculo
+        fields = [
+            'combustible', 'capacidad_estanque_litros', 'capacidad_estanque_agua_litros',
+            'capacidad_bomba', 'capacidad_bomba_unidad', 'horometro', 'revision_tecnica_vencimiento',
+            'permiso_circulacion_vencimiento', 'soap_vencimiento', 'seguro_numero_poliza',
+            'seguro_vencimiento', 'neumaticos_estado', 'neumaticos_ultimo_cambio',
+            'bateria_fecha_instalacion',
+        ]
+        widgets = {
+            'combustible': forms.Select(attrs={'class': 'form-select'}),
+            'capacidad_estanque_litros': forms.NumberInput(attrs={'class': 'form-control', 'min': '0', 'step': '0.01', 'placeholder': 'Litros'}),
+            'capacidad_estanque_agua_litros': forms.NumberInput(attrs={'class': 'form-control', 'min': '0', 'step': '0.01', 'placeholder': 'Litros'}),
+            'capacidad_bomba': forms.NumberInput(attrs={'class': 'form-control', 'min': '0', 'step': '0.01', 'placeholder': 'Capacidad'}),
+            'capacidad_bomba_unidad': forms.Select(attrs={'class': 'form-select'}),
+            'horometro': forms.NumberInput(attrs={'class': 'form-control', 'min': '0', 'step': '0.1', 'placeholder': 'Horas'}),
+            'revision_tecnica_vencimiento': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'permiso_circulacion_vencimiento': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'soap_vencimiento': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'seguro_numero_poliza': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Número de póliza'}),
+            'seguro_vencimiento': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'neumaticos_estado': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Estado general de los neumáticos'}),
+            'neumaticos_ultimo_cambio': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'bateria_fecha_instalacion': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+        }
 
 class InventarioEditForm(forms.ModelForm):
     valor = forms.CharField(

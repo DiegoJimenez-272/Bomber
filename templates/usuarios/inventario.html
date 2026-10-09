@@ -203,7 +203,8 @@
                                                             </div>
                                                             <div>
                                                                 <strong>Carro: {{ grupo_v.vehiculo.nombre }}</strong>
-                                                                <span class="badge {% if grupo_v.vehiculo.estado == 'Disponible' %}bg-success{% elif grupo_v.vehiculo.estado == 'En Servicio' %}bg-warning text-dark{% else %}bg-secondary{% endif %}">{{ grupo_v.vehiculo.estado }}</span>
+                                                                <span class="badge {% if grupo_v.vehiculo.estado == 'Disponible' %}bg-success{% elif grupo_v.vehiculo.estado == 'En Servicio' or grupo_v.vehiculo.estado == 'En Taller' %}bg-warning text-dark{% else %}bg-danger{% endif %}">{{ grupo_v.vehiculo.get_estado_display }}</span>
+                                                                {% if grupo_v.vehiculo.marca or grupo_v.vehiculo.modelo %}<div class="text-muted small">{{ grupo_v.vehiculo.marca }} {{ grupo_v.vehiculo.modelo }}{% if grupo_v.vehiculo.anio_fabricacion %} · {{ grupo_v.vehiculo.anio_fabricacion }}{% endif %}</div>{% endif %}
                                                                 {% if grupo_v.vehiculo.patente %}
                                                                     <div class="text-muted small">Patente: {{ grupo_v.vehiculo.patente }}</div>
                                                                 {% endif %}
@@ -224,6 +225,10 @@
                                                                         data-vehiculo-nombre="{{ grupo_v.vehiculo.nombre }}"
                                                                         data-vehiculo-patente="{{ grupo_v.vehiculo.patente|default:'' }}"
                                                                         data-vehiculo-descripcion="{{ grupo_v.vehiculo.descripcion|default:'' }}"
+                                                                        data-vehiculo-marca="{{ grupo_v.vehiculo.marca }}"
+                                                                        data-vehiculo-modelo="{{ grupo_v.vehiculo.modelo }}"
+                                                                        data-vehiculo-anio-fabricacion="{{ grupo_v.vehiculo.anio_fabricacion|default:'' }}"
+                                                                        data-vehiculo-anio-puesta-servicio="{{ grupo_v.vehiculo.anio_puesta_servicio|default:'' }}"
                                                                         data-vehiculo-compania="{{ grupo_v.vehiculo.compania.id }}"
                                                                         data-vehiculo-estado="{{ grupo_v.vehiculo.estado }}">
                                                                     <i class="bi bi-pencil-fill"></i>
@@ -239,6 +244,9 @@
                                                             <button class="btn btn-sm btn-danger" type="button" data-bs-toggle="modal" data-bs-target="#modalVehiculoItems-{{ compania.id }}-{{ grupo_v.vehiculo.id }}">
                                                                 <i class="bi bi-eye-fill me-1"></i> Ver equipos
                                                             </button>
+                                                            <a class="btn btn-sm btn-outline-secondary" href="{% url 'vehiculo_hoja_vida' grupo_v.vehiculo.id %}" title="Abrir hoja de vida de {{ grupo_v.vehiculo.nombre }}">
+                                                                <i class="bi bi-file-earmark-text me-1"></i> Hoja de vida
+                                                            </a>
                                                         </div>
                                                     </td>
                                                 </tr>
@@ -805,9 +813,29 @@
                             {% for error in vehiculo_form.compania.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
                         </div>
                         <div class="col-md-12">
-                            <label for="{{ vehiculo_form.patente.id_for_label }}" class="form-label">Patente (Opcional)</label>
+                            <label for="{{ vehiculo_form.patente.id_for_label }}" class="form-label">Patente</label>
                             {{ vehiculo_form.patente }}
                             {% for error in vehiculo_form.patente.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="{{ vehiculo_form.marca.id_for_label }}" class="form-label">Marca</label>
+                            {{ vehiculo_form.marca }}
+                            {% for error in vehiculo_form.marca.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="{{ vehiculo_form.modelo.id_for_label }}" class="form-label">Modelo</label>
+                            {{ vehiculo_form.modelo }}
+                            {% for error in vehiculo_form.modelo.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="{{ vehiculo_form.anio_fabricacion.id_for_label }}" class="form-label">Año de fabricación</label>
+                            {{ vehiculo_form.anio_fabricacion }}
+                            {% for error in vehiculo_form.anio_fabricacion.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="{{ vehiculo_form.anio_puesta_servicio.id_for_label }}" class="form-label">Año de puesta en servicio en la institución</label>
+                            {{ vehiculo_form.anio_puesta_servicio }}
+                            {% for error in vehiculo_form.anio_puesta_servicio.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
                         </div>
                         <div class="col-md-12">
                             <label for="{{ vehiculo_form.descripcion.id_for_label }}" class="form-label">Descripción (Opcional)</label>
@@ -815,8 +843,9 @@
                             {% for error in vehiculo_form.descripcion.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
                         </div>
                         <div class="col-md-12">
-                            <label for="{{ vehiculo_form.estado.id_for_label }}" class="form-label">Estado</label>
+                            <label for="{{ vehiculo_form.estado.id_for_label }}" class="form-label">Estado operativo</label>
                             {{ vehiculo_form.estado }}
+                            {% for error in vehiculo_form.estado.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
                         </div>
                     </div>
                     
@@ -899,15 +928,31 @@
                             </select>
                         </div>
                         <div class="col-md-12">
-                            <label for="edit_vehiculo_patente" class="form-label">Patente (Opcional)</label>
-                            <input type="text" id="edit_vehiculo_patente" name="patente" class="form-control">
+                            <label for="edit_vehiculo_patente" class="form-label">Patente</label>
+                            <input type="text" id="edit_vehiculo_patente" name="patente" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="edit_vehiculo_marca" class="form-label">Marca</label>
+                            <input type="text" id="edit_vehiculo_marca" name="marca" class="form-control" maxlength="80" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="edit_vehiculo_modelo" class="form-label">Modelo</label>
+                            <input type="text" id="edit_vehiculo_modelo" name="modelo" class="form-control" maxlength="80" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="edit_vehiculo_anio_fabricacion" class="form-label">Año de fabricación</label>
+                            <input type="number" id="edit_vehiculo_anio_fabricacion" name="anio_fabricacion" class="form-control" min="1900" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="edit_vehiculo_anio_puesta_servicio" class="form-label">Año de puesta en servicio en la institución</label>
+                            <input type="number" id="edit_vehiculo_anio_puesta_servicio" name="anio_puesta_servicio" class="form-control" min="1900" required>
                         </div>
                         <div class="col-md-12">
                             <label for="edit_vehiculo_descripcion" class="form-label">Descripción (Opcional)</label>
                             <textarea id="edit_vehiculo_descripcion" name="descripcion" class="form-control" rows="3"></textarea>
                         </div>
                         <div class="col-md-12">
-                            <label for="edit_vehiculo_estado" class="form-label">Estado</label>
+                            <label for="edit_vehiculo_estado" class="form-label">Estado operativo</label>
                             <select id="edit_vehiculo_estado" name="estado" class="form-select">
                                 {% for value, text in vehiculo_form.fields.estado.choices %}
                                     <option value="{{ value }}">{{ text }}</option>
@@ -1131,6 +1176,10 @@ document.addEventListener('DOMContentLoaded', function () {
             form.querySelector('#edit_vehiculo_compania').value = button.dataset.vehiculoCompania;
             form.querySelector('#edit_vehiculo_patente').value = button.dataset.vehiculoPatente || "";
             form.querySelector('#edit_vehiculo_descripcion').value = button.dataset.vehiculoDescripcion || "";
+            form.querySelector('#edit_vehiculo_marca').value = button.dataset.vehiculoMarca || "";
+            form.querySelector('#edit_vehiculo_modelo').value = button.dataset.vehiculoModelo || "";
+            form.querySelector('#edit_vehiculo_anio_fabricacion').value = button.dataset.vehiculoAnioFabricacion || "";
+            form.querySelector('#edit_vehiculo_anio_puesta_servicio').value = button.dataset.vehiculoAnioPuestaServicio || "";
             form.querySelector('#edit_vehiculo_estado').value = button.dataset.vehiculoEstado || "Disponible";
         });
     }

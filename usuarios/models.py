@@ -419,16 +419,47 @@ class ArchivoMantenimiento(models.Model):
 
 class Vehiculo(models.Model):
     ESTADO_CHOICES = [
-        ('Disponible', 'Disponible'),
+        ('Disponible', 'Operativo'),
         ('En Servicio', 'En Servicio'),
+        ('En Taller', 'En Taller'),
         ('Fuera de Servicio', 'Fuera de Servicio'),
+    ]
+
+    COMBUSTIBLE_CHOICES = [
+        ('Diesel', 'Diésel'),
+        ('Gasolina', 'Gasolina'),
+        ('Otro', 'Otro'),
+    ]
+    BOMBA_UNIDAD_CHOICES = [
+        ('LPM', 'L/min'),
+        ('GPM', 'GPM'),
     ]
 
     nombre = models.CharField(max_length=80, verbose_name="Nombre / Código del Carro")
     compania = models.ForeignKey(Compania, on_delete=models.CASCADE, related_name='vehiculos', verbose_name="Compañía")
-    patente = models.CharField(max_length=15, null=True, blank=True, verbose_name="Patente")
+    patente = models.CharField(max_length=15, verbose_name="Patente")
     descripcion = models.TextField(max_length=500, null=True, blank=True, verbose_name="Descripción")
+    marca = models.CharField(max_length=80, default='', verbose_name="Marca")
+    modelo = models.CharField(max_length=80, default='', verbose_name="Modelo")
+    anio_fabricacion = models.PositiveSmallIntegerField(null=True, blank=True, verbose_name="Año de fabricación")
+    anio_puesta_servicio = models.PositiveSmallIntegerField(null=True, blank=True, verbose_name="Año de puesta en servicio")
     estado = models.CharField(max_length=20, choices=ESTADO_CHOICES, default='Disponible')
+
+    # Datos técnicos y legales de la hoja de vida (se completan desde su ficha).
+    combustible = models.CharField(max_length=20, choices=COMBUSTIBLE_CHOICES, blank=True, default='')
+    capacidad_estanque_litros = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True)
+    capacidad_estanque_agua_litros = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True)
+    capacidad_bomba = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True)
+    capacidad_bomba_unidad = models.CharField(max_length=4, choices=BOMBA_UNIDAD_CHOICES, blank=True, default='')
+    horometro = models.DecimalField(max_digits=10, decimal_places=1, null=True, blank=True)
+    revision_tecnica_vencimiento = models.DateField(null=True, blank=True)
+    permiso_circulacion_vencimiento = models.DateField(null=True, blank=True)
+    soap_vencimiento = models.DateField(null=True, blank=True)
+    seguro_numero_poliza = models.CharField(max_length=100, blank=True, default='')
+    seguro_vencimiento = models.DateField(null=True, blank=True)
+    neumaticos_estado = models.CharField(max_length=160, blank=True, default='')
+    neumaticos_ultimo_cambio = models.DateField(null=True, blank=True)
+    bateria_fecha_instalacion = models.DateField(null=True, blank=True)
 
     def __str__(self):
         return f"{self.nombre} ({self.compania.nombre})"

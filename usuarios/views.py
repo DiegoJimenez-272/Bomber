@@ -23,7 +23,7 @@ from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter
 import openpyxl
 from reportlab.lib.units import inch
-from .forms import RegistroForm, LoginForm, ProyectoForm, ArchivoProyectoForm, DocumentoForm, CarpetaForm, SalidaTerrenoForm, EmergenciaForm, PerfilForm, PasswordChangeForm, CapacitacionForm, ReunionForm, MantenimientoForm, ArchivoMantenimientoForm, InventarioForm, CajaChicaForm, AdminUserCreationForm, AdminUserChangeForm, RolForm, CompaniaForm, InventarioEditForm, InventarioGroupEditForm, AvisoForm, PasswordResetRequestForm, PasswordResetVerifyForm, PasswordResetNewPasswordForm, VehiculoForm
+from .forms import RegistroForm, LoginForm, ProyectoForm, ArchivoProyectoForm, DocumentoForm, CarpetaForm, SalidaTerrenoForm, EmergenciaForm, PerfilForm, PasswordChangeForm, CapacitacionForm, ReunionForm, MantenimientoForm, ArchivoMantenimientoForm, InventarioForm, CajaChicaForm, AdminUserCreationForm, AdminUserChangeForm, RolForm, CompaniaForm, InventarioEditForm, InventarioGroupEditForm, AvisoForm, PasswordResetRequestForm, PasswordResetVerifyForm, PasswordResetNewPasswordForm, VehiculoForm, VehiculoHojaVidaForm
 from .models import Rol, Compania, Proyecto, ArchivoProyecto, Documento, Carpeta, SalidaTerreno, SalidaTerrenoUnidad, Emergencia, EmergenciaUnidad, Usuario, Capacitacion, Mantenimiento, ArchivoMantenimiento, Inventario, CajaChica, Notificacion, Aviso, AvisoDestinatario, PasswordResetCode, Vehiculo
 from .decorators import admin_required, permiso_requerido, pertenencia_compania
 import logging
@@ -1216,6 +1216,58 @@ def vehiculo_edit_view(request, vehiculo_id):
             messages.error(request, 'Error al actualizar el carro. Por favor, verifica los datos.')
     return redirect('inventario')
 
+
+@login_required
+def vehiculo_hoja_vida_view(request, vehiculo_id):
+    vehiculo = get_object_or_404(Vehiculo.objects.select_related('compania'), id=vehiculo_id)
+    if not request.user.is_superuser and not (request.user.rol and request.user.rol.ver_inventario):
+        messages.error(request, 'No tienes permiso para acceder al inventario.')
+        return redirect('dashboard')
+    if not pertenencia_compania(request.user, vehiculo.compania):
+        messages.error(request, 'No tienes acceso a carros de esta compañía.')
+        return redirect('inventario')
+
+    puede_editar = request.user.is_superuser or bool(request.user.rol and request.user.rol.editar_inventario)
+    if request.method == 'POST' and not puede_editar:
+        messages.error(request, 'No tienes permiso para editar la hoja de vida del carro.')
+        return redirect('vehiculo_hoja_vida', vehiculo_id=vehiculo.id)
+
+    if request.method == 'POST':
+        form = VehiculoHojaVidaForm(request.POST, instance=vehiculo)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'La hoja de vida del carro se actualizó correctamente.')
+            return redirect('vehiculo_hoja_vida', vehiculo_id=vehiculo.id)
+        messages.error(request, 'No se pudo guardar la hoja de vida. Revisa los campos indicados.')
+    else:
+        form = VehiculoHojaVidaForm(instance=vehiculo)
+
+    filtros_vehiculo = Q(vehiculo__iexact=vehiculo.nombre)
+    if vehiculo.patente:
+        filtros_vehiculo |= Q(vehiculo__iexact=vehiculo.patente)
+    mantenimientos = Mantenimiento.objects.filter(
+        filtros_vehiculo
+    ).select_related('responsable').prefetch_related('archivos').order_by('-fecha')
+
+    hoy = timezone.localdate()
+    vencimientos = {}
+    for field_name in ('revision_tecnica_vencimiento', 'permiso_circulacion_vencimiento', 'soap_vencimiento', 'seguro_vencimiento'):
+        fecha = getattr(vehiculo, field_name)
+        dias = (fecha - hoy).days if fecha else None
+        vencimientos[field_name] = (
+            'Sin fecha' if dias is None else
+            'Vencido' if dias < 0 else
+            'Vence pronto' if dias <= 30 else
+            'Vigente'
+        )
+    return render(request, 'usuarios/vehiculo_hoja_vida.html', {
+        'vehiculo': vehiculo,
+        'form': form,
+        'mantenimientos': mantenimientos,
+        'puede_editar': puede_editar,
+        'vencimientos': vencimientos,
+    })
+
 @login_required
 def vehiculo_delete_view(request, vehiculo_id):
     vehiculo = get_object_or_404(Vehiculo, id=vehiculo_id)
@@ -2091,7 +2143,7 @@ def mantenimiento_view(request):
             error_list = {**form.errors, **archivo_form.errors}
             messages.error(request, 'Error al registrar el mantenimiento. Por favor, revisa el formulario.')
     else:
-        form = MantenimientoForm()
+        form = MantenimientoForm(initial={'vehiculo': request.GET.get('vehiculo', '')})
         archivo_form = ArchivoMantenimientoForm()
 
     # --- Lógica de Búsqueda y Filtros ---

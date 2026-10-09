@@ -1,0 +1,170 @@
+{% extends 'base_con_condicion.html' %}
+
+{% block title %}Hoja de vida - {{ vehiculo.nombre }}{% endblock %}
+
+{% block content %}
+<main>
+    <header class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4 pb-3 border-bottom">
+        <div>
+            <p class="text-muted mb-1">{{ vehiculo.compania.nombre }}</p>
+            <h1 class="h2 mb-1"><i class="bi bi-file-earmark-text text-danger me-2"></i>Hoja de vida: {{ vehiculo.nombre }}</h1>
+            <div class="d-flex flex-wrap gap-2 align-items-center">
+                <span class="badge {% if vehiculo.estado == 'Fuera de Servicio' %}bg-danger{% elif vehiculo.estado == 'En Taller' %}bg-warning text-dark{% else %}bg-success{% endif %}">{{ vehiculo.get_estado_display }}</span>
+                <span class="text-muted">{{ vehiculo.marca }} {{ vehiculo.modelo }}{% if vehiculo.patente %} · {{ vehiculo.patente }}{% endif %}</span>
+            </div>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            <a href="{% url 'inventario' %}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Volver al inventario</a>
+            {% if request.user.is_superuser or request.user.rol.ver_mantenimientos %}
+                <a href="{% url 'mantenimiento' %}?q={{ vehiculo.nombre|urlencode }}&vehiculo={{ vehiculo.nombre|urlencode }}" class="btn btn-danger"><i class="bi bi-wrench-adjustable me-1"></i>Ver / registrar mantenimiento</a>
+            {% endif %}
+        </div>
+    </header>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}" role="alert">{{ message }}</div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="row g-4">
+        <div class="col-12 col-xl-4">
+            <section class="card shadow-sm h-100">
+                <div class="card-header bg-transparent">
+                    <h2 class="h5 mb-0"><i class="bi bi-truck-front text-danger me-2"></i>Identificación del carro</h2>
+                </div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-6">Código</dt><dd class="col-6">{{ vehiculo.nombre }}</dd>
+                        <dt class="col-6">Compañía</dt><dd class="col-6">{{ vehiculo.compania.nombre }}</dd>
+                        <dt class="col-6">Patente</dt><dd class="col-6">{{ vehiculo.patente|default:"—" }}</dd>
+                        <dt class="col-6">Marca</dt><dd class="col-6">{{ vehiculo.marca|default:"—" }}</dd>
+                        <dt class="col-6">Modelo</dt><dd class="col-6">{{ vehiculo.modelo|default:"—" }}</dd>
+                        <dt class="col-6">Año fabricación</dt><dd class="col-6">{{ vehiculo.anio_fabricacion|default:"—" }}</dd>
+                        <dt class="col-6">Año puesta en servicio</dt><dd class="col-6">{{ vehiculo.anio_puesta_servicio|default:"—" }}</dd>
+                        <dt class="col-6">Estado operativo</dt><dd class="col-6">{{ vehiculo.get_estado_display }}</dd>
+                    </dl>
+                    {% if vehiculo.descripcion %}
+                        <hr><h3 class="h6">Descripción</h3><p class="mb-0">{{ vehiculo.descripcion|linebreaksbr }}</p>
+                    {% endif %}
+                </div>
+            </section>
+        </div>
+
+        <div class="col-12 col-xl-8">
+            <form method="post" class="d-flex flex-column gap-4">
+                {% csrf_token %}
+                {% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors }}</div>{% endif %}
+
+                <section class="card shadow-sm">
+                    <div class="card-header bg-transparent">
+                        <h2 class="h5 mb-0"><i class="bi bi-speedometer2 text-danger me-2"></i>Especificaciones técnicas</h2>
+                    </div>
+                    <div class="card-body">
+                        <fieldset {% if not puede_editar %}disabled{% endif %}>
+                            <div class="row g-3">
+                                {% for field in form %}
+                                    {% if field.name == 'combustible' or field.name == 'capacidad_estanque_litros' or field.name == 'capacidad_estanque_agua_litros' or field.name == 'capacidad_bomba' or field.name == 'capacidad_bomba_unidad' or field.name == 'horometro' %}
+                                    <div class="col-12 col-md-6">
+                                        <label for="{{ field.id_for_label }}" class="form-label">{% if field.name == 'capacidad_estanque_litros' %}Capacidad del estanque de combustible (L){% elif field.name == 'capacidad_estanque_agua_litros' %}Capacidad del estanque de agua (L){% elif field.name == 'capacidad_bomba' %}Capacidad de la bomba{% elif field.name == 'capacidad_bomba_unidad' %}Unidad de capacidad{% elif field.name == 'horometro' %}Horómetro (h){% else %}{{ field.label }}{% endif %}</label>
+                                        {{ field }}
+                                        {% for error in field.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                                    </div>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                        </fieldset>
+                    </div>
+                </section>
+
+                <section class="card shadow-sm">
+                    <div class="card-header bg-transparent">
+                        <h2 class="h5 mb-0"><i class="bi bi-shield-check text-danger me-2"></i>Documentación legal y vencimientos</h2>
+                    </div>
+                    <div class="card-body">
+                        <fieldset {% if not puede_editar %}disabled{% endif %}>
+                            <div class="row g-3">
+                                {% for field in form %}
+                                    {% if field.name == 'revision_tecnica_vencimiento' or field.name == 'permiso_circulacion_vencimiento' or field.name == 'soap_vencimiento' or field.name == 'seguro_numero_poliza' or field.name == 'seguro_vencimiento' %}
+                                    <div class="col-12 col-md-6">
+                                        <label for="{{ field.id_for_label }}" class="form-label">{% if field.name == 'revision_tecnica_vencimiento' %}Revisión técnica: vencimiento{% elif field.name == 'permiso_circulacion_vencimiento' %}Permiso de circulación: vencimiento{% elif field.name == 'soap_vencimiento' %}SOAP: vencimiento{% elif field.name == 'seguro_numero_poliza' %}Seguro: número de póliza{% else %}Seguro: vencimiento{% endif %}</label>
+                                        {{ field }}
+                                        {% if field.name == 'revision_tecnica_vencimiento' %}
+                                            <small class="d-block {% if vencimientos.revision_tecnica_vencimiento == 'Vencido' %}text-danger{% elif vencimientos.revision_tecnica_vencimiento == 'Vence pronto' %}text-warning{% else %}text-muted{% endif %}">{{ vencimientos.revision_tecnica_vencimiento }}</small>
+                                        {% elif field.name == 'permiso_circulacion_vencimiento' %}
+                                            <small class="d-block {% if vencimientos.permiso_circulacion_vencimiento == 'Vencido' %}text-danger{% elif vencimientos.permiso_circulacion_vencimiento == 'Vence pronto' %}text-warning{% else %}text-muted{% endif %}">{{ vencimientos.permiso_circulacion_vencimiento }}</small>
+                                        {% elif field.name == 'soap_vencimiento' %}
+                                            <small class="d-block {% if vencimientos.soap_vencimiento == 'Vencido' %}text-danger{% elif vencimientos.soap_vencimiento == 'Vence pronto' %}text-warning{% else %}text-muted{% endif %}">{{ vencimientos.soap_vencimiento }}</small>
+                                        {% elif field.name == 'seguro_vencimiento' %}
+                                            <small class="d-block {% if vencimientos.seguro_vencimiento == 'Vencido' %}text-danger{% elif vencimientos.seguro_vencimiento == 'Vence pronto' %}text-warning{% else %}text-muted{% endif %}">{{ vencimientos.seguro_vencimiento }}</small>
+                                        {% endif %}
+                                        {% for error in field.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                                    </div>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                        </fieldset>
+                    </div>
+                </section>
+
+                <section class="card shadow-sm">
+                    <div class="card-header bg-transparent">
+                        <h2 class="h5 mb-0"><i class="bi bi-tools text-danger me-2"></i>Componentes de alta rotación</h2>
+                    </div>
+                    <div class="card-body">
+                        <fieldset {% if not puede_editar %}disabled{% endif %}>
+                            <div class="row g-3">
+                                {% for field in form %}
+                                    {% if field.name == 'neumaticos_estado' or field.name == 'neumaticos_ultimo_cambio' or field.name == 'bateria_fecha_instalacion' %}
+                                    <div class="col-12 col-md-6">
+                                        <label for="{{ field.id_for_label }}" class="form-label">{% if field.name == 'neumaticos_estado' %}Neumáticos: estado general{% elif field.name == 'neumaticos_ultimo_cambio' %}Neumáticos: fecha del último cambio{% else %}Batería: fecha de instalación{% endif %}</label>
+                                        {{ field }}
+                                        {% for error in field.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                                    </div>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                        </fieldset>
+                        {% if puede_editar %}<div class="d-flex justify-content-end mt-3"><button class="btn btn-danger" type="submit"><i class="bi bi-save me-1"></i>Guardar hoja de vida</button></div>{% endif %}
+                    </div>
+                </section>
+            </form>
+        </div>
+
+        <div class="col-12">
+            <section class="card shadow-sm">
+                <div class="card-header bg-transparent d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2">
+                    <h2 class="h5 mb-0"><i class="bi bi-wrench-adjustable-circle text-danger me-2"></i>Historial de reparaciones y mantenciones</h2>
+                    {% if request.user.is_superuser or request.user.rol.editar_mantenimientos %}
+                        <a href="{% url 'mantenimiento' %}?q={{ vehiculo.nombre|urlencode }}&vehiculo={{ vehiculo.nombre|urlencode }}" class="btn btn-sm btn-outline-danger"><i class="bi bi-plus-lg me-1"></i>Registrar trabajo</a>
+                    {% endif %}
+                </div>
+                <div class="card-body">
+                    {% if mantenimientos %}
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead><tr><th>Fecha de ingreso</th><th>Fecha de resolución</th><th>Motivo / trabajo realizado</th><th>Tipo</th><th>Estado</th><th>Responsable</th><th>Costo</th></tr></thead>
+                                <tbody>
+                                    {% for mantenimiento in mantenimientos %}
+                                    <tr>
+                                        <td>{{ mantenimiento.fecha|date:"d/m/Y" }}</td>
+                                        <td>{{ mantenimiento.fecha_resolucion|date:"d/m/Y"|default:"—" }}</td>
+                                        <td>{{ mantenimiento.descripcion|linebreaksbr }}</td>
+                                        <td>{{ mantenimiento.tipo }}</td>
+                                        <td>{{ mantenimiento.estado }}</td>
+                                        <td>{{ mantenimiento.responsable.get_full_name|default:"—" }}</td>
+                                        <td>${{ mantenimiento.costo|floatformat:0 }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <p class="text-muted mb-0">Todavía no hay trabajos asociados. Al registrar una mantención, usa el nombre exacto del carro: <strong>{{ vehiculo.nombre }}</strong>.</p>
+                    {% endif %}
+                </div>
+            </section>
+        </div>
+    </div>
+</main>
+{% endblock %}
