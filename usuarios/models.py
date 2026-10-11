@@ -8,7 +8,7 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 import datetime
 from django.utils import timezone
-from .validators import validar_extension_archivo, validar_extension_imagen, SecureFilePath, validar_rut_chileno
+from .validators import validar_extension_archivo, validar_extension_imagen, validar_documento_vehiculo, SecureFilePath, validar_rut_chileno
 
 class Rol(models.Model):
 
@@ -453,7 +453,21 @@ class Vehiculo(models.Model):
     capacidad_bomba_unidad = models.CharField(max_length=4, choices=BOMBA_UNIDAD_CHOICES, blank=True, default='')
     horometro = models.DecimalField(max_digits=10, decimal_places=1, null=True, blank=True)
     revision_tecnica_vencimiento = models.DateField(null=True, blank=True)
+    revision_tecnica_archivo = models.FileField(
+        upload_to=SecureFilePath('vehiculos_documentacion/'),
+        validators=[validar_documento_vehiculo],
+        null=True,
+        blank=True,
+        verbose_name='Documento de revisión técnica',
+    )
     permiso_circulacion_vencimiento = models.DateField(null=True, blank=True)
+    permiso_circulacion_archivo = models.FileField(
+        upload_to=SecureFilePath('vehiculos_documentacion/'),
+        validators=[validar_documento_vehiculo],
+        null=True,
+        blank=True,
+        verbose_name='Documento de permiso de circulación',
+    )
     soap_vencimiento = models.DateField(null=True, blank=True)
     seguro_numero_poliza = models.CharField(max_length=100, blank=True, default='')
     seguro_vencimiento = models.DateField(null=True, blank=True)

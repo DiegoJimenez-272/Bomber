@@ -1294,10 +1294,18 @@ def vehiculo_hoja_vida_view(request, vehiculo_id):
             messages.error(request, 'No se pudieron guardar las especificaciones. Revisa los campos indicados.')
         else:
             active_tab = 'documentacion'
-            documento_form = VehiculoDocumentacionForm(request.POST, instance=vehiculo)
+            documento_form = VehiculoDocumentacionForm(request.POST, request.FILES, instance=vehiculo)
             form = VehiculoHojaVidaForm(instance=vehiculo)
             if documento_form.is_valid():
+                archivos_anteriores = {
+                    nombre: getattr(vehiculo, nombre)
+                    for nombre in ('revision_tecnica_archivo', 'permiso_circulacion_archivo')
+                }
                 documento_form.save()
+                for nombre, archivo_anterior in archivos_anteriores.items():
+                    archivo_actual = getattr(vehiculo, nombre)
+                    if archivo_anterior and archivo_anterior.name != getattr(archivo_actual, 'name', None):
+                        archivo_anterior.delete(save=False)
                 messages.success(request, 'La documentación legal se actualizó correctamente.')
                 return redirect(f"{reverse('vehiculo_hoja_vida', kwargs={'vehiculo_id': vehiculo.id})}?tab=documentacion")
             messages.error(request, 'No se pudo guardar la documentación. Revisa los campos indicados.')

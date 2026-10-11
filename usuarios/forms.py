@@ -931,16 +931,27 @@ class VehiculoDocumentacionForm(forms.ModelForm):
     class Meta:
         model = Vehiculo
         fields = [
-            'revision_tecnica_vencimiento', 'permiso_circulacion_vencimiento',
+            'revision_tecnica_vencimiento', 'revision_tecnica_archivo',
+            'permiso_circulacion_vencimiento', 'permiso_circulacion_archivo',
             'soap_vencimiento', 'seguro_numero_poliza', 'seguro_vencimiento',
         ]
         widgets = {
             'revision_tecnica_vencimiento': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'revision_tecnica_archivo': forms.ClearableFileInput(attrs={'class': 'form-control', 'accept': '.pdf,.jpg,.jpeg,.png,.doc,.docx'}),
             'permiso_circulacion_vencimiento': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'permiso_circulacion_archivo': forms.ClearableFileInput(attrs={'class': 'form-control', 'accept': '.pdf,.jpg,.jpeg,.png,.doc,.docx'}),
             'soap_vencimiento': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
             'seguro_numero_poliza': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Número de póliza'}),
             'seguro_vencimiento': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for name in ('revision_tecnica_archivo', 'permiso_circulacion_archivo'):
+            widget = self.fields[name].widget
+            widget.initial_text = 'Archivo guardado'
+            widget.input_text = 'Subir archivo nuevo'
+            widget.clear_checkbox_label = 'Quitar archivo actual'
 
 
 class RondaVehiculoForm(forms.ModelForm):

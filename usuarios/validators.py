@@ -138,6 +138,14 @@ def validar_extension_archivo(value):
         if not valid_magic:
             raise ValidationError(f"El contenido real del archivo no coincide con la extensión declarada '{ext}'.")
 
+
+def validar_documento_vehiculo(value):
+    ext = os.path.splitext(value.name)[1].lower()
+    extensiones_permitidas = {'.pdf', '.doc', '.docx', '.png', '.jpg', '.jpeg'}
+    if ext not in extensiones_permitidas:
+        raise ValidationError('Sube un PDF, documento Word o imagen JPG/PNG.')
+    validar_extension_archivo(value)
+
 def validar_extension_imagen(value):
     ext = os.path.splitext(value.name)[1].lower()
     if ext not in ALLOWED_IMAGE_EXTENSIONS:
