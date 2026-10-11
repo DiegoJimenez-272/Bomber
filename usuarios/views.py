@@ -23,7 +23,7 @@ from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter
 import openpyxl
 from reportlab.lib.units import inch
-from .forms import RegistroForm, LoginForm, ProyectoForm, ArchivoProyectoForm, DocumentoForm, CarpetaForm, SalidaTerrenoForm, EmergenciaForm, PerfilForm, PasswordChangeForm, CapacitacionForm, ReunionForm, MantenimientoForm, ArchivoMantenimientoForm, InventarioForm, CajaChicaForm, AdminUserCreationForm, AdminUserChangeForm, RolForm, CompaniaForm, InventarioEditForm, InventarioGroupEditForm, AvisoForm, PasswordResetRequestForm, PasswordResetVerifyForm, PasswordResetNewPasswordForm, VehiculoForm, VehiculoHojaVidaForm, RondaVehiculoForm
+from .forms import RegistroForm, LoginForm, ProyectoForm, ArchivoProyectoForm, DocumentoForm, CarpetaForm, SalidaTerrenoForm, EmergenciaForm, PerfilForm, PasswordChangeForm, CapacitacionForm, ReunionForm, MantenimientoForm, ArchivoMantenimientoForm, InventarioForm, CajaChicaForm, AdminUserCreationForm, AdminUserChangeForm, RolForm, CompaniaForm, InventarioEditForm, InventarioGroupEditForm, AvisoForm, PasswordResetRequestForm, PasswordResetVerifyForm, PasswordResetNewPasswordForm, VehiculoForm, VehiculoHojaVidaForm, VehiculoDocumentacionForm, RondaVehiculoForm
 from .models import Rol, Compania, Proyecto, ArchivoProyecto, Documento, Carpeta, SalidaTerreno, SalidaTerrenoUnidad, Emergencia, EmergenciaUnidad, Usuario, Capacitacion, Mantenimiento, ArchivoMantenimiento, Inventario, CajaChica, Notificacion, Aviso, AvisoDestinatario, PasswordResetCode, Vehiculo, RondaVehiculo
 from .decorators import admin_required, permiso_requerido, pertenencia_compania
 import logging
@@ -1231,36 +1231,82 @@ def vehiculo_hoja_vida_view(request, vehiculo_id):
 
     puede_editar = request.user.is_superuser or bool(rol and rol.editar_inventario)
     puede_registrar_ronda = request.user.is_superuser or bool(rol and (rol.editar_inventario or rol.editar_mantenimientos))
+    puede_editar_mantenimientos = request.user.is_superuser or bool(rol and rol.editar_mantenimientos)
+    form = VehiculoHojaVidaForm(instance=vehiculo)
+    documento_form = VehiculoDocumentacionForm(instance=vehiculo)
     ronda_form = RondaVehiculoForm()
-    if request.method == 'POST' and request.POST.get('accion') == 'registrar_ronda':
+    edit_ronda_form = RondaVehiculoForm(auto_id='id_editar_%s')
+    active_tab = request.GET.get('tab') if request.GET.get('tab') in ('datos', 'documentacion', 'rondas') else 'datos'
+    accion = request.POST.get('accion') if request.method == 'POST' else ''
+    if accion == 'eliminar_mantenimiento':
+        if not puede_editar_mantenimientos:
+            messages.error(request, 'No tienes permiso para eliminar mantenimientos.')
+            return redirect('vehiculo_hoja_vida', vehiculo_id=vehiculo.id)
+        filtro_mantenimiento = Q(vehiculo__iexact=vehiculo.nombre)
+        if vehiculo.patente:
+            filtro_mantenimiento |= Q(vehiculo__iexact=vehiculo.patente)
+        mantenimiento = get_object_or_404(Mantenimiento.objects.filter(filtro_mantenimiento), id=request.POST.get('mantenimiento_id'))
+        mantenimiento.delete()
+        messages.success(request, 'El mantenimiento se eliminó correctamente.')
+        return redirect(f"{reverse('vehiculo_hoja_vida', kwargs={'vehiculo_id': vehiculo.id})}?tab=rondas")
+    elif accion in ('registrar_ronda', 'editar_ronda', 'eliminar_ronda'):
+        active_tab = 'rondas'
         if not puede_registrar_ronda:
             messages.error(request, 'No tienes permiso para registrar rondas de vehículos.')
             return redirect('vehiculo_hoja_vida', vehiculo_id=vehiculo.id)
-        ronda_form = RondaVehiculoForm(request.POST)
-        if ronda_form.is_valid():
-            ronda = ronda_form.save(commit=False)
+        ronda = None
+        if accion in ('editar_ronda', 'eliminar_ronda'):
+            ronda = get_object_or_404(RondaVehiculo, id=request.POST.get('ronda_id'), vehiculo=vehiculo)
+        if accion == 'eliminar_ronda':
+            ronda.delete()
+            messages.success(request, 'La ronda se eliminó correctamente.')
+            return redirect(f"{reverse('vehiculo_hoja_vida', kwargs={'vehiculo_id': vehiculo.id})}?tab=rondas")
+        if accion == 'editar_ronda':
+            edit_ronda_form = RondaVehiculoForm(request.POST, instance=ronda, auto_id='id_editar_%s')
+            ronda_post_form = edit_ronda_form
+        else:
+            ronda_form = RondaVehiculoForm(request.POST)
+            ronda_post_form = ronda_form
+        if ronda_post_form.is_valid():
+            ronda = ronda_post_form.save(commit=False)
             ronda.vehiculo = vehiculo
-            ronda.registrado_por = request.user
+            if not ronda.pk:
+                ronda.registrado_por = request.user
             ronda.save()
-            if ronda.estado_operativo and vehiculo.estado != ronda.estado_operativo:
+            if accion == 'registrar_ronda' and ronda.estado_operativo and vehiculo.estado != ronda.estado_operativo:
                 vehiculo.estado = ronda.estado_operativo
                 vehiculo.save(update_fields=['estado'])
-            messages.success(request, 'La ronda del carro se registró correctamente.')
-            return redirect('vehiculo_hoja_vida', vehiculo_id=vehiculo.id)
-        messages.error(request, 'No se pudo registrar la ronda. Revisa los campos indicados.')
+            messages.success(request, 'La ronda del carro se guardó correctamente.')
+            return redirect(f"{reverse('vehiculo_hoja_vida', kwargs={'vehiculo_id': vehiculo.id})}?tab=rondas")
+        messages.error(request, 'No se pudo guardar la ronda. Revisa los campos indicados.')
         form = VehiculoHojaVidaForm(instance=vehiculo)
-    elif request.method == 'POST':
+    elif accion in ('guardar_datos', 'guardar_documentacion'):
         if not puede_editar:
             messages.error(request, 'No tienes permiso para editar la hoja de vida del carro.')
             return redirect('vehiculo_hoja_vida', vehiculo_id=vehiculo.id)
-        form = VehiculoHojaVidaForm(request.POST, instance=vehiculo)
-        if form.is_valid():
-            form.save()
-            messages.success(request, 'La hoja de vida del carro se actualizó correctamente.')
-            return redirect('vehiculo_hoja_vida', vehiculo_id=vehiculo.id)
-        messages.error(request, 'No se pudo guardar la hoja de vida. Revisa los campos indicados.')
+        if accion == 'guardar_datos':
+            form = VehiculoHojaVidaForm(request.POST, instance=vehiculo)
+            documento_form = VehiculoDocumentacionForm(instance=vehiculo)
+            if form.is_valid():
+                form.save()
+                messages.success(request, 'Las especificaciones y componentes del carro se actualizaron correctamente.')
+                return redirect('vehiculo_hoja_vida', vehiculo_id=vehiculo.id)
+            messages.error(request, 'No se pudieron guardar las especificaciones. Revisa los campos indicados.')
+        else:
+            active_tab = 'documentacion'
+            documento_form = VehiculoDocumentacionForm(request.POST, instance=vehiculo)
+            form = VehiculoHojaVidaForm(instance=vehiculo)
+            if documento_form.is_valid():
+                documento_form.save()
+                messages.success(request, 'La documentación legal se actualizó correctamente.')
+                return redirect(f"{reverse('vehiculo_hoja_vida', kwargs={'vehiculo_id': vehiculo.id})}?tab=documentacion")
+            messages.error(request, 'No se pudo guardar la documentación. Revisa los campos indicados.')
+    elif request.method == 'POST':
+        messages.error(request, 'La acción solicitada no es válida.')
+        return redirect('vehiculo_hoja_vida', vehiculo_id=vehiculo.id)
     else:
-        form = VehiculoHojaVidaForm(instance=vehiculo)
+        if request.method != 'POST':
+            form = VehiculoHojaVidaForm(instance=vehiculo)
 
     filtros_vehiculo = Q(vehiculo__iexact=vehiculo.nombre)
     if vehiculo.patente:
@@ -1283,10 +1329,14 @@ def vehiculo_hoja_vida_view(request, vehiculo_id):
     return render(request, 'usuarios/vehiculo_hoja_vida.html', {
         'vehiculo': vehiculo,
         'form': form,
+        'documento_form': documento_form,
+        'active_tab': active_tab,
         'mantenimientos': mantenimientos,
         'puede_editar': puede_editar,
+        'puede_editar_mantenimientos': puede_editar_mantenimientos,
         'puede_registrar_ronda': puede_registrar_ronda,
         'ronda_form': ronda_form,
+        'edit_ronda_form': edit_ronda_form,
         'rondas': vehiculo.rondas.select_related('registrado_por').all(),
         'vencimientos': vencimientos,
     })

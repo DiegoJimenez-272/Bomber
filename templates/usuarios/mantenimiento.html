@@ -523,6 +523,13 @@ document.addEventListener('DOMContentLoaded', function () {
     if (mantTypeFilter) mantTypeFilter.addEventListener('change', filterMants);
     if (mantStatusFilter) mantStatusFilter.addEventListener('change', filterMants);
     if (mantUserFilter) mantUserFilter.addEventListener('change', filterMants);
+
+    const maintenanceToEdit = new URLSearchParams(window.location.search).get('editar');
+    if (maintenanceToEdit) {
+        const editButton = Array.from(document.querySelectorAll('#mantenimientosTableBody [data-bs-target="#editMantenimientoModal"]'))
+            .find(button => button.dataset.mantId === maintenanceToEdit);
+        if (editButton) editButton.click();
+    }
 });
 </script>
 {% endblock %}

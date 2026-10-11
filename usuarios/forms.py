@@ -911,10 +911,8 @@ class VehiculoHojaVidaForm(forms.ModelForm):
         model = Vehiculo
         fields = [
             'combustible', 'capacidad_estanque_litros', 'capacidad_estanque_agua_litros',
-            'capacidad_bomba', 'capacidad_bomba_unidad', 'horometro', 'revision_tecnica_vencimiento',
-            'permiso_circulacion_vencimiento', 'soap_vencimiento', 'seguro_numero_poliza',
-            'seguro_vencimiento', 'neumaticos_estado', 'neumaticos_ultimo_cambio',
-            'bateria_fecha_instalacion',
+            'capacidad_bomba', 'capacidad_bomba_unidad', 'horometro',
+            'neumaticos_estado', 'neumaticos_ultimo_cambio', 'bateria_fecha_instalacion',
         ]
         widgets = {
             'combustible': forms.Select(attrs={'class': 'form-select'}),
@@ -923,14 +921,25 @@ class VehiculoHojaVidaForm(forms.ModelForm):
             'capacidad_bomba': forms.NumberInput(attrs={'class': 'form-control', 'min': '0', 'step': '0.01', 'placeholder': 'Capacidad'}),
             'capacidad_bomba_unidad': forms.Select(attrs={'class': 'form-select'}),
             'horometro': forms.NumberInput(attrs={'class': 'form-control', 'min': '0', 'step': '0.1', 'placeholder': 'Horas'}),
+            'neumaticos_estado': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Estado general de los neumáticos'}),
+            'neumaticos_ultimo_cambio': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'bateria_fecha_instalacion': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+        }
+
+
+class VehiculoDocumentacionForm(forms.ModelForm):
+    class Meta:
+        model = Vehiculo
+        fields = [
+            'revision_tecnica_vencimiento', 'permiso_circulacion_vencimiento',
+            'soap_vencimiento', 'seguro_numero_poliza', 'seguro_vencimiento',
+        ]
+        widgets = {
             'revision_tecnica_vencimiento': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
             'permiso_circulacion_vencimiento': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
             'soap_vencimiento': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
             'seguro_numero_poliza': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Número de póliza'}),
             'seguro_vencimiento': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
-            'neumaticos_estado': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Estado general de los neumáticos'}),
-            'neumaticos_ultimo_cambio': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
-            'bateria_fecha_instalacion': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
         }
 
 

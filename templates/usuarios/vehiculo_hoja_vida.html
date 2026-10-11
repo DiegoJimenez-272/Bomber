@@ -23,205 +23,172 @@
 
     {% if messages %}
         {% for message in messages %}
-            <div class="alert alert-{{ message.tags }}" role="alert">{{ message }}</div>
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">{{ message }}<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button></div>
         {% endfor %}
     {% endif %}
 
-    <div class="row g-4">
-        <div class="col-12 col-xl-4">
-            <section class="card shadow-sm h-100">
-                <div class="card-header bg-transparent">
-                    <h2 class="h5 mb-0"><i class="bi bi-truck-front text-danger me-2"></i>Identificación del carro</h2>
-                </div>
-                <div class="card-body">
-                    <dl class="row mb-0">
-                        <dt class="col-6">Código</dt><dd class="col-6">{{ vehiculo.nombre }}</dd>
-                        <dt class="col-6">Compañía</dt><dd class="col-6">{{ vehiculo.compania.nombre }}</dd>
-                        <dt class="col-6">Patente</dt><dd class="col-6">{{ vehiculo.patente|default:"—" }}</dd>
-                        <dt class="col-6">Marca</dt><dd class="col-6">{{ vehiculo.marca|default:"—" }}</dd>
-                        <dt class="col-6">Modelo</dt><dd class="col-6">{{ vehiculo.modelo|default:"—" }}</dd>
-                        <dt class="col-6">Año fabricación</dt><dd class="col-6">{{ vehiculo.anio_fabricacion|default:"—" }}</dd>
-                        <dt class="col-6">Año puesta en servicio</dt><dd class="col-6">{{ vehiculo.anio_puesta_servicio|default:"—" }}</dd>
-                        <dt class="col-6">Estado operativo</dt><dd class="col-6">{{ vehiculo.get_estado_display }}</dd>
-                    </dl>
-                    {% if vehiculo.descripcion %}
-                        <hr><h3 class="h6">Descripción</h3><p class="mb-0">{{ vehiculo.descripcion|linebreaksbr }}</p>
-                    {% endif %}
-                </div>
-            </section>
-        </div>
+    <ul class="nav nav-tabs mb-4" id="hojaVidaTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link tab-rojo fw-bold {% if active_tab == 'datos' %}active{% endif %}" id="datos-tab" data-bs-toggle="tab" data-bs-target="#datos" type="button" role="tab" aria-controls="datos" aria-selected="{% if active_tab == 'datos' %}true{% else %}false{% endif %}"><i class="bi bi-truck-front me-2"></i>Datos del carro</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link tab-rojo fw-bold {% if active_tab == 'documentacion' %}active{% endif %}" id="documentacion-tab" data-bs-toggle="tab" data-bs-target="#documentacion" type="button" role="tab" aria-controls="documentacion" aria-selected="{% if active_tab == 'documentacion' %}true{% else %}false{% endif %}"><i class="bi bi-shield-check me-2"></i>Documentación legal</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link tab-rojo fw-bold {% if active_tab == 'rondas' %}active{% endif %}" id="rondas-tab" data-bs-toggle="tab" data-bs-target="#rondas" type="button" role="tab" aria-controls="rondas" aria-selected="{% if active_tab == 'rondas' %}true{% else %}false{% endif %}"><i class="bi bi-clipboard2-check me-2"></i>Rondas y mantenciones</button>
+        </li>
+    </ul>
 
-        <div class="col-12 col-xl-8">
-            <form method="post" class="d-flex flex-column gap-4">
-                {% csrf_token %}
-                {% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors }}</div>{% endif %}
-
-                <section class="card shadow-sm">
-                    <div class="card-header bg-transparent">
-                        <h2 class="h5 mb-0"><i class="bi bi-speedometer2 text-danger me-2"></i>Especificaciones técnicas</h2>
-                    </div>
-                    <div class="card-body">
-                        <fieldset {% if not puede_editar %}disabled{% endif %}>
-                            <div class="row g-3">
-                                {% for field in form %}
-                                    {% if field.name == 'combustible' or field.name == 'capacidad_estanque_litros' or field.name == 'capacidad_estanque_agua_litros' or field.name == 'capacidad_bomba' or field.name == 'capacidad_bomba_unidad' or field.name == 'horometro' %}
-                                    <div class="col-12 col-md-6">
-                                        <label for="{{ field.id_for_label }}" class="form-label">{% if field.name == 'capacidad_estanque_litros' %}Capacidad del estanque de combustible (L){% elif field.name == 'capacidad_estanque_agua_litros' %}Capacidad del estanque de agua (L){% elif field.name == 'capacidad_bomba' %}Capacidad de la bomba{% elif field.name == 'capacidad_bomba_unidad' %}Unidad de capacidad{% elif field.name == 'horometro' %}Horómetro (h){% else %}{{ field.label }}{% endif %}</label>
-                                        {{ field }}
-                                        {% for error in field.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
-                                    </div>
-                                    {% endif %}
-                                {% endfor %}
-                            </div>
-                        </fieldset>
-                    </div>
-                </section>
-
-                <section class="card shadow-sm">
-                    <div class="card-header bg-transparent">
-                        <h2 class="h5 mb-0"><i class="bi bi-shield-check text-danger me-2"></i>Documentación legal y vencimientos</h2>
-                    </div>
-                    <div class="card-body">
-                        <fieldset {% if not puede_editar %}disabled{% endif %}>
-                            <div class="row g-3">
-                                {% for field in form %}
-                                    {% if field.name == 'revision_tecnica_vencimiento' or field.name == 'permiso_circulacion_vencimiento' or field.name == 'soap_vencimiento' or field.name == 'seguro_numero_poliza' or field.name == 'seguro_vencimiento' %}
-                                    <div class="col-12 col-md-6">
-                                        <label for="{{ field.id_for_label }}" class="form-label">{% if field.name == 'revision_tecnica_vencimiento' %}Revisión técnica: vencimiento{% elif field.name == 'permiso_circulacion_vencimiento' %}Permiso de circulación: vencimiento{% elif field.name == 'soap_vencimiento' %}SOAP: vencimiento{% elif field.name == 'seguro_numero_poliza' %}Seguro: número de póliza{% else %}Seguro: vencimiento{% endif %}</label>
-                                        {{ field }}
-                                        {% if field.name == 'revision_tecnica_vencimiento' %}
-                                            <small class="d-block {% if vencimientos.revision_tecnica_vencimiento == 'Vencido' %}text-danger{% elif vencimientos.revision_tecnica_vencimiento == 'Vence pronto' %}text-warning{% else %}text-muted{% endif %}">{{ vencimientos.revision_tecnica_vencimiento }}</small>
-                                        {% elif field.name == 'permiso_circulacion_vencimiento' %}
-                                            <small class="d-block {% if vencimientos.permiso_circulacion_vencimiento == 'Vencido' %}text-danger{% elif vencimientos.permiso_circulacion_vencimiento == 'Vence pronto' %}text-warning{% else %}text-muted{% endif %}">{{ vencimientos.permiso_circulacion_vencimiento }}</small>
-                                        {% elif field.name == 'soap_vencimiento' %}
-                                            <small class="d-block {% if vencimientos.soap_vencimiento == 'Vencido' %}text-danger{% elif vencimientos.soap_vencimiento == 'Vence pronto' %}text-warning{% else %}text-muted{% endif %}">{{ vencimientos.soap_vencimiento }}</small>
-                                        {% elif field.name == 'seguro_vencimiento' %}
-                                            <small class="d-block {% if vencimientos.seguro_vencimiento == 'Vencido' %}text-danger{% elif vencimientos.seguro_vencimiento == 'Vence pronto' %}text-warning{% else %}text-muted{% endif %}">{{ vencimientos.seguro_vencimiento }}</small>
-                                        {% endif %}
-                                        {% for error in field.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
-                                    </div>
-                                    {% endif %}
-                                {% endfor %}
-                            </div>
-                        </fieldset>
-                    </div>
-                </section>
-
-                <section class="card shadow-sm">
-                    <div class="card-header bg-transparent">
-                        <h2 class="h5 mb-0"><i class="bi bi-tools text-danger me-2"></i>Componentes de alta rotación</h2>
-                    </div>
-                    <div class="card-body">
-                        <fieldset {% if not puede_editar %}disabled{% endif %}>
-                            <div class="row g-3">
-                                {% for field in form %}
-                                    {% if field.name == 'neumaticos_estado' or field.name == 'neumaticos_ultimo_cambio' or field.name == 'bateria_fecha_instalacion' %}
-                                    <div class="col-12 col-md-6">
-                                        <label for="{{ field.id_for_label }}" class="form-label">{% if field.name == 'neumaticos_estado' %}Neumáticos: estado general{% elif field.name == 'neumaticos_ultimo_cambio' %}Neumáticos: fecha del último cambio{% else %}Batería: fecha de instalación{% endif %}</label>
-                                        {{ field }}
-                                        {% for error in field.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
-                                    </div>
-                                    {% endif %}
-                                {% endfor %}
-                            </div>
-                        </fieldset>
-                        {% if puede_editar %}<div class="d-flex justify-content-end mt-3"><button class="btn btn-danger" type="submit"><i class="bi bi-save me-1"></i>Guardar hoja de vida</button></div>{% endif %}
-                    </div>
-                </section>
-            </form>
-        </div>
-
-        <div class="col-12">
-            <section class="card shadow-sm">
-                <div class="card-header bg-transparent">
-                    <h2 class="h5 mb-0"><i class="bi bi-clipboard2-check text-danger me-2"></i>Rondas y hallazgos</h2>
-                </div>
-                {% if puede_registrar_ronda %}
-                <div class="card-body border-bottom">
-                    <p class="text-muted">Registra el resultado de la revisión, sus observaciones y el estado operativo del carro.</p>
-                    <form method="post" class="row g-3">
-                        {% csrf_token %}
-                        <input type="hidden" name="accion" value="registrar_ronda">
-                        {% if ronda_form.non_field_errors %}<div class="col-12"><div class="alert alert-danger mb-0">{{ ronda_form.non_field_errors }}</div></div>{% endif %}
-                        <div class="col-12 col-md-4">
-                            <label for="{{ ronda_form.tipo_hallazgo.id_for_label }}" class="form-label">Resultado de la ronda</label>
-                            {{ ronda_form.tipo_hallazgo }}
-                            {% for error in ronda_form.tipo_hallazgo.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+    <div class="tab-content" id="hojaVidaTabContent">
+        <section class="tab-pane fade {% if active_tab == 'datos' %}show active{% endif %}" id="datos" role="tabpanel" aria-labelledby="datos-tab" tabindex="0">
+            <div class="row g-4">
+                <div class="col-12 col-xl-4">
+                    <section class="card shadow-sm h-100">
+                        <div class="card-header bg-transparent d-flex justify-content-between align-items-center gap-2">
+                            <h2 class="h5 mb-0"><i class="bi bi-truck-front text-danger me-2"></i>Identificación del carro</h2>
+                            {% if puede_editar %}<a class="btn btn-sm btn-outline-danger" href="{% url 'vehiculo_edit' vehiculo.id %}"><i class="bi bi-pencil me-1"></i>Editar</a>{% endif %}
                         </div>
-                        <div class="col-12 col-md-4">
-                            <label for="{{ ronda_form.estado_operativo.id_for_label }}" class="form-label">Estado operativo</label>
-                            {{ ronda_form.estado_operativo }}
-                            {% for error in ronda_form.estado_operativo.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                        <div class="card-body">
+                            <dl class="row mb-0">
+                                <dt class="col-6">Código</dt><dd class="col-6">{{ vehiculo.nombre }}</dd>
+                                <dt class="col-6">Compañía</dt><dd class="col-6">{{ vehiculo.compania.nombre }}</dd>
+                                <dt class="col-6">Patente</dt><dd class="col-6">{{ vehiculo.patente|default:"—" }}</dd>
+                                <dt class="col-6">Marca</dt><dd class="col-6">{{ vehiculo.marca|default:"—" }}</dd>
+                                <dt class="col-6">Modelo</dt><dd class="col-6">{{ vehiculo.modelo|default:"—" }}</dd>
+                                <dt class="col-6">Año fabricación</dt><dd class="col-6">{{ vehiculo.anio_fabricacion|default:"—" }}</dd>
+                                <dt class="col-6">Año puesta en servicio</dt><dd class="col-6">{{ vehiculo.anio_puesta_servicio|default:"—" }}</dd>
+                                <dt class="col-6">Estado operativo</dt><dd class="col-6">{{ vehiculo.get_estado_display }}</dd>
+                            </dl>
+                            {% if vehiculo.descripcion %}<hr><h3 class="h6">Descripción</h3><p class="mb-0">{{ vehiculo.descripcion|linebreaksbr }}</p>{% endif %}
+                            {% if puede_editar %}<p class="small text-muted mt-3 mb-0">La identificación se puede actualizar desde el formulario de edición del carro.</p>{% endif %}
                         </div>
-                        <div class="col-12">
-                            <label for="{{ ronda_form.detalle.id_for_label }}" class="form-label">Falla, observación o detalle</label>
-                            {{ ronda_form.detalle }}
-                            {% for error in ronda_form.detalle.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
-                        </div>
-                        <div class="col-12 d-flex justify-content-end"><button class="btn btn-danger" type="submit"><i class="bi bi-check2-circle me-1"></i>Guardar ronda</button></div>
+                    </section>
+                </div>
+
+                <div class="col-12 col-xl-8">
+                    <form method="post" class="d-flex flex-column gap-4">
+                        {% csrf_token %}<input type="hidden" name="accion" value="guardar_datos">
+                        {% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors }}</div>{% endif %}
+                        <section class="card shadow-sm">
+                            <div class="card-header bg-transparent"><h2 class="h5 mb-0"><i class="bi bi-speedometer2 text-danger me-2"></i>Especificaciones técnicas</h2></div>
+                            <div class="card-body"><fieldset {% if not puede_editar %}disabled{% endif %}><div class="row g-3">
+                                {% for field in form %}{% if field.name == 'combustible' or field.name == 'capacidad_estanque_litros' or field.name == 'capacidad_estanque_agua_litros' or field.name == 'capacidad_bomba' or field.name == 'capacidad_bomba_unidad' or field.name == 'horometro' %}
+                                <div class="col-12 col-md-6"><label for="{{ field.id_for_label }}" class="form-label">{% if field.name == 'capacidad_estanque_litros' %}Capacidad del estanque de combustible (L){% elif field.name == 'capacidad_estanque_agua_litros' %}Capacidad del estanque de agua (L){% elif field.name == 'capacidad_bomba' %}Capacidad de la bomba{% elif field.name == 'capacidad_bomba_unidad' %}Unidad de capacidad{% elif field.name == 'horometro' %}Horómetro (h){% else %}{{ field.label }}{% endif %}</label>{{ field }}{% for error in field.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}</div>
+                                {% endif %}{% endfor %}
+                            </div></fieldset></div>
+                        </section>
+                        <section class="card shadow-sm">
+                            <div class="card-header bg-transparent"><h2 class="h5 mb-0"><i class="bi bi-tools text-danger me-2"></i>Componentes de alta rotación</h2></div>
+                            <div class="card-body"><fieldset {% if not puede_editar %}disabled{% endif %}><div class="row g-3">
+                                {% for field in form %}{% if field.name == 'neumaticos_estado' or field.name == 'neumaticos_ultimo_cambio' or field.name == 'bateria_fecha_instalacion' %}
+                                <div class="col-12 col-md-6"><label for="{{ field.id_for_label }}" class="form-label">{% if field.name == 'neumaticos_estado' %}Neumáticos: estado general{% elif field.name == 'neumaticos_ultimo_cambio' %}Neumáticos: fecha del último cambio{% else %}Batería: fecha de instalación{% endif %}</label>{{ field }}{% for error in field.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}</div>
+                                {% endif %}{% endfor %}
+                            </div></fieldset>{% if puede_editar %}<div class="d-flex justify-content-end mt-3"><button class="btn btn-danger" type="submit"><i class="bi bi-save me-1"></i>Guardar datos del carro</button></div>{% endif %}</div>
+                        </section>
                     </form>
                 </div>
-                {% endif %}
-                <div class="card-body">
-                    <h3 class="h6">Registro de revisiones</h3>
-                    {% if rondas %}
-                    <div class="table-responsive">
-                        <table class="table table-hover align-middle mb-0">
-                            <thead><tr><th>Fecha</th><th>Resultado</th><th>Detalle</th><th>Estado operativo</th><th>Registrado por</th></tr></thead>
-                            <tbody>
-                                {% for ronda in rondas %}
-                                <tr>
-                                    <td>{{ ronda.fecha|date:"d/m/Y H:i" }}</td>
-                                    <td>{{ ronda.get_tipo_hallazgo_display }}</td>
-                                    <td>{{ ronda.detalle|linebreaksbr }}</td>
-                                    <td>{% if ronda.estado_operativo %}{{ ronda.get_estado_operativo_display }}{% else %}—{% endif %}</td>
-                                    <td>{{ ronda.registrado_por.get_full_name|default:"—" }}</td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                    {% else %}
-                    <p class="text-muted mb-0">Todavía no hay rondas registradas para este carro.</p>
-                    {% endif %}
-                </div>
-            </section>
-        </div>
+            </div>
+        </section>
 
-        <div class="col-12">
-            <section class="card shadow-sm">
-                <div class="card-header bg-transparent d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2">
-                    <h2 class="h5 mb-0"><i class="bi bi-wrench-adjustable-circle text-danger me-2"></i>Historial de reparaciones y mantenciones</h2>
-                    {% if request.user.is_superuser or request.user.rol.editar_mantenimientos %}
-                        <a href="{% url 'mantenimiento' %}?q={{ vehiculo.nombre|urlencode }}&vehiculo={{ vehiculo.nombre|urlencode }}" class="btn btn-sm btn-outline-danger"><i class="bi bi-plus-lg me-1"></i>Registrar trabajo</a>
-                    {% endif %}
+        <section class="tab-pane fade {% if active_tab == 'documentacion' %}show active{% endif %}" id="documentacion" role="tabpanel" aria-labelledby="documentacion-tab" tabindex="0">
+            <form method="post" class="card shadow-sm">
+                {% csrf_token %}<input type="hidden" name="accion" value="guardar_documentacion">
+                <div class="card-header bg-transparent"><h2 class="h5 mb-0"><i class="bi bi-shield-check text-danger me-2"></i>Documentación legal y vencimientos</h2></div>
+                <div class="card-body"><p class="text-muted">Puedes dejar los campos vacíos para quitar un dato registrado.</p>
+                    {% if documento_form.non_field_errors %}<div class="alert alert-danger">{{ documento_form.non_field_errors }}</div>{% endif %}
+                    <fieldset {% if not puede_editar %}disabled{% endif %}><div class="row g-3">
+                        {% for field in documento_form %}<div class="col-12 col-md-6"><label for="{{ field.id_for_label }}" class="form-label">{% if field.name == 'revision_tecnica_vencimiento' %}Revisión técnica: vencimiento{% elif field.name == 'permiso_circulacion_vencimiento' %}Permiso de circulación: vencimiento{% elif field.name == 'soap_vencimiento' %}SOAP: vencimiento{% elif field.name == 'seguro_numero_poliza' %}Seguro: número de póliza{% else %}Seguro: vencimiento{% endif %}</label>{{ field }}{% if field.name == 'revision_tecnica_vencimiento' %}<small class="d-block text-muted">{{ vencimientos.revision_tecnica_vencimiento }}</small>{% elif field.name == 'permiso_circulacion_vencimiento' %}<small class="d-block text-muted">{{ vencimientos.permiso_circulacion_vencimiento }}</small>{% elif field.name == 'soap_vencimiento' %}<small class="d-block text-muted">{{ vencimientos.soap_vencimiento }}</small>{% elif field.name == 'seguro_vencimiento' %}<small class="d-block text-muted">{{ vencimientos.seguro_vencimiento }}</small>{% endif %}{% for error in field.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}</div>{% endfor %}
+                    </div></fieldset>
                 </div>
-                <div class="card-body">
-                    {% if mantenimientos %}
-                        <div class="table-responsive">
-                            <table class="table table-hover align-middle mb-0">
-                                <thead><tr><th>Fecha de ingreso</th><th>Fecha de resolución</th><th>Motivo / trabajo realizado</th><th>Tipo</th><th>Estado</th><th>Responsable</th><th>Costo</th></tr></thead>
-                                <tbody>
-                                    {% for mantenimiento in mantenimientos %}
-                                    <tr>
-                                        <td>{{ mantenimiento.fecha|date:"d/m/Y" }}</td>
-                                        <td>{{ mantenimiento.fecha_resolucion|date:"d/m/Y"|default:"—" }}</td>
-                                        <td>{{ mantenimiento.descripcion|linebreaksbr }}</td>
-                                        <td>{{ mantenimiento.tipo }}</td>
-                                        <td>{{ mantenimiento.estado }}</td>
-                                        <td>{{ mantenimiento.responsable.get_full_name|default:"—" }}</td>
-                                        <td>${{ mantenimiento.costo|floatformat:0 }}</td>
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
-                    {% else %}
-                        <p class="text-muted mb-0">Todavía no hay trabajos asociados. Al registrar una mantención, usa el nombre exacto del carro: <strong>{{ vehiculo.nombre }}</strong>.</p>
-                    {% endif %}
-                </div>
-            </section>
-        </div>
+                {% if puede_editar %}<div class="card-footer bg-transparent d-flex justify-content-end"><button class="btn btn-danger" type="submit"><i class="bi bi-save me-1"></i>Guardar documentación</button></div>{% endif %}
+            </form>
+        </section>
+
+        <section class="tab-pane fade {% if active_tab == 'rondas' %}show active{% endif %}" id="rondas" role="tabpanel" aria-labelledby="rondas-tab" tabindex="0">
+            <div class="d-flex flex-column gap-4">
+                <section class="card shadow-sm">
+                    <div class="card-header bg-transparent"><h2 class="h5 mb-0"><i class="bi bi-clipboard2-check text-danger me-2"></i>Rondas y hallazgos</h2></div>
+                    {% if puede_registrar_ronda %}<div class="card-body border-bottom">
+                        <p class="text-muted">Registra el resultado de la revisión, las observaciones y el estado operativo del carro.</p>
+                        <form method="post" class="row g-3">
+                            {% csrf_token %}<input type="hidden" name="accion" value="registrar_ronda">
+                            {% if ronda_form.errors and request.POST.accion == 'registrar_ronda' %}<div class="col-12 alert alert-danger mb-0">No se pudo guardar la ronda. Revisa los campos indicados.</div>{% endif %}
+                            <div class="col-12 col-md-4"><label for="{{ ronda_form.tipo_hallazgo.id_for_label }}" class="form-label">Resultado de la ronda</label>{{ ronda_form.tipo_hallazgo }}{% for error in ronda_form.tipo_hallazgo.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}</div>
+                            <div class="col-12 col-md-4"><label for="{{ ronda_form.estado_operativo.id_for_label }}" class="form-label">Estado operativo</label>{{ ronda_form.estado_operativo }}{% for error in ronda_form.estado_operativo.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}</div>
+                            <div class="col-12"><label for="{{ ronda_form.detalle.id_for_label }}" class="form-label">Falla, observación o detalle</label>{{ ronda_form.detalle }}{% for error in ronda_form.detalle.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}</div>
+                            <div class="col-12 d-flex justify-content-end"><button class="btn btn-danger" type="submit"><i class="bi bi-check2-circle me-1"></i>Guardar ronda</button></div>
+                        </form>
+                    </div>{% endif %}
+                    <div class="card-body"><h3 class="h6">Registro de revisiones</h3>
+                        {% if rondas %}<div class="table-responsive"><table class="table table-hover align-middle mb-0">
+                            <thead><tr><th>Fecha</th><th>Resultado</th><th>Detalle</th><th>Estado operativo</th><th>Registrado por</th>{% if puede_registrar_ronda %}<th>Acciones</th>{% endif %}</tr></thead>
+                            <tbody>{% for ronda in rondas %}<tr>
+                                <td>{{ ronda.fecha|date:"d/m/Y H:i" }}</td><td>{{ ronda.get_tipo_hallazgo_display }}</td><td>{{ ronda.detalle|linebreaksbr }}</td><td>{% if ronda.estado_operativo %}{{ ronda.get_estado_operativo_display }}{% else %}—{% endif %}</td><td>{{ ronda.registrado_por.get_full_name|default:"—" }}</td>
+                                {% if puede_registrar_ronda %}<td class="text-nowrap"><button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editarRondaModal" data-ronda-id="{{ ronda.id }}" data-ronda-tipo="{{ ronda.tipo_hallazgo }}" data-ronda-estado="{{ ronda.estado_operativo }}" data-ronda-detalle="{{ ronda.detalle }}" aria-label="Editar ronda"><i class="bi bi-pencil"></i></button> <form method="post" class="d-inline" onsubmit="return confirm('¿Eliminar esta ronda? Esta acción no se puede deshacer.');">{% csrf_token %}<input type="hidden" name="accion" value="eliminar_ronda"><input type="hidden" name="ronda_id" value="{{ ronda.id }}"><button class="btn btn-sm btn-outline-danger" type="submit" aria-label="Eliminar ronda"><i class="bi bi-trash"></i></button></form></td>{% endif %}
+                            </tr>{% endfor %}</tbody>
+                        </table></div>{% else %}<p class="text-muted mb-0">Todavía no hay rondas registradas para este carro.</p>{% endif %}
+                    </div>
+                </section>
+
+                <section class="card shadow-sm">
+                    <div class="card-header bg-transparent d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2">
+                        <h2 class="h5 mb-0"><i class="bi bi-wrench-adjustable-circle text-danger me-2"></i>Historial de reparaciones y mantenciones</h2>
+                        {% if request.user.is_superuser or request.user.rol.editar_mantenimientos %}<a href="{% url 'mantenimiento' %}?q={{ vehiculo.nombre|urlencode }}&vehiculo={{ vehiculo.nombre|urlencode }}" class="btn btn-sm btn-outline-danger"><i class="bi bi-plus-lg me-1"></i>Registrar trabajo</a>{% endif %}
+                    </div>
+                    <div class="card-body">{% if mantenimientos %}<div class="table-responsive"><table class="table table-hover align-middle mb-0">
+                        <thead><tr><th>Fecha de ingreso</th><th>Fecha de resolución</th><th>Motivo / trabajo realizado</th><th>Tipo</th><th>Estado</th><th>Responsable</th><th>Costo</th>{% if puede_editar_mantenimientos %}<th>Acciones</th>{% endif %}</tr></thead>
+                        <tbody>{% for mantenimiento in mantenimientos %}<tr>
+                            <td>{{ mantenimiento.fecha|date:"d/m/Y" }}</td><td>{{ mantenimiento.fecha_resolucion|date:"d/m/Y"|default:"—" }}</td><td>{{ mantenimiento.descripcion|linebreaksbr }}</td><td>{{ mantenimiento.tipo }}</td><td>{{ mantenimiento.estado }}</td><td>{{ mantenimiento.responsable.get_full_name|default:"—" }}</td><td>${{ mantenimiento.costo|floatformat:0 }}</td>
+                            {% if puede_editar_mantenimientos %}<td class="text-nowrap"><a href="{% url 'mantenimiento' %}?q={{ vehiculo.nombre|urlencode }}&editar={{ mantenimiento.id }}" class="btn btn-sm btn-outline-primary" aria-label="Editar mantenimiento"><i class="bi bi-pencil"></i></a> <form method="post" class="d-inline" onsubmit="return confirm('¿Eliminar este mantenimiento? Esta acción no se puede deshacer.');">{% csrf_token %}<input type="hidden" name="accion" value="eliminar_mantenimiento"><input type="hidden" name="mantenimiento_id" value="{{ mantenimiento.id }}"><button class="btn btn-sm btn-outline-danger" type="submit" aria-label="Eliminar mantenimiento"><i class="bi bi-trash"></i></button></form></td>{% endif %}
+                        </tr>{% endfor %}</tbody>
+                    </table></div>{% else %}<p class="text-muted mb-0">Todavía no hay trabajos asociados. Al registrar una mantención, usa el nombre exacto del carro: <strong>{{ vehiculo.nombre }}</strong>.</p>{% endif %}</div>
+                </section>
+            </div>
+        </section>
     </div>
 </main>
+
+{% if puede_registrar_ronda %}
+<div class="modal fade" id="editarRondaModal" tabindex="-1" aria-labelledby="editarRondaModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered"><div class="modal-content">
+        <div class="modal-header"><h2 class="modal-title fs-5" id="editarRondaModalLabel">Editar ronda</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button></div>
+        <form method="post" id="editarRondaForm"><div class="modal-body">
+            {% csrf_token %}<input type="hidden" name="accion" value="editar_ronda"><input type="hidden" name="ronda_id" id="editarRondaId">
+            {% if edit_ronda_form.errors and request.POST.accion == 'editar_ronda' %}<div class="alert alert-danger">No se pudo actualizar la ronda. Revisa los campos indicados.</div>{% endif %}
+            <div class="row g-3"><div class="col-md-6"><label class="form-label" for="{{ edit_ronda_form.tipo_hallazgo.id_for_label }}">Resultado de la ronda</label>{{ edit_ronda_form.tipo_hallazgo }}{% for error in edit_ronda_form.tipo_hallazgo.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}</div>
+                <div class="col-md-6"><label class="form-label" for="{{ edit_ronda_form.estado_operativo.id_for_label }}">Estado operativo</label>{{ edit_ronda_form.estado_operativo }}{% for error in edit_ronda_form.estado_operativo.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}</div>
+                <div class="col-12"><label class="form-label" for="{{ edit_ronda_form.detalle.id_for_label }}">Falla, observación o detalle</label>{{ edit_ronda_form.detalle }}{% for error in edit_ronda_form.detalle.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}</div>
+            </div>
+        </div><div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button><button type="submit" class="btn btn-danger"><i class="bi bi-save me-1"></i>Guardar cambios</button></div></form>
+    </div></div>
+</div>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const modalElement = document.getElementById('editarRondaModal');
+    const rondaId = document.getElementById('editarRondaId');
+    const rondaTipo = document.getElementById('{{ edit_ronda_form.tipo_hallazgo.id_for_label }}');
+    const rondaEstado = document.getElementById('{{ edit_ronda_form.estado_operativo.id_for_label }}');
+    const rondaDetalle = document.getElementById('{{ edit_ronda_form.detalle.id_for_label }}');
+    modalElement.addEventListener('show.bs.modal', function (event) {
+        const button = event.relatedTarget;
+        if (!button) return;
+        rondaId.value = button.dataset.rondaId;
+        rondaTipo.value = button.dataset.rondaTipo;
+        rondaEstado.value = button.dataset.rondaEstado;
+        rondaDetalle.value = button.dataset.rondaDetalle;
+    });
+    {% if edit_ronda_form.errors and request.POST.accion == 'editar_ronda' %}
+    bootstrap.Modal.getOrCreateInstance(modalElement).show();
+    {% endif %}
+});
+</script>
+{% endif %}
+<style>
+    .nav-tabs .nav-link.tab-rojo { color: #dc3545; }
+    .nav-tabs .nav-link.tab-rojo.active { color: #212529; }
+    @media (max-width: 575.98px) {
+        #hojaVidaTabs { flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden; }
+        #hojaVidaTabs .nav-link { white-space: nowrap; }
+    }
+</style>
 {% endblock %}
