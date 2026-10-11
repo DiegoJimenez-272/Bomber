@@ -16,15 +16,15 @@
         {% endif %}
     </div>
     {% if request.user.is_superuser or request.user.rol.editar_documentacion %}
-        <div class="d-flex gap-2 flex-wrap justify-content-start justify-content-sm-end">
-            <button class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#createCarpetaModal">
-                <i class="bi bi-folder-plus me-1"></i> Crear Carpeta
+        <div class="d-flex gap-2 flex-wrap justify-content-start justify-content-sm-end document-header-actions">
+            <button class="btn btn-outline-secondary" type="button" title="Crear Carpeta" aria-label="Crear Carpeta" data-bs-toggle="modal" data-bs-target="#createCarpetaModal">
+                <i class="bi bi-folder-plus me-1 document-action-icon"></i><span class="document-action-label">Crear Carpeta</span>
             </button>
-            <button class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#writeDocumentModal">
-                <i class="bi bi-pencil-square me-1"></i> Redactar Documento
+            <button class="btn btn-outline-danger" type="button" title="Redactar Documento" aria-label="Redactar Documento" data-bs-toggle="modal" data-bs-target="#writeDocumentModal">
+                <i class="bi bi-pencil-square me-1 document-action-icon"></i><span class="document-action-label">Redactar Documento</span>
             </button>
-            <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#uploadDocumentModal">
-                <i class="bi bi-upload me-1"></i> Subir Documento
+            <button class="btn btn-danger" type="button" title="Subir Documento" aria-label="Subir Documento" data-bs-toggle="modal" data-bs-target="#uploadDocumentModal">
+                <i class="bi bi-upload me-1 document-action-icon"></i><span class="document-action-label">Subir Documento</span>
             </button>
         </div>
     {% endif %}
@@ -420,6 +420,31 @@
 
 {% block scripts %}
 {{ block.super }}
+<style>
+    @media (max-width: 767.98px) {
+        .page-content > header .document-header-actions {
+            width: auto !important;
+            flex: 0 0 auto !important;
+            align-self: flex-start;
+            display: flex !important;
+            flex-wrap: nowrap !important;
+            justify-content: flex-start !important;
+            gap: .5rem !important;
+        }
+        .document-header-actions > .btn {
+            width: 44px !important;
+            min-width: 44px;
+            height: 44px;
+            padding: 0 !important;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex: 0 0 44px;
+        }
+        .document-action-label { display: none; }
+        .document-action-icon { margin-right: 0 !important; }
+    }
+</style>
 <!-- Modal Visor de Archivos -->
 <div class="modal fade" id="fileViewerModal" tabindex="-1" aria-labelledby="fileViewerModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-xl">

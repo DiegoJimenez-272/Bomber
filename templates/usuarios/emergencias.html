@@ -78,8 +78,9 @@
     <div class="card shadow-sm">
         <div class="card-body">
             <h5 class="card-title">Historial de Emergencias</h5>
-            <div class="table-responsive">
-                <table class="table table-hover">
+            <p class="small text-muted d-md-none mb-2">Desliza la tabla horizontalmente para ver todas las columnas.</p>
+            <div class="table-responsive emergency-table-scroll">
+                <table class="table table-hover emergency-history-table">
                     <thead>
                         <tr>
                             <th scope="col">Tipo / Dirección</th>
@@ -424,6 +425,18 @@
 {% block scripts %}
 {{ block.super }}
 <style>
+    @media (max-width: 767.98px) {
+        .emergency-table-scroll::after { display: none !important; }
+        .emergency-history-table { min-width: 960px; table-layout: fixed; }
+        .emergency-history-table th:nth-child(1), .emergency-history-table td:nth-child(1) { width: 17%; }
+        .emergency-history-table th:nth-child(2), .emergency-history-table td:nth-child(2) { width: 13%; }
+        .emergency-history-table th:nth-child(3), .emergency-history-table td:nth-child(3) { width: 8%; }
+        .emergency-history-table th:nth-child(4), .emergency-history-table td:nth-child(4) { width: 27%; }
+        .emergency-history-table th:nth-child(5), .emergency-history-table td:nth-child(5) { width: 15%; }
+        .emergency-history-table th:nth-child(6), .emergency-history-table td:nth-child(6) { width: 10%; }
+        .emergency-history-table th:nth-child(7), .emergency-history-table td:nth-child(7) { width: 10%; }
+        .emergency-history-table td { overflow-wrap: anywhere; }
+    }
     .em-attendance-details summary {
         cursor: pointer;
         color: #495057;
