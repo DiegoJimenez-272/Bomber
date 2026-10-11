@@ -13,7 +13,6 @@ body.dark-mode {
     --form-control-bg: #495057;
     --form-control-border: #6c757d;
 }
-
 /* Regla global para el color de texto en modo oscuro */
 body.dark-mode {
     background-color: var(--bs-body-bg) !important;
@@ -670,24 +669,13 @@ body.dark-mode .filter-toggle-btn .badge {
 }
 
 /* ==========================================================================
-   TABLAS MOBILE: Indicador de Scroll Lateral (Sombra)
+   TABLAS MOBILE: desplazamiento sin franja superpuesta
    ========================================================================== */
 @media (max-width: 767.98px) {
     .table-responsive {
         position: relative;
     }
-    .table-responsive::after {
-        content: '';
-        position: absolute;
-        top: 0;
-        right: 0;
-        bottom: 0;
-        width: 20px;
-        background: linear-gradient(to right, transparent, rgba(0, 0, 0, 0.06));
-        pointer-events: none;
-        border-radius: 0 0.5rem 0.5rem 0;
-        transition: opacity 0.3s;
-    }
+    .table-responsive::after { display: none !important; }
 
     /* Badges y fechas sin wrap en tablas móviles */
     .table .badge,
@@ -715,12 +703,5 @@ body.dark-mode .filter-toggle-btn .badge {
         font-size: 0.8rem;
         margin-bottom: 0.25rem;
         font-weight: 600;
-    }
-}
-
-/* Dark mode para la sombra de scroll de tablas */
-@media (max-width: 767.98px) {
-    body.dark-mode .table-responsive::after {
-        background: linear-gradient(to right, transparent, rgba(0, 0, 0, 0.25));
     }
 }

@@ -249,7 +249,7 @@
                 No se encontraron actividades con los filtros aplicados.
             </div>
 
-            <div class="row row-cols-1 row-cols-lg-2 g-4" id="cap-intern-list">
+            <div class="row row-cols-1 row-cols-lg-2 g-2 g-md-4 activity-card-grid" id="cap-intern-list">
                 {% for cap in actividades_internas %}
                 <div class="col cap-intern-card" data-tipo="{{ cap.tipo_actividad }}" data-nombre="{{ cap.nombre|lower }}" data-fecha="{{ cap.fecha_inicio|date:'Y-m-d' }}" data-companias="{{ cap.companias_filtro_ids }}">
 
@@ -336,7 +336,7 @@
             <h2 class="h5 mt-4 mb-3">Reuniones</h2>
             <div class="row g-4" id="reuniones-list">
                 {% for item in reuniones %}
-                <div class="col-12 col-md-6 col-lg-4 reunion-card"
+                <div class="col-12 col-md-6 col-lg-4 reunion-card activity-card-grid-item"
                      data-nombre="{{ item.nombre|lower }}"
                      data-tipo="Reunión"
                      data-fecha="{{ item.fecha_inicio|date:'Y-m-d' }}"
@@ -985,6 +985,43 @@
         </div>
     </div>
 </div>
+
+<style>
+    @media (max-width: 767.98px) {
+        #cap-intern-list > .col { width: 50%; min-width: 0; }
+        #cap-intern-list > .col > .card > .card-body { padding: .65rem; }
+        #cap-intern-list .card-body > .d-flex.align-items-start { gap: .5rem; }
+        #cap-intern-list .card-body > .d-flex.align-items-start > div:first-child {
+            width: 32px !important;
+            height: 32px !important;
+            flex: 0 0 32px;
+            margin-right: 0 !important;
+        }
+        #cap-intern-list .card-body > .d-flex.align-items-start > div:first-child .bi { font-size: 1rem !important; }
+        #cap-intern-list .card-title { font-size: .9rem; line-height: 1.2; overflow-wrap: anywhere; }
+        #cap-intern-list .card-text { font-size: .68rem; overflow-wrap: anywhere; }
+        #cap-intern-list .list-group-item {
+            flex-direction: column;
+            align-items: flex-start !important;
+            gap: .15rem;
+            padding-top: .4rem;
+            padding-bottom: .4rem;
+        }
+        #cap-intern-list .list-group-item > strong { width: 100%; text-align: left !important; overflow-wrap: anywhere; }
+        #cap-intern-list .card-footer { padding: .55rem; gap: .35rem; }
+        #cap-intern-list .card-footer > div:first-child { font-size: .65rem !important; }
+        #cap-intern-list .card-footer .btn { padding: .3rem .4rem; }
+
+        #reuniones-list > .reunion-card { width: 50%; min-width: 0; }
+        #reuniones-list .card-body.p-4 { padding: .7rem !important; }
+        #reuniones-list .card-title { font-size: .9rem; line-height: 1.2; }
+        #reuniones-list .card-body .d-flex.flex-column.gap-2 { gap: .45rem !important; }
+        #reuniones-list .card-body .d-flex.flex-column.gap-2 > div { align-items: flex-start !important; }
+        #reuniones-list .card-body .d-flex.flex-column.gap-2 .fs-6 { font-size: .75rem !important; overflow-wrap: anywhere; }
+        #reuniones-list .card-body .d-flex.flex-column.gap-2 .me-3 { margin-right: .4rem !important; }
+        #reuniones-list .btn { font-size: .72rem; padding: .35rem .4rem; }
+    }
+</style>
 
 {% endblock %}
 
