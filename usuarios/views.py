@@ -5,6 +5,7 @@ from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.contrib import messages
 from django.contrib.auth import update_session_auth_hash
+from django.utils.html import escape
 from django.db import IntegrityError, transaction
 from django.db.models import Sum, Case, When, DecimalField, F, Q, Count, Prefetch
 from django.utils import timezone
@@ -33,17 +34,55 @@ import logging
 logger = logging.getLogger('usuarios')
 
 def _enviar_codigo_registro(registro):
+    nombre = escape(registro.nombre)
+    html_message = f'''\
+    <!DOCTYPE html>
+    <html>
+    <head><meta charset="UTF-8"></head>
+    <body style="margin:0; padding:0; background-color:#f4f4f7; font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
+        <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f4f7; padding:40px 0;">
+            <tr><td align="center">
+                <table width="500" cellpadding="0" cellspacing="0" style="background:#ffffff; border-radius:12px; overflow:hidden; box-shadow:0 4px 20px rgba(0,0,0,0.08);">
+                    <tr><td style="background:linear-gradient(135deg,#dc3545,#c82333); padding:30px 40px; text-align:center;">
+                        <img src="https://www.sigbomberosmulchen.cl/media/logos_companias/Compania_general.png" alt="Logo Bomberos" style="max-width:100px; border-radius:8px; margin-bottom:10px;">
+                        <h2 style="color:#ffffff; margin:10px 0 0; font-size:20px; font-weight:600;">Cuerpo de Bomberos de Mulchén</h2>
+                    </td></tr>
+                    <tr><td style="padding:40px;">
+                        <h1 style="color:#212529; font-size:24px; text-align:center; margin:0 0 10px;">Código de Verificación</h1>
+                        <p style="color:#6c757d; font-size:14px; text-align:center; margin:0 0 30px; line-height:1.6;">
+                            Hola <strong>{nombre}</strong>, ingresa este código para verificar tu correo y completar la creación de tu cuenta.
+                        </p>
+                        <table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center">
+                            <div style="background:#f8f9fa; border:2px dashed #dc3545; border-radius:12px; padding:20px 30px; display:inline-block;">
+                                <span style="font-size:36px; font-weight:700; letter-spacing:12px; color:#dc3545; font-family:monospace;">{registro.codigo}</span>
+                            </div>
+                        </td></tr></table>
+                        <p style="color:#6c757d; font-size:13px; text-align:center; margin:25px 0 0; line-height:1.6;">
+                            Este código es válido por <strong>15 minutos</strong> y permite hasta 5 intentos.<br>
+                            Si no solicitaste esta cuenta, puedes ignorar este correo con total seguridad.
+                        </p>
+                    </td></tr>
+                    <tr><td style="background:#f8f9fa; padding:20px 40px; text-align:center; border-top:1px solid #e9ecef;">
+                        <p style="color:#adb5bd; font-size:12px; margin:0;">Sistema de Gestión de Bomberos &copy; 2026<br>Este es un correo automático, por favor no responder.</p>
+                    </td></tr>
+                </table>
+            </td></tr>
+        </table>
+    </body>
+    </html>
+    '''
     enviados = send_mail(
-        'Verifica tu correo - Sistema Bomberos',
+        'Código de Verificación - Sistema Bomberos',
         (
             f"Hola {registro.nombre},\n\n"
-            f"Tu código para verificar el correo y completar el registro es: {registro.codigo}\n\n"
-            "El código vence en 15 minutos y permite hasta 5 intentos.\n"
+            f"Tu código para verificar el correo y crear tu cuenta es: {registro.codigo}\n\n"
+            "El código es válido por 15 minutos y permite hasta 5 intentos.\n"
             "Si no solicitaste esta cuenta, puedes ignorar este mensaje."
         ),
         settings.DEFAULT_FROM_EMAIL,
         [registro.email],
         fail_silently=False,
+        html_message=html_message,
     )
     if enviados != 1:
         raise RuntimeError('El servidor de correo no confirmó el envío del código.')
