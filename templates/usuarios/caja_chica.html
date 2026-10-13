@@ -209,6 +209,14 @@
                         {{ form.tipo }}
                         {% for error in form.tipo.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
                     </div>
+                    {% if form.compania %}
+                    <div class="mb-3">
+                        <label for="{{ form.compania.id_for_label }}" class="form-label">Asignar a Caja (Solo Admin)</label>
+                        {{ form.compania }}
+                        <div class="form-text">Dejar en blanco para guardar como movimiento en la Caja General.</div>
+                        {% for error in form.compania.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                    </div>
+                    {% endif %}
                     <div class="mb-3">
                         <label for="{{ form.tipo_cuenta.id_for_label }}" class="form-label">Tipo de cuenta</label>
                         {{ form.tipo_cuenta }}
@@ -234,14 +242,6 @@
                         <div class="form-text">Puedes adjuntar una boleta, factura o cotización.</div>
                         {% for error in form.documento_adjunto.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
                     </div>
-                    {% if form.compania %}
-                    <div class="mb-3">
-                        <label for="{{ form.compania.id_for_label }}" class="form-label">Asignar a Caja (Solo Admin)</label>
-                        {{ form.compania }}
-                        <div class="form-text">Dejar en blanco para guardar como movimiento en la Caja General.</div>
-                        {% for error in form.compania.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
-                    </div>
-                    {% endif %}
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
