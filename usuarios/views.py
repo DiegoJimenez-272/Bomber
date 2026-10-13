@@ -5,12 +5,14 @@ from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.contrib import messages
 from django.contrib.auth import update_session_auth_hash
+from django.db import IntegrityError, transaction
 from django.db.models import Sum, Case, When, DecimalField, F, Q, Count, Prefetch
 from django.utils import timezone
 from django.db.models.functions import TruncDay
 from datetime import datetime, timedelta
 import json, re
 import random
+import secrets
 from io import BytesIO
 from django.core.files.base import ContentFile
 from django.http import HttpResponse, JsonResponse
@@ -24,48 +26,186 @@ from reportlab.lib.pagesizes import letter
 import openpyxl
 from reportlab.lib.units import inch
 from .forms import RegistroForm, LoginForm, ProyectoForm, ArchivoProyectoForm, DocumentoForm, CarpetaForm, SalidaTerrenoForm, EmergenciaForm, PerfilForm, PasswordChangeForm, CapacitacionForm, ReunionForm, MantenimientoForm, ArchivoMantenimientoForm, InventarioForm, CajaChicaForm, AdminUserCreationForm, AdminUserChangeForm, RolForm, CompaniaForm, InventarioEditForm, InventarioGroupEditForm, AvisoForm, PasswordResetRequestForm, PasswordResetVerifyForm, PasswordResetNewPasswordForm, VehiculoForm, VehiculoHojaVidaForm, VehiculoDocumentacionForm, RondaVehiculoForm
-from .models import Rol, Compania, Proyecto, ArchivoProyecto, Documento, Carpeta, SalidaTerreno, SalidaTerrenoUnidad, Emergencia, EmergenciaUnidad, Usuario, Capacitacion, Mantenimiento, ArchivoMantenimiento, Inventario, CajaChica, Notificacion, Aviso, AvisoDestinatario, PasswordResetCode, Vehiculo, RondaVehiculo
+from .models import Rol, Compania, Proyecto, ArchivoProyecto, Documento, Carpeta, SalidaTerreno, SalidaTerrenoUnidad, Emergencia, EmergenciaUnidad, Usuario, Capacitacion, Mantenimiento, ArchivoMantenimiento, Inventario, CajaChica, Notificacion, Aviso, AvisoDestinatario, PasswordResetCode, RegistroPendiente, Vehiculo, RondaVehiculo
 from .decorators import admin_required, permiso_requerido, pertenencia_compania
 import logging
 
 logger = logging.getLogger('usuarios')
 
+def _enviar_codigo_registro(registro):
+    enviados = send_mail(
+        'Verifica tu correo - Sistema Bomberos',
+        (
+            f"Hola {registro.nombre},\n\n"
+            f"Tu código para verificar el correo y completar el registro es: {registro.codigo}\n\n"
+            "El código vence en 15 minutos y permite hasta 5 intentos.\n"
+            "Si no solicitaste esta cuenta, puedes ignorar este mensaje."
+        ),
+        settings.DEFAULT_FROM_EMAIL,
+        [registro.email],
+        fail_silently=False,
+    )
+    if enviados != 1:
+        raise RuntimeError('El servidor de correo no confirmó el envío del código.')
+
+
+def _limpiar_registros_pendientes_expirados():
+    limite = timezone.now() - timedelta(minutes=15)
+    for registro in RegistroPendiente.objects.filter(creado_en__lt=limite).iterator():
+        if registro.foto_perfil:
+            registro.foto_perfil.delete(save=False)
+        registro.delete()
+
+
 def registro_view(request):
+    _limpiar_registros_pendientes_expirados()
     if request.method == 'POST':
         form = RegistroForm(request.POST, request.FILES)
         if form.is_valid():
-            # Guardamos el usuario sin confirmarlo en la BD para poder modificarlo
             user = form.save(commit=False)
-            # Marcamos la cuenta como inactiva hasta que un admin la apruebe
-            user.is_active = False
-            
-            # Asignar rol por defecto (puedes crear uno en admin)
-            rol_usuario, created = Rol.objects.get_or_create(
-                nombre='Usuario',
-                defaults={'descripcion': 'Usuario estándar del sistema'}
-            )
-            user.rol = rol_usuario
-            user.save() # Ahora guardamos el usuario con los cambios
-            
-            # Enviar notificación al sistema para todos los administradores (superusers)
-            superusers = Usuario.objects.filter(is_superuser=True)
-            notificaciones = []
-            for admin in superusers:
-                notificaciones.append(Notificacion(
-                    usuario=admin,
-                    mensaje=f"Nueva solicitud de registro: {user.get_full_name()}",
-                    link="/administracion/?tab=requests"
-                ))
-            Notificacion.objects.bulk_create(notificaciones)
-            
-            messages.success(request, '¡Registro exitoso! Tu cuenta ha sido creada y está pendiente de aprobación por un administrador.')
-            return redirect('login')
+            email = form.cleaned_data['email'].strip()
+            if Usuario.objects.filter(email__iexact=email).exists():
+                form.add_error('email', 'Este correo ya está registrado en el sistema.')
+            else:
+                anterior = RegistroPendiente.objects.filter(email__iexact=email).first()
+                if anterior:
+                    if anterior.foto_perfil:
+                        anterior.foto_perfil.delete(save=False)
+                    anterior.delete()
+
+                registro = RegistroPendiente(
+                    email=email,
+                    nombre=user.nombre,
+                    apellido=user.apellido,
+                    rut=user.rut,
+                    clave_radial=user.clave_radial,
+                    compania=user.compania,
+                    password=user.password,
+                    codigo=f"{secrets.randbelow(900000) + 100000}",
+                    foto_perfil=form.cleaned_data.get('foto_perfil'),
+                )
+                registro.save()
+                try:
+                    _enviar_codigo_registro(registro)
+                except Exception:
+                    logger.exception('No se pudo enviar el código de verificación de registro a %s', email)
+                    if registro.foto_perfil:
+                        registro.foto_perfil.delete(save=False)
+                    registro.delete()
+                    messages.error(request, 'No se pudo enviar el correo de verificación. Revisa tu dirección e inténtalo nuevamente.')
+                else:
+                    request.session['registro_pendiente_email'] = email
+                    request.session.set_expiry(30 * 60)
+                    messages.success(request, 'Te enviamos un código de verificación. Ingrésalo para completar tu registro.')
+                    return redirect('registro_verificar')
         else:
             messages.error(request, 'Por favor, corrige los errores en el formulario.')
     else:
         form = RegistroForm()
     
     return render(request, 'usuarios/registro.html', {'form': form})
+
+
+def registro_verificar_view(request):
+    email = request.session.get('registro_pendiente_email')
+    if not email:
+        return redirect('registro')
+
+    registro = RegistroPendiente.objects.filter(email=email).first()
+    if not registro:
+        request.session.pop('registro_pendiente_email', None)
+        messages.error(request, 'La solicitud de registro ya no está disponible. Completa el formulario nuevamente.')
+        return redirect('registro')
+
+    codigo_ingresado = ''
+    error = None
+    if request.method == 'POST':
+        if request.POST.get('accion') == 'reenviar':
+            registro.codigo = f"{secrets.randbelow(900000) + 100000}"
+            registro.creado_en = timezone.now()
+            registro.intentos = 0
+            registro.save(update_fields=['codigo', 'creado_en', 'intentos'])
+            try:
+                _enviar_codigo_registro(registro)
+            except Exception:
+                logger.exception('No se pudo reenviar el código de verificación de registro a %s', email)
+                messages.error(request, 'No se pudo reenviar el código. Inténtalo nuevamente.')
+            else:
+                messages.success(request, 'Enviamos un nuevo código a tu correo. El código anterior dejó de ser válido.')
+            return redirect('registro_verificar')
+
+        codigo_ingresado = request.POST.get('codigo', '').strip()
+        if not re.fullmatch(r'\d{6}', codigo_ingresado):
+            error = 'Ingresa el código de 6 dígitos que enviamos a tu correo.'
+        elif not registro.is_valid() or registro.intentos >= 5:
+            error = 'El código venció o superaste los intentos permitidos. Puedes solicitar uno nuevo.'
+        else:
+            registro.intentos += 1
+            registro.save(update_fields=['intentos'])
+            if registro.codigo != codigo_ingresado:
+                error = f'El código no es correcto. Intento {registro.intentos} de 5.'
+            else:
+                try:
+                    with transaction.atomic():
+                        registro = RegistroPendiente.objects.select_for_update().get(pk=registro.pk)
+                        if not registro.is_valid() or registro.codigo != codigo_ingresado:
+                            raise ValueError('El código venció o ya no es válido.')
+                        user = Usuario(
+                            email=registro.email,
+                            nombre=registro.nombre,
+                            apellido=registro.apellido,
+                            rut=registro.rut,
+                            clave_radial=registro.clave_radial,
+                            compania=registro.compania,
+                            password=registro.password,
+                            is_active=False,
+                        )
+                        user.rol, _ = Rol.objects.get_or_create(
+                            nombre='Usuario',
+                            defaults={'descripcion': 'Usuario estándar del sistema'}
+                        )
+                        user.save()
+
+                        if registro.foto_perfil:
+                            registro.foto_perfil.open('rb')
+                            foto = ContentFile(registro.foto_perfil.read())
+                            registro.foto_perfil.close()
+                            nombre_archivo = registro.foto_perfil.name.rsplit('/', 1)[-1]
+                            user.foto_perfil.save(nombre_archivo, foto, save=True)
+                            registro.foto_perfil.delete(save=False)
+
+                        admins = Usuario.objects.filter(is_superuser=True)
+                        Notificacion.objects.bulk_create([
+                            Notificacion(
+                                usuario=admin,
+                                mensaje=f"Nueva solicitud de registro: {user.get_full_name()}",
+                                link="/administracion/?tab=requests"
+                            ) for admin in admins
+                        ])
+                        registro.delete()
+                except ValueError as exc:
+                    error = str(exc)
+                except IntegrityError:
+                    logger.exception('No se pudo crear la cuenta verificada para %s', email)
+                    registro_error = RegistroPendiente.objects.filter(email=email).first()
+                    if registro_error:
+                        if registro_error.foto_perfil:
+                            registro_error.foto_perfil.delete(save=False)
+                        registro_error.delete()
+                    messages.error(request, 'El correo o RUT ya fue registrado. Inicia sesión o contacta a administración.')
+                    request.session.pop('registro_pendiente_email', None)
+                    return redirect('login')
+                else:
+                    request.session.pop('registro_pendiente_email', None)
+                    messages.success(request, 'Correo verificado. Tu solicitud quedó pendiente de aprobación por un administrador.')
+                    return redirect('login')
+
+    return render(request, 'usuarios/registro_verificar.html', {
+        'correo_destino': email,
+        'codigo': codigo_ingresado,
+        'error_verificacion': error,
+        'codigo_expirado': not registro.is_valid() or registro.intentos >= 5,
+    })
 
 def login_view(request):
     if request.method == 'POST':

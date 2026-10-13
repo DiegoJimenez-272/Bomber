@@ -9,6 +9,7 @@ urlpatterns = [
 
     # Página de registro
     path('registro_view/', views.registro_view, name='registro'), 
+    path('registro/verificar/', views.registro_verificar_view, name='registro_verificar'),
 
     # Autenticación
     path('login/', views.login_view, name='login'),

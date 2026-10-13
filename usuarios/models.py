@@ -655,3 +655,28 @@ class PasswordResetCode(models.Model):
         if timezone.is_naive(self.creado_en):
             creado_en_aware = timezone.make_aware(self.creado_en, timezone.get_current_timezone())
         return not self.usado and self.intentos < 5 and (now - creado_en_aware) < datetime.timedelta(minutes=15)
+
+
+class RegistroPendiente(models.Model):
+    email = models.EmailField(max_length=80, unique=True)
+    nombre = models.CharField(max_length=80)
+    apellido = models.CharField(max_length=80)
+    rut = models.CharField(max_length=15)
+    clave_radial = models.CharField(max_length=20, null=True, blank=True)
+    compania = models.ForeignKey(Compania, on_delete=models.SET_NULL, null=True, blank=True)
+    foto_perfil = models.ImageField(
+        upload_to=SecureFilePath('registros_pendientes/'),
+        null=True,
+        blank=True,
+        validators=[validar_extension_imagen],
+    )
+    password = models.CharField(max_length=128)
+    codigo = models.CharField(max_length=6)
+    creado_en = models.DateTimeField(default=timezone.now)
+    intentos = models.PositiveIntegerField(default=0)
+
+    def is_valid(self):
+        return self.intentos <= 5 and (timezone.now() - self.creado_en) < datetime.timedelta(minutes=15)
+
+    def __str__(self):
+        return f"Registro pendiente para {self.email}"
