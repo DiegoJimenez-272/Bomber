@@ -265,10 +265,10 @@ class ProyectoForm(forms.ModelForm):
 class CajaChicaForm(forms.ModelForm):
     class Meta:
         model = CajaChica
-        fields = ['tipo', 'origen_egreso', 'monto', 'descripcion', 'documento_adjunto', 'compania']
+        fields = ['tipo', 'tipo_cuenta', 'monto', 'descripcion', 'documento_adjunto', 'compania']
         widgets = {
             'tipo': forms.Select(attrs={'class': 'form-select'}),
-            'origen_egreso': forms.Select(attrs={'class': 'form-select'}),
+            'tipo_cuenta': forms.Select(attrs={'class': 'form-select'}),
             'monto': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Monto en CLP', 'step': '0.01'}),
             'descripcion': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej: Compra de artículos de limpieza'}),
             'documento_adjunto': forms.FileInput(attrs={'class': 'form-control'}),
@@ -279,6 +279,7 @@ class CajaChicaForm(forms.ModelForm):
         self.user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
         self.fields['documento_adjunto'].required = False
+        self.fields['tipo_cuenta'].required = True
         
         if self.user and not self.user.is_superuser:
             if 'compania' in self.fields:
@@ -296,10 +297,8 @@ class CajaChicaForm(forms.ModelForm):
 
     def clean(self):
         cleaned_data = super().clean()
-        if cleaned_data.get('tipo') == 'Egreso' and not cleaned_data.get('origen_egreso'):
-            self.add_error('origen_egreso', 'Indica si el egreso se pagó desde Caja propia o Cuenta bancaria.')
-        elif cleaned_data.get('tipo') != 'Egreso':
-            cleaned_data['origen_egreso'] = ''
+        if not cleaned_data.get('tipo_cuenta'):
+            self.add_error('tipo_cuenta', 'Selecciona Caja propia o Cuenta bancaria para este movimiento.')
         return cleaned_data
 
 class MultipleFileInput(forms.ClearableFileInput):
@@ -739,10 +738,10 @@ class MantenimientoForm(forms.ModelForm):
         required=False,
         widget=forms.Select(attrs={'class': 'form-select'})
     )
-    origen_egreso = forms.ChoiceField(
-        label="Origen del egreso",
+    tipo_cuenta = forms.ChoiceField(
+        label="Tipo de cuenta",
         required=False,
-        choices=[('', 'Seleccionar origen...')] + CajaChica.ORIGEN_EGRESO_CHOICES,
+        choices=[('', 'Seleccionar tipo de cuenta...')] + CajaChica.TIPO_CUENTA_CHOICES,
         widget=forms.Select(attrs={'class': 'form-select'})
     )
 
@@ -771,7 +770,7 @@ class MantenimientoForm(forms.ModelForm):
             self.fields['caja_descuento'].choices = opciones_caja
         elif 'caja_descuento' in self.fields:
             del self.fields['caja_descuento']
-            del self.fields['origen_egreso']
+            del self.fields['tipo_cuenta']
 
         self.fields['responsable'].queryset = Usuario.objects.miembros_activos().order_by('nombre')
         self.fields['responsable'].empty_label = "Seleccionar responsable"
@@ -796,16 +795,19 @@ class MantenimientoForm(forms.ModelForm):
                 self.add_error('caja_descuento', 'Debe seleccionar una Cuenta de Origen para descontar los fondos.')
                 self.add_error('costo', 'Falta seleccionar la Cuenta de Origen (verifique que el campo exista en el formulario HTML).')
             elif caja_descuento != 'sin_costo':
-                if not cleaned_data.get('origen_egreso'):
-                    self.add_error('origen_egreso', 'Indica si el egreso se pagó desde Caja propia o Cuenta bancaria.')
-                compania_q = Compania.objects.filter(id=int(caja_descuento)).first() if caja_descuento != 'general' else None
-                saldo_dict = CajaChica.objects.filter(compania=compania_q).aggregate(
-                    saldo=Sum(Case(When(tipo='Ingreso', then=F('monto')), When(tipo='Egreso', then=-F('monto')), output_field=DecimalField()))
-                )
-                saldo = saldo_dict['saldo'] or 0
-                if saldo < costo:
-                    nombre_caja = f"la Caja {compania_q.nombre}" if compania_q else "la Caja General"
-                    self.add_error('costo', f'Fondos insuficientes en {nombre_caja}. Saldo actual disponible: ${saldo:,.0f}')
+                tipo_cuenta = cleaned_data.get('tipo_cuenta')
+                if not tipo_cuenta:
+                    self.add_error('tipo_cuenta', 'Selecciona Caja propia o Cuenta bancaria.')
+                if tipo_cuenta:
+                    compania_q = Compania.objects.filter(id=int(caja_descuento)).first() if caja_descuento != 'general' else None
+                    saldo_dict = CajaChica.objects.filter(compania=compania_q, tipo_cuenta=tipo_cuenta).aggregate(
+                        saldo=Sum(Case(When(tipo='Ingreso', then=F('monto')), When(tipo='Egreso', then=-F('monto')), output_field=DecimalField()))
+                    )
+                    saldo = saldo_dict['saldo'] or 0
+                    if saldo < costo:
+                        nombre_caja = f"la Caja {compania_q.nombre}" if compania_q else "la Caja General"
+                        nombre_cuenta = dict(CajaChica.TIPO_CUENTA_CHOICES).get(tipo_cuenta, 'cuenta seleccionada')
+                        self.add_error('costo', f'Fondos insuficientes en {nombre_caja} ({nombre_cuenta}). Saldo disponible: ${saldo:,.0f}')
         
         return cleaned_data
 

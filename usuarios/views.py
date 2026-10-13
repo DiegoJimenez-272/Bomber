@@ -459,10 +459,10 @@ def generar_reporte_anual_pdf(request):
             else:
                 caja_chica = CajaChica.objects.none()
                 
-        caja_chica_data = [['Fecha', 'Tipo', 'Origen', 'Descripción', 'Monto']]
+        caja_chica_data = [['Fecha', 'Tipo', 'Tipo de cuenta', 'Descripción', 'Monto']]
         for c in caja_chica:
             monto_str = f"+${c.monto:,.0f}" if c.tipo == 'Ingreso' else f"-${c.monto:,.0f}"
-            caja_chica_data.append([c.fecha.strftime('%d/%m/%Y'), c.tipo, c.get_origen_egreso_display() if c.tipo == 'Egreso' and c.origen_egreso else '—', c.descripcion, monto_str])
+            caja_chica_data.append([c.fecha.strftime('%d/%m/%Y'), c.tipo, c.get_tipo_cuenta_display() if c.tipo_cuenta else '—', c.descripcion, monto_str])
         story.append(create_table(caja_chica_data))
         story.append(Spacer(1, 0.3 * inch))
 
@@ -575,8 +575,8 @@ def generar_reporte_anual_excel(request):
         caja_chica_data = []
         for c in caja_chica:
             monto = c.monto if c.tipo == 'Ingreso' else -c.monto
-            caja_chica_data.append([c.fecha.strftime('%d/%m/%Y'), c.tipo, c.get_origen_egreso_display() if c.tipo == 'Egreso' and c.origen_egreso else '', c.descripcion, monto])
-        add_sheet("Caja", ['Fecha', 'Tipo', 'Origen', 'Descripción', 'Monto'], caja_chica_data)
+            caja_chica_data.append([c.fecha.strftime('%d/%m/%Y'), c.tipo, c.get_tipo_cuenta_display() if c.tipo_cuenta else '', c.descripcion, monto])
+        add_sheet("Caja", ['Fecha', 'Tipo', 'Tipo de cuenta', 'Descripción', 'Monto'], caja_chica_data)
 
     # 7. Cursos
     if 'cursos' in modulos:
@@ -2204,7 +2204,7 @@ def mantenimiento_view(request):
                 
                 CajaChica.objects.create(
                     tipo='Egreso',
-                    origen_egreso=form.cleaned_data['origen_egreso'],
+                    tipo_cuenta=form.cleaned_data['tipo_cuenta'],
                     monto=mantenimiento.costo,
                     descripcion=f"Pago por mantenimiento de {mantenimiento.vehiculo} ({mantenimiento.tipo})",
                     responsable=request.user,
@@ -2369,9 +2369,16 @@ def caja_chica_view(request):
         ))
     )['saldo'] or 0.00
 
+    saldo_caja_propia = movimientos.filter(tipo_cuenta='caja_propia').aggregate(
+        saldo=Sum(Case(When(tipo='Ingreso', then=F('monto')), When(tipo='Egreso', then=-F('monto')), output_field=DecimalField()))
+    )['saldo'] or 0.00
+    saldo_cuenta_bancaria = movimientos.filter(tipo_cuenta='cuenta_bancaria').aggregate(
+        saldo=Sum(Case(When(tipo='Ingreso', then=F('monto')), When(tipo='Egreso', then=-F('monto')), output_field=DecimalField()))
+    )['saldo'] or 0.00
+
     companias = Compania.objects.all() if request.user.is_superuser else (Compania.objects.filter(id=request.user.compania.id) if request.user.compania else None)
 
-    context = {'form': form, 'movimientos': movimientos, 'saldo_actual': saldo_actual, 'companias': companias, 'filtro_compania': filtro_compania, 'nombre_caja': nombre_caja}
+    context = {'form': form, 'movimientos': movimientos, 'saldo_actual': saldo_actual, 'saldo_caja_propia': saldo_caja_propia, 'saldo_cuenta_bancaria': saldo_cuenta_bancaria, 'companias': companias, 'filtro_compania': filtro_compania, 'nombre_caja': nombre_caja}
     return render(request, 'usuarios/caja_chica.html', context)
 
 @login_required

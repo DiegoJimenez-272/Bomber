@@ -600,19 +600,19 @@ class CajaChica(models.Model):
         ('Ingreso', 'Ingreso'),
         ('Egreso', 'Egreso'),
     ]
-    ORIGEN_EGRESO_CHOICES = [
+    TIPO_CUENTA_CHOICES = [
         ('caja_propia', 'Caja propia'),
         ('cuenta_bancaria', 'Cuenta bancaria'),
     ]
 
     fecha = models.DateTimeField(auto_now_add=True)
     tipo = models.CharField(max_length=10, choices=TIPO_MOVIMIENTO_CHOICES)
-    origen_egreso = models.CharField(
+    tipo_cuenta = models.CharField(
         max_length=20,
-        choices=ORIGEN_EGRESO_CHOICES,
+        choices=TIPO_CUENTA_CHOICES,
         blank=True,
         default='',
-        verbose_name='Origen del egreso',
+        verbose_name='Tipo de cuenta',
     )
     monto = models.DecimalField(max_digits=10, decimal_places=2)
     descripcion = models.CharField(max_length=255)

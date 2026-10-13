@@ -57,6 +57,20 @@
             </div>
         </div>
     </div>
+    <div class="row g-3 mb-4">
+        <div class="col-md-6">
+            <div class="card shadow-sm border-0 h-100"><div class="card-body py-3">
+                <h6 class="text-uppercase small text-muted mb-1">Caja propia</h6>
+                <div class="fs-4 fw-bold {% if saldo_caja_propia < 0 %}text-danger{% else %}text-success{% endif %}">${{ saldo_caja_propia|floatformat:0|intcomma }}</div>
+            </div></div>
+        </div>
+        <div class="col-md-6">
+            <div class="card shadow-sm border-0 h-100"><div class="card-body py-3">
+                <h6 class="text-uppercase small text-muted mb-1">Cuenta bancaria</h6>
+                <div class="fs-4 fw-bold {% if saldo_cuenta_bancaria < 0 %}text-danger{% else %}text-success{% endif %}">${{ saldo_cuenta_bancaria|floatformat:0|intcomma }}</div>
+            </div></div>
+        </div>
+    </div>
 
     <!-- Formulario de Búsqueda y Filtros en Tiempo Real -->
     <!-- Botón Desplegar / Reducir Filtros (Móvil) -->
@@ -99,7 +113,7 @@
                         <tr>
                             <th scope="col">Fecha</th>
                             <th scope="col">Tipo</th>
-                            <th scope="col">Origen</th>
+                            <th scope="col">Tipo de cuenta</th>
                             <th scope="col">Descripción</th>
                             <th scope="col">Monto</th>
                             <th scope="col">Responsable</th>
@@ -122,13 +136,7 @@
                                     <span class="badge bg-danger">{{ mov.tipo }}</span>
                                 {% endif %}
                             </td>
-                            <td>
-                                {% if mov.tipo == 'Egreso' %}
-                                    {{ mov.get_origen_egreso_display|default:"Sin especificar" }}
-                                {% else %}
-                                    <span class="text-muted">—</span>
-                                {% endif %}
-                            </td>
+                            <td>{{ mov.get_tipo_cuenta_display|default:"Sin especificar" }}</td>
                             <td>{{ mov.descripcion }}</td>
                             <td class="fw-bold {% if mov.tipo == 'Ingreso' %}text-success{% else %}text-danger{% endif %}">
                                 {% if mov.tipo == 'Ingreso' %}+{% else %}-{% endif %} ${{ mov.monto|floatformat:0|intcomma }}
@@ -154,7 +162,7 @@
                                             data-bs-target="#editMovimientoModal"
                                             data-mov-id="{{ mov.id }}"
                                             data-mov-tipo="{{ mov.tipo }}"
-                                            data-mov-origen-egreso="{{ mov.origen_egreso }}"
+                                            data-mov-tipo-cuenta="{{ mov.tipo_cuenta }}"
                                             data-mov-monto="{{ mov.monto|floatformat:0|intcomma }}"
                                             data-mov-descripcion="{{ mov.descripcion }}"
                                             data-mov-compania="{{ mov.compania.id|default:'' }}">
@@ -201,11 +209,11 @@
                         {{ form.tipo }}
                         {% for error in form.tipo.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
                     </div>
-                    <div class="mb-3" data-origen-egreso-container hidden>
-                        <label for="{{ form.origen_egreso.id_for_label }}" class="form-label">Origen del egreso</label>
-                        {{ form.origen_egreso }}
-                        <div class="form-text">Indica si el pago se hizo desde caja propia o una cuenta bancaria.</div>
-                        {% for error in form.origen_egreso.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                    <div class="mb-3">
+                        <label for="{{ form.tipo_cuenta.id_for_label }}" class="form-label">Tipo de cuenta</label>
+                        {{ form.tipo_cuenta }}
+                        <div class="form-text">Selecciona Caja propia o Cuenta bancaria para el ingreso o egreso.</div>
+                        {% for error in form.tipo_cuenta.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
                     </div>
                     <div class="mb-3">
                         <label for="{{ form.monto.id_for_label }}" class="form-label">Monto</label>
@@ -263,15 +271,15 @@
                             {% endfor %}
                         </select>
                     </div>
-                    <div class="mb-3" data-edit-origen-egreso-container hidden>
-                        <label for="edit_origen_egreso" class="form-label">Origen del egreso</label>
-                        <select id="edit_origen_egreso" name="origen_egreso" class="form-select">
-                            <option value="">Seleccionar origen</option>
-                            {% for choice in form.origen_egreso.field.choices %}
+                    <div class="mb-3">
+                        <label for="edit_tipo_cuenta" class="form-label">Tipo de cuenta</label>
+                        <select id="edit_tipo_cuenta" name="tipo_cuenta" class="form-select" required>
+                            <option value="">Seleccionar tipo de cuenta</option>
+                            {% for choice in form.tipo_cuenta.field.choices %}
                                 {% if choice.0 %}<option value="{{ choice.0 }}">{{ choice.1 }}</option>{% endif %}
                             {% endfor %}
                         </select>
-                        <div class="form-text">Indica si el pago se hizo desde caja propia o una cuenta bancaria.</div>
+                        <div class="form-text">Selecciona Caja propia o Cuenta bancaria.</div>
                     </div>
                     <div class="mb-3">
                         <label for="edit_monto" class="form-label">Monto</label>
@@ -344,25 +352,6 @@ document.addEventListener('DOMContentLoaded', function () {
         createMovimientoModal.show();
     {% endif %}
 
-    function actualizarOrigenEgreso(tipoSelect, container, origenSelect) {
-        if (!tipoSelect || !container || !origenSelect) return;
-        const esEgreso = tipoSelect.value === 'Egreso';
-        container.hidden = !esEgreso;
-        origenSelect.required = esEgreso;
-        if (!esEgreso) origenSelect.value = '';
-    }
-
-    const createTipo = document.getElementById('id_tipo');
-    const createOrigen = document.getElementById('id_origen_egreso');
-    const createOrigenContainer = document.querySelector('#createMovimientoModal [data-origen-egreso-container]');
-    actualizarOrigenEgreso(createTipo, createOrigenContainer, createOrigen);
-    if (createTipo) createTipo.addEventListener('change', () => actualizarOrigenEgreso(createTipo, createOrigenContainer, createOrigen));
-
-    const editTipo = document.getElementById('edit_tipo');
-    const editOrigen = document.getElementById('edit_origen_egreso');
-    const editOrigenContainer = document.querySelector('#editMovimientoModal [data-edit-origen-egreso-container]');
-    if (editTipo) editTipo.addEventListener('change', () => actualizarOrigenEgreso(editTipo, editOrigenContainer, editOrigen));
-
     // Lógica para el modal de edición
     var editModal = document.getElementById('editMovimientoModal');
     editModal.addEventListener('show.bs.modal', function (event) {
@@ -370,8 +359,7 @@ document.addEventListener('DOMContentLoaded', function () {
         var form = document.getElementById('editMovimientoForm');
         form.action = `/caja-chica/${button.dataset.movId}/edit/`;
         form.querySelector('#edit_tipo').value = button.dataset.movTipo;
-        form.querySelector('#edit_origen_egreso').value = button.dataset.movOrigenEgreso || '';
-        actualizarOrigenEgreso(form.querySelector('#edit_tipo'), form.querySelector('[data-edit-origen-egreso-container]'), form.querySelector('#edit_origen_egreso'));
+        form.querySelector('#edit_tipo_cuenta').value = button.dataset.movTipoCuenta || '';
         form.querySelector('#edit_monto').value = button.dataset.movMonto;
         form.querySelector('#edit_descripcion').value = button.dataset.movDescripcion;
         
