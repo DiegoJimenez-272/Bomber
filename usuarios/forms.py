@@ -278,7 +278,7 @@ class CajaChicaForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         self.user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
-        self.fields['documento_adjunto'].required = False
+        self.fields['documento_adjunto'].required = not bool(self.instance.pk)
         self.fields['tipo_cuenta'].required = True
         
         if self.user and not self.user.is_superuser:
