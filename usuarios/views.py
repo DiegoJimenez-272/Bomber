@@ -64,40 +64,37 @@ def registro_view(request):
         if form.is_valid():
             user = form.save(commit=False)
             email = form.cleaned_data['email'].strip()
-            if Usuario.objects.filter(email__iexact=email).exists():
-                form.add_error('email', 'Este correo ya está registrado en el sistema.')
-            else:
-                anterior = RegistroPendiente.objects.filter(email__iexact=email).first()
-                if anterior:
-                    if anterior.foto_perfil:
-                        anterior.foto_perfil.delete(save=False)
-                    anterior.delete()
+            anterior = RegistroPendiente.objects.filter(email__iexact=email).first()
+            if anterior:
+                if anterior.foto_perfil:
+                    anterior.foto_perfil.delete(save=False)
+                anterior.delete()
 
-                registro = RegistroPendiente(
-                    email=email,
-                    nombre=user.nombre,
-                    apellido=user.apellido,
-                    rut=user.rut,
-                    clave_radial=user.clave_radial,
-                    compania=user.compania,
-                    password=user.password,
-                    codigo=f"{secrets.randbelow(900000) + 100000}",
-                    foto_perfil=form.cleaned_data.get('foto_perfil'),
-                )
-                registro.save()
-                try:
-                    _enviar_codigo_registro(registro)
-                except Exception:
-                    logger.exception('No se pudo enviar el código de verificación de registro a %s', email)
-                    if registro.foto_perfil:
-                        registro.foto_perfil.delete(save=False)
-                    registro.delete()
-                    messages.error(request, 'No se pudo enviar el correo de verificación. Revisa tu dirección e inténtalo nuevamente.')
-                else:
-                    request.session['registro_pendiente_email'] = email
-                    request.session.set_expiry(30 * 60)
-                    messages.success(request, 'Te enviamos un código de verificación. Ingrésalo para completar tu registro.')
-                    return redirect('registro_verificar')
+            registro = RegistroPendiente(
+                email=email,
+                nombre=user.nombre,
+                apellido=user.apellido,
+                rut=user.rut,
+                clave_radial=user.clave_radial,
+                compania=user.compania,
+                password=user.password,
+                codigo=f"{secrets.randbelow(900000) + 100000}",
+                foto_perfil=form.cleaned_data.get('foto_perfil'),
+            )
+            registro.save()
+            try:
+                _enviar_codigo_registro(registro)
+            except Exception:
+                logger.exception('No se pudo enviar el código de verificación de registro a %s', email)
+                if registro.foto_perfil:
+                    registro.foto_perfil.delete(save=False)
+                registro.delete()
+                messages.error(request, 'No se pudo enviar el correo de verificación. Revisa tu dirección e inténtalo nuevamente.')
+            else:
+                request.session['registro_pendiente_email'] = email
+                request.session.set_expiry(30 * 60)
+                messages.success(request, 'Te enviamos un código de verificación. Ingrésalo para completar tu registro.')
+                return redirect('registro_verificar')
         else:
             messages.error(request, 'Por favor, corrige los errores en el formulario.')
     else:
@@ -145,6 +142,16 @@ def registro_verificar_view(request):
             if registro.codigo != codigo_ingresado:
                 error = f'El código no es correcto. Intento {registro.intentos} de 5.'
             else:
+                identificador_ya_usado = Usuario.objects.filter(
+                    Q(email__iexact=registro.email) | Q(rut=registro.rut)
+                ).exists()
+                if identificador_ya_usado:
+                    if registro.foto_perfil:
+                        registro.foto_perfil.delete(save=False)
+                    registro.delete()
+                    request.session.pop('registro_pendiente_email', None)
+                    messages.success(request, 'Correo verificado. Si la solicitud procede, quedará pendiente de aprobación administrativa.')
+                    return redirect('login')
                 try:
                     with transaction.atomic():
                         registro = RegistroPendiente.objects.select_for_update().get(pk=registro.pk)
@@ -192,12 +199,12 @@ def registro_verificar_view(request):
                         if registro_error.foto_perfil:
                             registro_error.foto_perfil.delete(save=False)
                         registro_error.delete()
-                    messages.error(request, 'El correo o RUT ya fue registrado. Inicia sesión o contacta a administración.')
+                    messages.success(request, 'Correo verificado. Si la solicitud procede, quedará pendiente de aprobación administrativa.')
                     request.session.pop('registro_pendiente_email', None)
                     return redirect('login')
                 else:
                     request.session.pop('registro_pendiente_email', None)
-                    messages.success(request, 'Correo verificado. Tu solicitud quedó pendiente de aprobación por un administrador.')
+                    messages.success(request, 'Correo verificado. Si la solicitud procede, quedará pendiente de aprobación administrativa.')
                     return redirect('login')
 
     return render(request, 'usuarios/registro_verificar.html', {

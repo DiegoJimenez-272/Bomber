@@ -68,9 +68,12 @@ class RegistroForm(UserCreationForm):
         if rut:
             validar_rut_chileno(rut)
             rut = formatear_rut(rut)
-            if Usuario.objects.filter(rut=rut).exists():
-                raise forms.ValidationError("Este RUT ya se encuentra registrado en el sistema.")
         return rut
+
+    def validate_unique(self):
+        # La existencia de correo/RUT se maneja después de verificar el email para
+        # evitar revelar qué dato coincide con una cuenta registrada.
+        return
 
     def save(self, commit=True):
         user = super().save(commit=False)
