@@ -459,10 +459,10 @@ def generar_reporte_anual_pdf(request):
             else:
                 caja_chica = CajaChica.objects.none()
                 
-        caja_chica_data = [['Fecha', 'Tipo', 'Descripción', 'Monto']]
+        caja_chica_data = [['Fecha', 'Tipo', 'Origen', 'Descripción', 'Monto']]
         for c in caja_chica:
             monto_str = f"+${c.monto:,.0f}" if c.tipo == 'Ingreso' else f"-${c.monto:,.0f}"
-            caja_chica_data.append([c.fecha.strftime('%d/%m/%Y'), c.tipo, c.descripcion, monto_str])
+            caja_chica_data.append([c.fecha.strftime('%d/%m/%Y'), c.tipo, c.get_origen_egreso_display() if c.tipo == 'Egreso' and c.origen_egreso else '—', c.descripcion, monto_str])
         story.append(create_table(caja_chica_data))
         story.append(Spacer(1, 0.3 * inch))
 
@@ -575,8 +575,8 @@ def generar_reporte_anual_excel(request):
         caja_chica_data = []
         for c in caja_chica:
             monto = c.monto if c.tipo == 'Ingreso' else -c.monto
-            caja_chica_data.append([c.fecha.strftime('%d/%m/%Y'), c.tipo, c.descripcion, monto])
-        add_sheet("Caja", ['Fecha', 'Tipo', 'Descripción', 'Monto'], caja_chica_data)
+            caja_chica_data.append([c.fecha.strftime('%d/%m/%Y'), c.tipo, c.get_origen_egreso_display() if c.tipo == 'Egreso' and c.origen_egreso else '', c.descripcion, monto])
+        add_sheet("Caja", ['Fecha', 'Tipo', 'Origen', 'Descripción', 'Monto'], caja_chica_data)
 
     # 7. Cursos
     if 'cursos' in modulos:
@@ -2204,6 +2204,7 @@ def mantenimiento_view(request):
                 
                 CajaChica.objects.create(
                     tipo='Egreso',
+                    origen_egreso=form.cleaned_data['origen_egreso'],
                     monto=mantenimiento.costo,
                     descripcion=f"Pago por mantenimiento de {mantenimiento.vehiculo} ({mantenimiento.tipo})",
                     responsable=request.user,

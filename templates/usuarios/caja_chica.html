@@ -99,6 +99,7 @@
                         <tr>
                             <th scope="col">Fecha</th>
                             <th scope="col">Tipo</th>
+                            <th scope="col">Origen</th>
                             <th scope="col">Descripción</th>
                             <th scope="col">Monto</th>
                             <th scope="col">Responsable</th>
@@ -110,7 +111,7 @@
                         </tr>
                     </thead>
                     <tbody id="cajaTableBody">
-                        <tr id="no-caja-found" style="display: none;"><td colspan="{% if request.user.is_superuser %}8{% else %}7{% endif %}" class="text-center text-muted py-4">No se encontraron movimientos con los filtros aplicados.</td></tr>
+                        <tr id="no-caja-found" style="display: none;"><td colspan="{% if request.user.is_superuser %}9{% else %}8{% endif %}" class="text-center text-muted py-4">No se encontraron movimientos con los filtros aplicados.</td></tr>
                         {% for mov in movimientos %}
                         <tr>
                             <td>{{ mov.fecha|date:"d/m/Y H:i" }}</td>
@@ -119,6 +120,13 @@
                                     <span class="badge bg-success">{{ mov.tipo }}</span>
                                 {% else %}
                                     <span class="badge bg-danger">{{ mov.tipo }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if mov.tipo == 'Egreso' %}
+                                    {{ mov.get_origen_egreso_display|default:"Sin especificar" }}
+                                {% else %}
+                                    <span class="text-muted">—</span>
                                 {% endif %}
                             </td>
                             <td>{{ mov.descripcion }}</td>
@@ -146,6 +154,7 @@
                                             data-bs-target="#editMovimientoModal"
                                             data-mov-id="{{ mov.id }}"
                                             data-mov-tipo="{{ mov.tipo }}"
+                                            data-mov-origen-egreso="{{ mov.origen_egreso }}"
                                             data-mov-monto="{{ mov.monto|floatformat:0|intcomma }}"
                                             data-mov-descripcion="{{ mov.descripcion }}"
                                             data-mov-compania="{{ mov.compania.id|default:'' }}">
@@ -162,7 +171,7 @@
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="{% if request.user.is_superuser %}8{% else %}7{% endif %}" class="text-center text-muted py-4">No hay movimientos registrados.</td>
+                            <td colspan="{% if request.user.is_superuser %}9{% else %}8{% endif %}" class="text-center text-muted py-4">No hay movimientos registrados.</td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -191,6 +200,12 @@
                         <label for="{{ form.tipo.id_for_label }}" class="form-label">Tipo de Movimiento</label>
                         {{ form.tipo }}
                         {% for error in form.tipo.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                    </div>
+                    <div class="mb-3" data-origen-egreso-container hidden>
+                        <label for="{{ form.origen_egreso.id_for_label }}" class="form-label">Origen del egreso</label>
+                        {{ form.origen_egreso }}
+                        <div class="form-text">Indica si el pago se hizo desde caja propia o una cuenta bancaria.</div>
+                        {% for error in form.origen_egreso.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
                     </div>
                     <div class="mb-3">
                         <label for="{{ form.monto.id_for_label }}" class="form-label">Monto</label>
@@ -247,6 +262,16 @@
                                 <option value="{{ choice.0 }}">{{ choice.1 }}</option>
                             {% endfor %}
                         </select>
+                    </div>
+                    <div class="mb-3" data-edit-origen-egreso-container hidden>
+                        <label for="edit_origen_egreso" class="form-label">Origen del egreso</label>
+                        <select id="edit_origen_egreso" name="origen_egreso" class="form-select">
+                            <option value="">Seleccionar origen</option>
+                            {% for choice in form.origen_egreso.field.choices %}
+                                {% if choice.0 %}<option value="{{ choice.0 }}">{{ choice.1 }}</option>{% endif %}
+                            {% endfor %}
+                        </select>
+                        <div class="form-text">Indica si el pago se hizo desde caja propia o una cuenta bancaria.</div>
                     </div>
                     <div class="mb-3">
                         <label for="edit_monto" class="form-label">Monto</label>
@@ -319,6 +344,25 @@ document.addEventListener('DOMContentLoaded', function () {
         createMovimientoModal.show();
     {% endif %}
 
+    function actualizarOrigenEgreso(tipoSelect, container, origenSelect) {
+        if (!tipoSelect || !container || !origenSelect) return;
+        const esEgreso = tipoSelect.value === 'Egreso';
+        container.hidden = !esEgreso;
+        origenSelect.required = esEgreso;
+        if (!esEgreso) origenSelect.value = '';
+    }
+
+    const createTipo = document.getElementById('id_tipo');
+    const createOrigen = document.getElementById('id_origen_egreso');
+    const createOrigenContainer = document.querySelector('#createMovimientoModal [data-origen-egreso-container]');
+    actualizarOrigenEgreso(createTipo, createOrigenContainer, createOrigen);
+    if (createTipo) createTipo.addEventListener('change', () => actualizarOrigenEgreso(createTipo, createOrigenContainer, createOrigen));
+
+    const editTipo = document.getElementById('edit_tipo');
+    const editOrigen = document.getElementById('edit_origen_egreso');
+    const editOrigenContainer = document.querySelector('#editMovimientoModal [data-edit-origen-egreso-container]');
+    if (editTipo) editTipo.addEventListener('change', () => actualizarOrigenEgreso(editTipo, editOrigenContainer, editOrigen));
+
     // Lógica para el modal de edición
     var editModal = document.getElementById('editMovimientoModal');
     editModal.addEventListener('show.bs.modal', function (event) {
@@ -326,6 +370,8 @@ document.addEventListener('DOMContentLoaded', function () {
         var form = document.getElementById('editMovimientoForm');
         form.action = `/caja-chica/${button.dataset.movId}/edit/`;
         form.querySelector('#edit_tipo').value = button.dataset.movTipo;
+        form.querySelector('#edit_origen_egreso').value = button.dataset.movOrigenEgreso || '';
+        actualizarOrigenEgreso(form.querySelector('#edit_tipo'), form.querySelector('[data-edit-origen-egreso-container]'), form.querySelector('#edit_origen_egreso'));
         form.querySelector('#edit_monto').value = button.dataset.movMonto;
         form.querySelector('#edit_descripcion').value = button.dataset.movDescripcion;
         

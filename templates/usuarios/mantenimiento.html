@@ -254,6 +254,12 @@
                             {{ form.caja_descuento }}
                             {% for error in form.caja_descuento.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
                         </div>
+                        <div class="col-md-6">
+                            <label for="{{ form.origen_egreso.id_for_label }}" class="form-label">Origen del egreso</label>
+                            {{ form.origen_egreso }}
+                            <div class="form-text">Caja propia o cuenta bancaria.</div>
+                            {% for error in form.origen_egreso.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                        </div>
                         <div class="col-12">
                             <label class="form-label d-block">Tipo</label>
                             <div class="d-flex gap-4">

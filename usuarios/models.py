@@ -600,9 +600,20 @@ class CajaChica(models.Model):
         ('Ingreso', 'Ingreso'),
         ('Egreso', 'Egreso'),
     ]
+    ORIGEN_EGRESO_CHOICES = [
+        ('caja_propia', 'Caja propia'),
+        ('cuenta_bancaria', 'Cuenta bancaria'),
+    ]
 
     fecha = models.DateTimeField(auto_now_add=True)
     tipo = models.CharField(max_length=10, choices=TIPO_MOVIMIENTO_CHOICES)
+    origen_egreso = models.CharField(
+        max_length=20,
+        choices=ORIGEN_EGRESO_CHOICES,
+        blank=True,
+        default='',
+        verbose_name='Origen del egreso',
+    )
     monto = models.DecimalField(max_digits=10, decimal_places=2)
     descripcion = models.CharField(max_length=255)
     responsable = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
@@ -643,4 +654,4 @@ class PasswordResetCode(models.Model):
         creado_en_aware = self.creado_en
         if timezone.is_naive(self.creado_en):
             creado_en_aware = timezone.make_aware(self.creado_en, timezone.get_current_timezone())
-        return not self.usado and self.intentos < 5 and (now - creado_en_aware) < datetime.timedelta(minutes=15)
+        return not self.usado and self.intentos < 5 and (now - creado_en_aware) < datetime.timedelta(minutes=15)
