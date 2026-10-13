@@ -151,7 +151,7 @@ def dashboard_view(request):
         {'id': 'emergencias', 'url_name': 'emergencias', 'icon': 'bi-exclamation-octagon-fill', 'title': 'Emergencias', 'desc': 'Gestión de incidentes y respuesta'},
         {'id': 'capacitaciones', 'url_name': 'capacitaciones', 'icon': 'bi-mortarboard-fill', 'title': 'Cursos y Capacitaciones', 'desc': 'Programación y seguimiento de cursos y entrenamientos'},
         {'id': 'mantenimiento', 'url_name': 'mantenimiento', 'icon': 'bi-wrench-adjustable-circle-fill', 'title': 'Mantenimiento', 'desc': 'Gestión de la flota vehicular'},
-        {'id': 'caja_chica', 'url_name': 'caja_chica', 'icon': 'bi-wallet-fill', 'title': 'Caja Chica', 'desc': 'Control de gastos menores'},
+        {'id': 'caja_chica', 'url_name': 'caja_chica', 'icon': 'bi-wallet-fill', 'title': 'Caja', 'desc': 'Control de gastos menores'},
         {'id': 'proyectos', 'url_name': 'proyectos', 'icon': 'bi-graph-up-arrow', 'title': 'Proyectos', 'desc': 'Seguimiento de proyectos y mejoras'},
         {'id': 'scan_qr', 'url_name': 'scan_qr_page', 'icon': 'bi-qr-code-scan', 'title': 'Escanear QR', 'desc': 'Identifica un ítem de inventario usando su código QR.'},
         {'id': 'inspectores', 'url_name': 'inspectores', 'icon': 'bi-search', 'title': 'Inspectores', 'desc': 'Documentos y archivos exclusivos de inspectores'},
@@ -215,7 +215,7 @@ def dashboard_summary_view(request):
     start_of_month = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
     emergencies_this_month = Emergencia.objects.filter(fecha_hora_alarma__gte=start_of_month).count()
 
-    # --- Lógica de Filtro para Caja Chica ---
+    # --- Lógica de Filtro para Caja ---
     caja_chica_qs = CajaChica.objects.all()
     nombre_caja = "Global" # Título por defecto
     filtro_compania_caja = 'todas'
@@ -250,7 +250,7 @@ def dashboard_summary_view(request):
     emergencia_labels = [item['tipo'] for item in emergencias_por_tipo]
     emergencia_data = [item['count'] for item in emergencias_por_tipo]
 
-    # --- Datos para Gráfico de Caja Chica (Líneas) ---
+    # --- Datos para Gráfico de Caja (Líneas) ---
     today = timezone.now()
     start_date = (today - timedelta(days=29)).replace(hour=0, minute=0, second=0, microsecond=0)
     
@@ -449,9 +449,9 @@ def generar_reporte_anual_pdf(request):
         story.append(create_table(inventario_data))
         story.append(Spacer(1, 0.3 * inch))
 
-    # 6. Caja Chica
+    # 6. Caja
     if 'caja_chica' in modulos:
-        story.append(Paragraph("Resumen de Caja Chica", styles['HeaderStyle']))
+        story.append(Paragraph("Resumen de Caja", styles['HeaderStyle']))
         caja_chica = CajaChica.objects.all()
         if not request.user.is_superuser:
             if request.user.compania:
@@ -563,7 +563,7 @@ def generar_reporte_anual_excel(request):
             inventario_data.append([Inventario.ITEM_CHOICES_DICT.get(i['nombre'], i['nombre']), i['cantidad'], i['ubicacion'], i['estado']])
         add_sheet("Inventario", ['Nombre', 'Cantidad', 'Ubicación', 'Estado'], inventario_data)
 
-    # 6. Caja Chica
+    # 6. Caja
     if 'caja_chica' in modulos:
         caja_chica = CajaChica.objects.all()
         if not request.user.is_superuser:
@@ -576,7 +576,7 @@ def generar_reporte_anual_excel(request):
         for c in caja_chica:
             monto = c.monto if c.tipo == 'Ingreso' else -c.monto
             caja_chica_data.append([c.fecha.strftime('%d/%m/%Y'), c.tipo, c.descripcion, monto])
-        add_sheet("Caja Chica", ['Fecha', 'Tipo', 'Descripción', 'Monto'], caja_chica_data)
+        add_sheet("Caja", ['Fecha', 'Tipo', 'Descripción', 'Monto'], caja_chica_data)
 
     # 7. Cursos
     if 'cursos' in modulos:
@@ -2195,7 +2195,7 @@ def mantenimiento_view(request):
             mantenimiento = form.save(commit=False)
             es_nuevo = not mantenimiento.pk
             
-            # --- LÓGICA DE CAJA CHICA: Descuento manual ---
+            # --- LÓGICA DE CAJA: Descuento manual ---
             caja_descuento = form.cleaned_data.get('caja_descuento')
             if es_nuevo and mantenimiento.costo > 0 and caja_descuento and caja_descuento != 'sin_costo':
                 compania_caja = None if caja_descuento == 'general' else Compania.objects.filter(id=int(caja_descuento)).first()
@@ -2311,7 +2311,7 @@ def mantenimiento_delete_view(request, mantenimiento_id):
 @login_required
 def caja_chica_view(request):
     if not request.user.is_superuser and not (request.user.rol and request.user.rol.ver_caja_chica):
-        messages.error(request, 'No tienes permiso para acceder a la Caja Chica.')
+        messages.error(request, 'No tienes permiso para acceder a Caja.')
         return redirect('dashboard')
 
     if request.method == 'POST':
@@ -2355,7 +2355,7 @@ def caja_chica_view(request):
             try:
                 nombre_caja = Compania.objects.get(id=filtro_compania).nombre
             except:
-                nombre_caja = "Caja Chica"
+                nombre_caja = "Caja"
         else:
             nombre_caja = "Todas las Cajas (General + Compañía)"
     
@@ -2380,7 +2380,7 @@ def caja_chica_edit_view(request, movimiento_id):
         messages.error(request, 'No tienes permiso para editar este movimiento.')
         return redirect('caja_chica')
     if not pertenencia_compania(request.user, movimiento.compania):
-        messages.error(request, 'No tienes acceso a la caja chica de esta compañía.')
+        messages.error(request, 'No tienes acceso a la caja de esta compañía.')
         return redirect('caja_chica')
 
     if request.method == 'POST':
@@ -2399,7 +2399,7 @@ def caja_chica_delete_view(request, movimiento_id):
         messages.error(request, 'No tienes permiso para eliminar este movimiento.')
         return redirect('caja_chica')
     if not pertenencia_compania(request.user, movimiento.compania):
-        messages.error(request, 'No tienes acceso a la caja chica de esta compañía.')
+        messages.error(request, 'No tienes acceso a la caja de esta compañía.')
         return redirect('caja_chica')
     if request.method == 'POST':
         movimiento_desc = movimiento.descripcion

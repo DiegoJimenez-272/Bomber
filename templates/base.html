@@ -300,7 +300,7 @@
                 {% endif %}
 
                 {% if request.user.is_superuser or request.user.rol.ver_proyectos %}
-                <li class="nav-item"><a href="{% url 'caja_chica' %}" class="nav-link {% if request.resolver_match.url_name == 'caja_chica' %}active{% endif %}"><i class="bi bi-wallet-fill"></i>Caja Chica</a></li>
+                <li class="nav-item"><a href="{% url 'caja_chica' %}" class="nav-link {% if request.resolver_match.url_name == 'caja_chica' %}active{% endif %}"><i class="bi bi-wallet-fill"></i>Caja</a></li>
                 {% endif %}
                 
                 {% if request.user.is_superuser %}

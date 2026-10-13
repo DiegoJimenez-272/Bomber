@@ -56,7 +56,7 @@
                         <i class="bi bi-wallet2 fs-2"></i>
                     </div>
                     <div>
-                        <h6 class="text-muted mb-1">Saldo Caja Chica</h6>
+                        <h6 class="text-muted mb-1">Saldo Caja</h6>
                         <h3 class="fw-bold mb-0">${{ saldo_caja_chica|floatformat:0|intcomma }}</h3>
                     </div>
                 </div>
@@ -79,7 +79,7 @@
         <div class="col-lg-7">
             <div class="card shadow-sm h-100">
                 <div class="card-header">
-                    <h5 class="card-title mb-0">Flujo de Caja Chica (Últimos 30 días)</h5>
+                    <h5 class="card-title mb-0">Flujo de Caja (Últimos 30 días)</h5>
                 </div>
                 <div class="card-body">
                     <canvas id="cajaChicaChart" style="max-height: 300px;"></canvas>
@@ -152,7 +152,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // Gráfico de Caja Chica
+    // Gráfico de Caja
     const cajaChicaCtx = document.getElementById('cajaChicaChart');
     if (cajaChicaCtx) {
         new Chart(cajaChicaCtx, {

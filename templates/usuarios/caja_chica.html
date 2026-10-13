@@ -1,12 +1,12 @@
 {% extends 'base_con_condicion.html' %}
 {% load humanize %}
 
-{% block title %}Caja Chica - {{ block.super }}{% endblock %}
+{% block title %}Caja - {{ block.super }}{% endblock %}
 
 {% block content %}
 <!-- Header del contenido principal -->
 <header class="d-flex align-items-center justify-content-between pb-3 mb-4 border-bottom">
-    <h1 class="h2 mb-0">Control de Caja Chica</h1>
+    <h1 class="h2 mb-0">Control de Caja</h1>
     {% if request.user.is_superuser or request.user.rol.editar_caja_chica %}
     <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#createMovimientoModal">
         <i class="bi bi-plus-lg me-1"></i> Nuevo Movimiento
@@ -14,7 +14,7 @@
     {% endif %}
 </header>
 
-<!-- Contenido de Caja Chica -->
+<!-- Contenido de Caja -->
 <main>
     {% if messages %}
         {% for message in messages %}
@@ -343,7 +343,7 @@ document.addEventListener('DOMContentLoaded', function () {
         document.getElementById('movDescripcionToDelete').textContent = button.dataset.movDescripcion;
     });
 
-    // --- Lógica de Filtrado en Tiempo Real para Caja Chica ---
+    // --- Lógica de Filtrado en Tiempo Real para Caja ---
     const cajaSearchInput = document.getElementById('cajaSearchInput');
     const cajaTypeFilter = document.getElementById('cajaTypeFilter');
     const cajaTableBody = document.getElementById('cajaTableBody');
