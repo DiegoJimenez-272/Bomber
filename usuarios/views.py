@@ -2859,7 +2859,8 @@ def aviso_create_view(request):
   <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f3f5f8;padding:32px 12px;">
     <tr><td align="center">
       <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="width:100%;max-width:600px;background:#ffffff;border:1px solid #e2e6ea;border-radius:12px;overflow:hidden;">
-        <tr><td style="background:#c9233a;padding:22px 30px;color:#ffffff;">
+        <tr><td style="background:#c9233a;padding:22px 30px;color:#ffffff;text-align:center;">
+          <img src="https://www.sigbomberosmulchen.cl/media/logos_companias/Compania_general.png" alt="Logo del Cuerpo de Bomberos de Mulchén" width="68" height="68" style="display:block;width:68px;height:68px;object-fit:contain;margin:0 auto 14px;background:#ffffff;border-radius:50%;padding:5px;">
           <div style="font-size:12px;letter-spacing:1.2px;text-transform:uppercase;opacity:.9;">Cuerpo de Bomberos de Mulchén</div>
           <div style="font-size:21px;font-weight:700;margin-top:6px;">Sistema de Gestión de Bomberos</div>
         </td></tr>
