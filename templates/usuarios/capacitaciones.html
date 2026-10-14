@@ -686,6 +686,12 @@
                         </tbody>
                     </table>
                 </div>
+                <div id="abonoPaginationContainer" class="d-flex justify-content-between align-items-center flex-wrap gap-2 p-3 border-top" hidden>
+                    <small id="abonoPaginationInfo" class="text-muted" aria-live="polite"></small>
+                    <nav aria-label="Paginación de la lista de abonados">
+                        <ul id="abonoPagination" class="pagination pagination-sm mb-0"></ul>
+                    </nav>
+                </div>
             </div>
         </div>
     </div> <!-- Cierre tab-pane abono -->
@@ -693,6 +699,34 @@
     </div> <!-- Cierre tab-content -->
 
     <style>
+        #abonoPaginationContainer[hidden] { display: none !important; }
+        #abonoPagination .page-link {
+            color: #dc3545;
+            border-color: #dee2e6;
+        }
+        #abonoPagination .page-link:hover {
+            color: #a71d2a;
+            background-color: #fff0f1;
+            border-color: #f1b0b7;
+        }
+        #abonoPagination .page-item.active .page-link {
+            color: #fff;
+            background-color: #dc3545;
+            border-color: #dc3545;
+        }
+        #abonoPagination .page-link:focus-visible {
+            box-shadow: 0 0 0 .2rem rgba(220, 53, 69, .25);
+        }
+        body.dark-mode #abonoPagination .page-link {
+            color: #ff9aa2;
+            background-color: #343a40;
+            border-color: #495057;
+        }
+        body.dark-mode #abonoPagination .page-item.active .page-link {
+            color: #fff;
+            background-color: #dc3545;
+            border-color: #dc3545;
+        }
         .filter-panel {
             border: 1px solid #e1e5ea;
             border-radius: .65rem;
@@ -1192,32 +1226,96 @@ document.addEventListener('DOMContentLoaded', function () {
     if (cursoFilterButton) cursoFilterButton.addEventListener('click', filterCursos);
     filterCursos();
 
-    // --- Búsqueda rápida en tiempo real para Lista de Abono ---
+    // --- Búsqueda y paginación de la Lista de Abono ---
     const abonoSearchInput = document.getElementById('abonoSearchInput');
-    if (abonoSearchInput) {
-        abonoSearchInput.addEventListener('input', function() {
-            const query = this.value.toLowerCase().trim();
-            const rows = document.querySelectorAll('#abonoTableBody tr.abono-row');
-            let visibleCount = 0;
+    const abonoRows = Array.from(document.querySelectorAll('#abonoTableBody tr.abono-row'));
+    const abonoNoFoundRow = document.getElementById('noAbonoFound');
+    const abonoPaginationContainer = document.getElementById('abonoPaginationContainer');
+    const abonoPaginationInfo = document.getElementById('abonoPaginationInfo');
+    const abonoPagination = document.getElementById('abonoPagination');
+    const abonoPageSize = 10;
+    let abonoCurrentPage = 1;
 
-            rows.forEach(function(row) {
-                const nombre = row.dataset.nombre || '';
-                const rut = row.dataset.rut || '';
+    function renderAbonoPagination(totalPages) {
+        if (!abonoPagination) return;
+        abonoPagination.replaceChildren();
+        if (abonoPaginationContainer) abonoPaginationContainer.hidden = totalPages <= 1;
+        if (totalPages <= 1) return;
 
-                if (query === '' || nombre.includes(query) || rut.includes(query)) {
-                    row.style.display = '';
-                    visibleCount++;
-                } else {
-                    row.style.display = 'none';
-                }
+        function addPage(label, page, disabled, active, ariaLabel) {
+            const item = document.createElement('li');
+            item.className = `page-item${disabled ? ' disabled' : ''}${active ? ' active' : ''}`;
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'page-link';
+            button.textContent = label;
+            button.disabled = disabled;
+            if (ariaLabel) button.setAttribute('aria-label', ariaLabel);
+            if (active) button.setAttribute('aria-current', 'page');
+            button.addEventListener('click', () => {
+                abonoCurrentPage = page;
+                renderAbonoRows();
             });
+            item.appendChild(button);
+            abonoPagination.appendChild(item);
+        }
 
-            const noFoundRow = document.getElementById('noAbonoFound');
-            if (noFoundRow) {
-                noFoundRow.style.display = (visibleCount === 0 && rows.length > 0) ? '' : 'none';
+        addPage('‹', abonoCurrentPage - 1, abonoCurrentPage === 1, false, 'Página anterior');
+        let firstPage = Math.max(1, abonoCurrentPage - 2);
+        let lastPage = Math.min(totalPages, firstPage + 4);
+        firstPage = Math.max(1, lastPage - 4);
+        if (firstPage > 1) {
+            addPage('1', 1, false, false, 'Página 1');
+            if (firstPage > 2) {
+                const gap = document.createElement('li');
+                gap.className = 'page-item disabled';
+                gap.innerHTML = '<span class="page-link" aria-hidden="true">…</span>';
+                abonoPagination.appendChild(gap);
             }
-        });
+        }
+        for (let page = firstPage; page <= lastPage; page++) {
+            if (page === 1 && firstPage > 1) continue;
+            addPage(String(page), page, false, page === abonoCurrentPage, `Página ${page}`);
+        }
+        if (lastPage < totalPages) {
+            if (lastPage < totalPages - 1) {
+                const gap = document.createElement('li');
+                gap.className = 'page-item disabled';
+                gap.innerHTML = '<span class="page-link" aria-hidden="true">…</span>';
+                abonoPagination.appendChild(gap);
+            }
+            addPage(String(totalPages), totalPages, false, false, `Página ${totalPages}`);
+        }
+        addPage('›', abonoCurrentPage + 1, abonoCurrentPage === totalPages, false, 'Página siguiente');
     }
+
+    function renderAbonoRows() {
+        const query = (abonoSearchInput?.value || '').toLowerCase().trim();
+        const filteredRows = abonoRows.filter(row => {
+            const nombre = row.dataset.nombre || '';
+            const rut = row.dataset.rut || '';
+            return !query || nombre.includes(query) || rut.includes(query);
+        });
+        const totalPages = Math.max(1, Math.ceil(filteredRows.length / abonoPageSize));
+        if (abonoCurrentPage > totalPages) abonoCurrentPage = totalPages;
+        const startIndex = (abonoCurrentPage - 1) * abonoPageSize;
+        const visibleRows = new Set(filteredRows.slice(startIndex, startIndex + abonoPageSize));
+
+        abonoRows.forEach(row => { row.style.display = visibleRows.has(row) ? '' : 'none'; });
+        if (abonoNoFoundRow) abonoNoFoundRow.style.display = filteredRows.length === 0 && abonoRows.length > 0 ? '' : 'none';
+        if (abonoPaginationInfo) {
+            const firstVisible = filteredRows.length ? startIndex + 1 : 0;
+            const lastVisible = Math.min(startIndex + abonoPageSize, filteredRows.length);
+            abonoPaginationInfo.textContent = `Mostrando ${firstVisible}–${lastVisible} de ${filteredRows.length} usuarios`;
+        }
+        renderAbonoPagination(totalPages);
+    }
+
+    if (abonoSearchInput) abonoSearchInput.addEventListener('input', () => {
+        abonoCurrentPage = 1;
+        renderAbonoRows();
+    });
+    renderAbonoRows();
 
     // --- Formulario unificado de creación: campos según el tipo ---
     const createModal = document.getElementById('createCapacitacionModal');
