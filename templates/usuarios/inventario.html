@@ -138,6 +138,7 @@
         <p class="mb-0 text-muted">Gestiona, asigna y da seguimiento a todos los equipos.</p>
     </div>
     {% if request.user.is_superuser or request.user.rol.editar_inventario %}
+    {% if not puede_gestionar_inventario_global or compania_activa_id %}
     <div class="d-flex gap-2 flex-wrap">
         <button class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#createVehiculoModal">
             <i class="bi bi-truck me-1"></i> Registrar Carro
@@ -146,6 +147,7 @@
             <i class="bi bi-plus-lg me-1"></i> Agregar Ítem
         </button>
     </div>
+    {% endif %}
     {% endif %}
 </div>
 
@@ -162,10 +164,17 @@
         </div>
     {% endif %}
 
+    {% if puede_gestionar_inventario_global and compania_activa_id %}
+    <a href="{% url 'inventario' %}" class="btn btn-outline-secondary mb-3">
+        <i class="bi bi-arrow-left me-1"></i> Volver a compañías
+    </a>
+    {% endif %}
+
     <div class="row g-4">
         <!-- Columna Principal (Izquierda) -->
-        <div class="col-lg-8">
+        <div class="{% if puede_gestionar_inventario_global and not compania_activa_id %}col-12{% else %}col-lg-8{% endif %}">
             <!-- Barra de Búsqueda -->
+            {% if not puede_gestionar_inventario_global or compania_activa_id %}
             <form method="get" class="mb-3">
                 <div class="input-group">
                     <input type="text" name="q" class="form-control" placeholder="Buscar por nombre de ítem, usuario asignado, ubicación..." value="{{ request.GET.q|default:'' }}">
@@ -173,8 +182,10 @@
                     <button class="btn btn-outline-secondary" type="submit"><i class="bi bi-search"></i></button>
                 </div>
             </form>
+            {% endif %}
 
             <!-- Acordeón por Compañía -->
+            {% if puede_gestionar_inventario_global and not compania_activa_id and resumen_general %}
             <div class="accordion mb-3" id="accordionInventario">
                 {% if resumen_general %}
                 <div class="accordion-item mb-3 border-0 shadow-sm">
@@ -220,24 +231,23 @@
                 {% endif %}
 
             </div>
+            {% endif %}
 
-            {% if puede_gestionar_inventario_global %}
+            {% if puede_gestionar_inventario_global and not compania_activa_id %}
             <div class="inventory-company-picker" id="inventoryCompanyPicker" aria-label="Seleccionar compañía">
-                {% for compania, data in inventario_por_compania.items %}
-                <button type="button" class="inventory-company-button {% if compania.id|stringformat:'s' == compania_activa_id %}active{% endif %}" data-company-id="{{ compania.id }}" aria-pressed="{% if compania.id|stringformat:'s' == compania_activa_id %}true{% else %}false{% endif %}">
+                {% for compania in companias_selector %}
+                <button type="button" class="inventory-company-button" data-company-id="{{ compania.id }}">
                     <i class="bi bi-building-fill" aria-hidden="true"></i>
                     <span>{{ compania.nombre }}</span>
                 </button>
                 {% endfor %}
             </div>
-            <div class="alert alert-light border inventory-company-empty {% if compania_activa_id %}d-none{% endif %}" id="inventoryCompanyHint">
-                <i class="bi bi-info-circle me-2 text-danger"></i>Selecciona una compañía para ver sus ítems asignados, carros, disponibilidad en bodega y herramientas de asignación.
-            </div>
+            {% if not companias_selector %}<div class="alert alert-light border">No hay compañías registradas para mostrar.</div>{% endif %}
             {% endif %}
 
             <div id="company-sections">
                 {% for compania, data in inventario_por_compania.items %}
-                <section class="card shadow-sm mb-3 inventory-company-section {% if not puede_gestionar_inventario_global and forloop.first %}active{% endif %}" id="company-section-{{ compania.id }}" data-company-id="{{ compania.id }}" aria-label="Inventario de {{ compania.nombre }}">
+                <section class="card shadow-sm mb-3 inventory-company-section {% if not puede_gestionar_inventario_global or compania.id|stringformat:'s' == compania_activa_id %}active{% endif %}" id="company-section-{{ compania.id }}" data-company-id="{{ compania.id }}" aria-label="Inventario de {{ compania.nombre }}">
                     <div class="card-header fw-bold text-danger">
                         <i class="bi bi-building-fill me-2"></i>{{ compania.nombre }}
                     </div>
@@ -425,7 +435,7 @@
         </div>
 
         <!-- Columna Lateral (Derecha) -->
-        <div class="col-lg-4 {% if puede_gestionar_inventario_global %}d-none{% endif %}" id="inventory-assignment-column">
+        <div class="col-lg-4 {% if puede_gestionar_inventario_global and not compania_activa_id %}d-none{% endif %}" id="inventory-assignment-column">
             {% if request.user.is_superuser or request.user.rol.editar_inventario %}
             <div class="card shadow-sm">
                 <div class="card-header bg-light">
@@ -1648,7 +1658,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
     companyPickerButtons.forEach(function (button) {
         button.addEventListener('click', function () {
-            seleccionarCompania(button.dataset.companyId);
+            const inventoryUrl = "{% url 'inventario' %}";
+            window.location.href = inventoryUrl + '?compania_activa=' + encodeURIComponent(button.dataset.companyId);
         });
     });
 
@@ -1664,7 +1675,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // Un rol limitado usa su única compañía; un rol global espera que se elija una.
     const requestedCompanyId = companiaActivaInput ? companiaActivaInput.value : '';
     const firstCompanyId = companySections.length ? companySections[0].dataset.companyId : '';
-    const initialCompanyId = requestedCompanyId || (!inventoryHasGlobalScope ? firstCompanyId : '');
+    const initialCompanyId = requestedCompanyId || (!inventoryHasGlobalScope ? firstCompanyId : (companyPickerButtons.length ? '' : firstCompanyId));
     if (initialCompanyId && seleccionarCompania(initialCompanyId)) {
         // Ya quedó activa la compañía solicitada o previamente seleccionada.
     } else if (!inventoryHasGlobalScope && firstCompanyId) {

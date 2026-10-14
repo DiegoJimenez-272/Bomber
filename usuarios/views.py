@@ -1219,6 +1219,7 @@ def inventario_view(request):
     inventario_por_compania = {}
     puede_ver_todas_companias = puede_gestionar_inventario_global(request.user)
     companias_a_mostrar = Compania.objects.all()
+    companias_selector = companias_a_mostrar
 
     if not puede_ver_todas_companias:
         companias_a_mostrar = Compania.objects.filter(pk=request.user.compania_id) if request.user.compania_id else Compania.objects.none()
@@ -1226,6 +1227,15 @@ def inventario_view(request):
     # Búsqueda general
     query = request.GET.get('q')
     compania_activa_id = request.GET.get('compania_activa')
+
+    # El selector global y el detalle son pantallas distintas. En el detalle
+    # solo se consulta y renderiza la compañía seleccionada.
+    if puede_ver_todas_companias:
+        if compania_activa_id and compania_activa_id.isdigit():
+            companias_a_mostrar = companias_a_mostrar.filter(pk=compania_activa_id)
+        else:
+            compania_activa_id = ''
+            companias_a_mostrar = Compania.objects.none()
 
     for compania in companias_a_mostrar:
         base_queryset = Inventario.objects.filter(compania=compania).select_related('asignado_a', 'compania', 'asignado_a_vehiculo')
@@ -1319,6 +1329,7 @@ def inventario_view(request):
         'group_edit_form': InventarioGroupEditForm(user=request.user), # Para el modal de edición de grupo
         'vehiculo_form': VehiculoForm(user=request.user), # Formulario para crear carro
         'inventario_por_compania': inventario_por_compania,
+        'companias_selector': companias_selector,
         'items_disponibles_para_asignar': items_disponibles_para_asignar,
         'usuarios_activos': usuarios_activos,
         'vehiculos_activos': vehiculos_activos,
