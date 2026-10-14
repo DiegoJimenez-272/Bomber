@@ -2236,14 +2236,14 @@ def malla_curricular_view(request):
         .select_related('compania')
         .order_by('nombre', 'apellido')
     )
-    usuarios_json = json.dumps([
+    usuarios_json = [
         {
             'id': usuario.id,
             'nombre': usuario.get_full_name(),
             'compania': usuario.compania.nombre if usuario.compania else 'Sin compañía',
         }
         for usuario in usuarios
-    ], ensure_ascii=False)
+    ]
 
     definiciones_niveles = [
         ('Nivel postulante', 'postulante'),
