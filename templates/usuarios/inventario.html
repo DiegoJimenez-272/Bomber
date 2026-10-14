@@ -32,6 +32,51 @@
         color: #fff;
     }
 
+    .inventory-company-picker {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
+        gap: .75rem;
+        margin-bottom: 1rem;
+    }
+
+    .inventory-company-button {
+        min-height: 105px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: .55rem;
+        border: 1px solid var(--bs-border-color);
+        border-radius: .85rem;
+        background: var(--bs-body-bg);
+        color: var(--bs-secondary-color);
+        font-weight: 700;
+        text-transform: uppercase;
+        box-shadow: 0 .25rem .75rem rgba(0, 0, 0, .06);
+        transition: transform .15s ease, background-color .15s ease, color .15s ease;
+    }
+
+    .inventory-company-button:hover { transform: translateY(-2px); color: var(--bs-danger); }
+    .inventory-company-button .bi { font-size: 1.65rem; }
+    .inventory-company-button.active {
+        color: #fff;
+        border-color: var(--bs-danger);
+        background: linear-gradient(135deg, #dc3545, #a71d2a);
+        box-shadow: 0 .45rem 1rem rgba(220, 53, 69, .25);
+    }
+
+    .inventory-company-section { display: none; }
+    .inventory-company-section.active { display: block; }
+    .inventory-category-tabs .nav-link { white-space: nowrap; }
+
+    @media (max-width: 767.98px) {
+        .inventory-company-picker { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem; }
+        .inventory-company-button { min-height: 82px; padding: .5rem; font-size: .78rem; }
+        .inventory-company-button .bi { font-size: 1.35rem; }
+        .inventory-category-tabs { flex-wrap: nowrap; overflow-x: auto; }
+        .inventory-category-tabs .nav-link { font-size: .82rem; padding: .55rem .65rem; }
+    }
+
     /* Estilos para las filas de los carros de bomberos (Vehículos) */
     .vehiculo-row {
         background-color: #fdf2f2 !important; /* Rosa muy suave en modo claro */
@@ -113,7 +158,7 @@
             </form>
 
             <!-- Acordeón por Compañía -->
-            <div class="accordion" id="accordionInventario">
+            <div class="accordion mb-3" id="accordionInventario">
                 {% if resumen_general %}
                 <div class="accordion-item mb-3 border-0 shadow-sm">
                     <h2 class="accordion-header" id="heading-resumen">
@@ -157,21 +202,39 @@
                 </div>
                 {% endif %}
 
+            </div>
+
+            {% if puede_gestionar_inventario_global %}
+            <div class="inventory-company-picker" id="inventoryCompanyPicker" aria-label="Seleccionar compañía">
                 {% for compania, data in inventario_por_compania.items %}
-                <div class="accordion-item">
-                    <h2 class="accordion-header" id="heading-{{ compania.id }}" data-compania-id="{{ compania.id }}">
-                        <button class="accordion-button {% if not forloop.first %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-{{ compania.id }}" aria-expanded="{% if forloop.first %}true{% else %}false{% endif %}" aria-controls="collapse-{{ compania.id }}">
-                            <i class="bi bi-building-fill me-2"></i>
-                            {{ compania.nombre }}
-                        </button>
-                    </h2>
-                    <div id="collapse-{{ compania.id }}" class="accordion-collapse collapse {% if forloop.first %}show{% endif %}" aria-labelledby="heading-{{ compania.id }}">
-                        <div class="accordion-body p-0">
+                <button type="button" class="inventory-company-button {% if compania.id|stringformat:'s' == compania_activa_id %}active{% endif %}" data-company-id="{{ compania.id }}" aria-pressed="{% if compania.id|stringformat:'s' == compania_activa_id %}true{% else %}false{% endif %}">
+                    <i class="bi bi-building-fill" aria-hidden="true"></i>
+                    <span>{{ compania.nombre }}</span>
+                </button>
+                {% endfor %}
+            </div>
+            <div class="alert alert-light border inventory-company-empty {% if compania_activa_id %}d-none{% endif %}" id="inventoryCompanyHint">
+                <i class="bi bi-info-circle me-2 text-danger"></i>Selecciona una compañía para ver sus ítems asignados, carros, disponibilidad en bodega y herramientas de asignación.
+            </div>
+            {% endif %}
+
+            <div id="company-sections">
+                {% for compania, data in inventario_por_compania.items %}
+                <section class="card shadow-sm mb-3 inventory-company-section {% if not puede_gestionar_inventario_global and forloop.first %}active{% endif %}" id="company-section-{{ compania.id }}" data-company-id="{{ compania.id }}" aria-label="Inventario de {{ compania.nombre }}">
+                    <div class="card-header fw-bold text-danger">
+                        <i class="bi bi-building-fill me-2"></i>{{ compania.nombre }}
+                    </div>
+                    <div class="card-body p-0">
                                 <!-- Sub-pestañas para Asignados y Disponibles -->
                             <ul class="nav nav-tabs nav-justified" id="subTab-{{ compania.id }}" role="tablist">
                                 <li class="nav-item" role="presentation">
                                     <button class="nav-link active" id="asignados-tab-{{ compania.id }}" data-bs-toggle="tab" data-bs-target="#asignados-content-{{ compania.id }}" type="button" role="tab">
                                         <i class="bi bi-person-badge me-1"></i>Ítems Asignados
+                                    </button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="carros-tab-{{ compania.id }}" data-bs-toggle="tab" data-bs-target="#carros-content-{{ compania.id }}" type="button" role="tab">
+                                        <i class="bi bi-truck-front me-1"></i>Carros
                                     </button>
                                 </li>
                                 <li class="nav-item" role="presentation">
@@ -194,64 +257,6 @@
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                {% for grupo_v in data.asignados_vehiculos %}
-                                                <tr class="align-middle vehiculo-row">
-                                                    <td>
-                                                        <div class="d-flex align-items-center">
-                                                            <div class="rounded-circle bg-danger text-white d-flex align-items-center justify-content-center me-2 shadow-sm" style="width: 35px; height: 35px;">
-                                                                <i class="bi bi-truck fs-5"></i>
-                                                            </div>
-                                                            <div>
-                                                                <strong>Carro: {{ grupo_v.vehiculo.nombre }}</strong>
-                                                                <span class="badge {% if grupo_v.vehiculo.estado == 'Disponible' %}bg-success{% elif grupo_v.vehiculo.estado == 'En Servicio' or grupo_v.vehiculo.estado == 'En Taller' %}bg-warning text-dark{% else %}bg-danger{% endif %}">{{ grupo_v.vehiculo.get_estado_display }}</span>
-                                                                {% if grupo_v.vehiculo.marca or grupo_v.vehiculo.modelo %}<div class="text-muted small">{{ grupo_v.vehiculo.marca }} {{ grupo_v.vehiculo.modelo }}{% if grupo_v.vehiculo.anio_fabricacion %} · {{ grupo_v.vehiculo.anio_fabricacion }}{% endif %}</div>{% endif %}
-                                                                {% if grupo_v.vehiculo.patente %}
-                                                                    <div class="text-muted small">Patente: {{ grupo_v.vehiculo.patente }}</div>
-                                                                {% endif %}
-                                                            </div>
-                                                        </div>
-                                                    </td>
-                                                    <td><span class="badge bg-danger">{{ grupo_v.items|length }} equipo(s)</span></td>
-                                                    <td class="text-end">
-                                                        <div class="d-flex justify-content-end gap-2">
-                                                            {% if request.user.is_superuser or request.user.rol.editar_inventario %}
-                                                            <button class="btn btn-sm btn-outline-danger btn-assign-vehiculo" type="button" data-bs-toggle="modal" data-bs-target="#assignToVehiculoModal" data-vehiculo-id="{{ grupo_v.vehiculo.id }}" data-vehiculo-nombre="{{ grupo_v.vehiculo.nombre }}">
-                                                                <i class="bi bi-plus-circle-fill me-1"></i> Asignar Ítems
-                                                            </button>
-                                                            <div class="btn-group" role="group">
-                                                                <button type="button" class="btn btn-sm btn-outline-primary" title="Editar carro"
-                                                                        data-bs-toggle="modal" data-bs-target="#editVehiculoModal"
-                                                                        data-vehiculo-id="{{ grupo_v.vehiculo.id }}"
-                                                                        data-vehiculo-nombre="{{ grupo_v.vehiculo.nombre }}"
-                                                                        data-vehiculo-patente="{{ grupo_v.vehiculo.patente|default:'' }}"
-                                                                        data-vehiculo-descripcion="{{ grupo_v.vehiculo.descripcion|default:'' }}"
-                                                                        data-vehiculo-marca="{{ grupo_v.vehiculo.marca }}"
-                                                                        data-vehiculo-modelo="{{ grupo_v.vehiculo.modelo }}"
-                                                                        data-vehiculo-anio-fabricacion="{{ grupo_v.vehiculo.anio_fabricacion|default:'' }}"
-                                                                        data-vehiculo-anio-puesta-servicio="{{ grupo_v.vehiculo.anio_puesta_servicio|default:'' }}"
-                                                                        data-vehiculo-compania="{{ grupo_v.vehiculo.compania.id }}"
-                                                                        data-vehiculo-estado="{{ grupo_v.vehiculo.estado }}">
-                                                                    <i class="bi bi-pencil-fill"></i>
-                                                                </button>
-                                                                <button type="button" class="btn btn-sm btn-outline-danger" title="Eliminar carro"
-                                                                        data-bs-toggle="modal" data-bs-target="#deleteVehiculoModal"
-                                                                        data-vehiculo-id="{{ grupo_v.vehiculo.id }}"
-                                                                        data-vehiculo-nombre="{{ grupo_v.vehiculo.nombre }}">
-                                                                    <i class="bi bi-trash-fill"></i>
-                                                                </button>
-                                                            </div>
-                                                            {% endif %}
-                                                            <button class="btn btn-sm btn-danger" type="button" data-bs-toggle="modal" data-bs-target="#modalVehiculoItems-{{ compania.id }}-{{ grupo_v.vehiculo.id }}">
-                                                                <i class="bi bi-eye-fill me-1"></i> Ver equipos
-                                                            </button>
-                                                            <a class="btn btn-sm btn-outline-secondary" href="{% url 'vehiculo_hoja_vida' grupo_v.vehiculo.id %}" title="Abrir hoja de vida de {{ grupo_v.vehiculo.nombre }}">
-                                                                <i class="bi bi-file-earmark-text me-1"></i> Hoja de vida
-                                                            </a>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                                {% endfor %}
-
                                                 {% for grupo in data.asignados %}
                                                 <tr class="align-middle">
                                                     <td>
@@ -275,9 +280,50 @@
                                                 </tr>
                                                 {% endfor %}
 
-                                                {% if not data.asignados and not data.asignados_vehiculos %}
+                                                {% if not data.asignados %}
                                                 <tr><td colspan="3" class="text-center text-muted py-4">No hay ítems asignados en esta compañía.</td></tr>
                                                 {% endif %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+
+                                <!-- Carros de la compañía -->
+                                <div class="tab-pane fade" id="carros-content-{{ compania.id }}" role="tabpanel">
+                                    <div class="table-responsive">
+                                        <table class="table table-hover align-middle mb-0">
+                                            <thead>
+                                                <tr>
+                                                    <th scope="col">Carro</th>
+                                                    <th scope="col">Equipos asignados</th>
+                                                    <th scope="col" class="text-end">Acciones</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for grupo_v in data.asignados_vehiculos %}
+                                                <tr class="vehiculo-row">
+                                                    <td>
+                                                        <strong><i class="bi bi-truck-front me-1"></i>{{ grupo_v.vehiculo.nombre }}</strong>
+                                                        <span class="badge {% if grupo_v.vehiculo.estado == 'Disponible' %}bg-success{% elif grupo_v.vehiculo.estado == 'En Servicio' or grupo_v.vehiculo.estado == 'En Taller' %}bg-warning text-dark{% else %}bg-danger{% endif %}">{{ grupo_v.vehiculo.get_estado_display }}</span>
+                                                        {% if grupo_v.vehiculo.marca or grupo_v.vehiculo.modelo %}<div class="text-muted small">{{ grupo_v.vehiculo.marca }} {{ grupo_v.vehiculo.modelo }}</div>{% endif %}
+                                                        {% if grupo_v.vehiculo.patente %}<div class="text-muted small">Patente: {{ grupo_v.vehiculo.patente }}</div>{% endif %}
+                                                    </td>
+                                                    <td><span class="badge bg-danger">{{ grupo_v.items|length }} equipo(s)</span></td>
+                                                    <td class="text-end">
+                                                        <div class="d-flex justify-content-end gap-2 flex-wrap">
+                                                            {% if request.user.is_superuser or request.user.rol.editar_inventario %}
+                                                            <button class="btn btn-sm btn-outline-danger btn-assign-vehiculo" type="button" data-bs-toggle="modal" data-bs-target="#assignToVehiculoModal" data-vehiculo-id="{{ grupo_v.vehiculo.id }}" data-vehiculo-nombre="{{ grupo_v.vehiculo.nombre }}" title="Asignar equipos"><i class="bi bi-plus-circle"></i></button>
+                                                            <button type="button" class="btn btn-sm btn-outline-primary" title="Editar carro" data-bs-toggle="modal" data-bs-target="#editVehiculoModal" data-vehiculo-id="{{ grupo_v.vehiculo.id }}" data-vehiculo-nombre="{{ grupo_v.vehiculo.nombre }}" data-vehiculo-patente="{{ grupo_v.vehiculo.patente|default:'' }}" data-vehiculo-descripcion="{{ grupo_v.vehiculo.descripcion|default:'' }}" data-vehiculo-marca="{{ grupo_v.vehiculo.marca }}" data-vehiculo-modelo="{{ grupo_v.vehiculo.modelo }}" data-vehiculo-anio-fabricacion="{{ grupo_v.vehiculo.anio_fabricacion|default:'' }}" data-vehiculo-anio-puesta-servicio="{{ grupo_v.vehiculo.anio_puesta_servicio|default:'' }}" data-vehiculo-compania="{{ grupo_v.vehiculo.compania.id }}" data-vehiculo-estado="{{ grupo_v.vehiculo.estado }}"><i class="bi bi-pencil-fill"></i></button>
+                                                            <button type="button" class="btn btn-sm btn-outline-danger" title="Eliminar carro" data-bs-toggle="modal" data-bs-target="#deleteVehiculoModal" data-vehiculo-id="{{ grupo_v.vehiculo.id }}" data-vehiculo-nombre="{{ grupo_v.vehiculo.nombre }}"><i class="bi bi-trash-fill"></i></button>
+                                                            {% endif %}
+                                                            <button class="btn btn-sm btn-danger" type="button" data-bs-toggle="modal" data-bs-target="#modalVehiculoItems-{{ compania.id }}-{{ grupo_v.vehiculo.id }}" title="Ver equipos"><i class="bi bi-eye-fill"></i></button>
+                                                            <a class="btn btn-sm btn-outline-secondary" href="{% url 'vehiculo_hoja_vida' grupo_v.vehiculo.id %}" title="Hoja de vida"><i class="bi bi-file-earmark-text"></i></a>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                                {% empty %}
+                                                <tr><td colspan="3" class="text-center text-muted py-4">No hay carros registrados para esta compañía.</td></tr>
+                                                {% endfor %}
                                             </tbody>
                                         </table>
                                     </div>
@@ -346,7 +392,7 @@
                             </div>
                         </div>
                     </div>
-                </div>
+                </section>
                 {% empty %}
                 <div class="col-12"> <!-- Este col-12 no es necesario pero lo dejamos por si acaso -->
                     <div class="card text-center p-5 border-dashed mt-4">
@@ -362,7 +408,7 @@
         </div>
 
         <!-- Columna Lateral (Derecha) -->
-        <div class="col-lg-4">
+        <div class="col-lg-4 {% if puede_gestionar_inventario_global %}d-none{% endif %}" id="inventory-assignment-column">
             {% if request.user.is_superuser or request.user.rol.editar_inventario %}
             <div class="card shadow-sm">
                 <div class="card-header bg-light">
@@ -1500,11 +1546,15 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // Lógica para actualizar el campo oculto de la compañía activa al cambiar de pestaña
-    const accordionHeaders = document.querySelectorAll('.accordion-header');
+    // Seleccionar compañía antes de mostrar sus categorías y el panel de asignación.
+    const companyPickerButtons = document.querySelectorAll('.inventory-company-button');
+    const companySections = document.querySelectorAll('.inventory-company-section');
+    const companyHint = document.getElementById('inventoryCompanyHint');
+    const assignmentColumn = document.getElementById('inventory-assignment-column');
     const companiaActivaInput = document.getElementById('compania_activa_input');
     const companiaAsignarInput = document.getElementById('compania_a_asignar');
     const usuarioSelect = document.getElementById('usuario_a_asignar');
+    const inventoryHasGlobalScope = {% if puede_gestionar_inventario_global %}true{% else %}false{% endif %};
 
     function actualizarUsuariosPorCompania(companiaId) {
         if (!usuarioSelect) return;
@@ -1526,8 +1576,10 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
 
-        // Restaurar la selección si el usuario todavía está en la lista
+        // Mantener el usuario solo si sigue perteneciendo a la compañía elegida.
         usuarioSelect.value = valorSeleccionado;
+        if (usuarioSelect.value !== valorSeleccionado) usuarioSelect.value = '';
+        if (companiaAsignarInput) companiaAsignarInput.value = companiaId || '';
     }
 
     function actualizarSelectEspecifico(select, companiaId) {
@@ -1556,17 +1608,31 @@ document.addEventListener('DOMContentLoaded', function () {
         itemSelects.forEach(select => actualizarSelectEspecifico(select, companiaId));
     }
 
-    accordionHeaders.forEach(header => {
-        header.querySelector('button').addEventListener('click', function() {
-            const companiaId = header.dataset.companiaId;
-            companiaActivaInput.value = companiaId;
-            
-            // Guardar la compañía activa en la memoria del navegador
-            localStorage.setItem('activeInventarioCompania', companiaId);
-            
-            // Al hacer clic en una compañía, actualizamos tanto los usuarios como los ítems.
-            actualizarUsuariosPorCompania(companiaId);
-            actualizarItemsPorCompania(companiaId);
+    function seleccionarCompania(companiaId) {
+        const section = document.getElementById('company-section-' + companiaId);
+        if (!section) return false;
+
+        companySections.forEach(function (item) { item.classList.remove('active'); });
+        section.classList.add('active');
+        companyPickerButtons.forEach(function (button) {
+            const active = button.dataset.companyId === String(companiaId);
+            button.classList.toggle('active', active);
+            button.setAttribute('aria-pressed', active ? 'true' : 'false');
+        });
+
+        if (companyHint) companyHint.classList.add('d-none');
+        if (assignmentColumn) assignmentColumn.classList.remove('d-none');
+        if (companiaActivaInput) companiaActivaInput.value = companiaId;
+        if (companiaAsignarInput) companiaAsignarInput.value = companiaId;
+        localStorage.setItem('activeInventarioCompania', companiaId);
+        actualizarUsuariosPorCompania(String(companiaId));
+        actualizarItemsPorCompania(String(companiaId));
+        return true;
+    }
+
+    companyPickerButtons.forEach(function (button) {
+        button.addEventListener('click', function () {
+            seleccionarCompania(button.dataset.companyId);
         });
     });
 
@@ -1579,44 +1645,15 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // Al cargar la página, recuperar la última compañía abierta o abrir la primera por defecto.
-    let savedCompaniaId = localStorage.getItem('activeInventarioCompania');
-
-    if (savedCompaniaId) {
-        const targetHeader = Array.from(accordionHeaders).find(h => h.dataset.companiaId === savedCompaniaId);
-        
-        if (targetHeader) {
-            const targetCollapse = document.getElementById('collapse-' + savedCompaniaId);
-            
-            // Si el acordeón que queremos abrir NO está abierto ya
-            if (targetCollapse && !targetCollapse.classList.contains('show')) {
-                // Usamos la API de Bootstrap para cerrar el que Django abrió por defecto
-                const accordionAbierto = document.querySelector('#accordionInventario .accordion-collapse.show');
-                if (accordionAbierto) {
-                    const collapseInstance = bootstrap.Collapse.getOrCreateInstance(accordionAbierto, { toggle: false });
-                    collapseInstance.hide();
-                }
-                
-                // Abrimos nuestro acordeón de forma segura
-                const targetInstance = bootstrap.Collapse.getOrCreateInstance(targetCollapse, { toggle: false });
-                targetInstance.show();
-            }
-            
-            companiaActivaInput.value = savedCompaniaId;
-            actualizarUsuariosPorCompania(savedCompaniaId);
-            actualizarItemsPorCompania(savedCompaniaId);
-            
-        } else if (accordionHeaders.length > 0) {
-            const primerId = accordionHeaders[0].dataset.companiaId;
-            companiaActivaInput.value = primerId;
-            actualizarUsuariosPorCompania(primerId);
-            actualizarItemsPorCompania(primerId);
-        }
-    } else if (accordionHeaders.length > 0) {
-        const primerId = accordionHeaders[0].dataset.companiaId;
-        companiaActivaInput.value = primerId;
-        actualizarUsuariosPorCompania(primerId);
-        actualizarItemsPorCompania(primerId);
+    // Un rol limitado usa su única compañía; un rol global espera que se elija una.
+    const requestedCompanyId = companiaActivaInput ? companiaActivaInput.value : '';
+    const savedCompaniaId = localStorage.getItem('activeInventarioCompania');
+    const firstCompanyId = companySections.length ? companySections[0].dataset.companyId : '';
+    const initialCompanyId = requestedCompanyId || savedCompaniaId || (!inventoryHasGlobalScope ? firstCompanyId : '');
+    if (initialCompanyId && seleccionarCompania(initialCompanyId)) {
+        // Ya quedó activa la compañía solicitada o previamente seleccionada.
+    } else if (!inventoryHasGlobalScope && firstCompanyId) {
+        seleccionarCompania(firstCompanyId);
     }
 
 });

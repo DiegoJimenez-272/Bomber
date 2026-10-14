@@ -32,6 +32,11 @@ class Rol(models.Model):
     # --- Permisos de Edición / Creación / Eliminación ---
     editar_documentacion = models.BooleanField(default=False, verbose_name="Editar Documentación")
     editar_inventario = models.BooleanField(default=False, verbose_name="Editar Inventario")
+    gestionar_inventario_todas_companias = models.BooleanField(
+        default=False,
+        verbose_name="Gestionar inventario de todas las compañías",
+        help_text="Permite al rol administrar inventario y vehículos de cualquier compañía.",
+    )
     editar_salidas_terreno = models.BooleanField(default=False, verbose_name="Editar Salidas a terreno")
     editar_emergencias = models.BooleanField(default=False, verbose_name="Editar Emergencias")
     editar_capacitaciones = models.BooleanField(default=False, verbose_name="Editar Cursos")

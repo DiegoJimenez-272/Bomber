@@ -716,6 +716,15 @@
                             </div>
                         </div>
                         <div class="row g-0 py-2 border-bottom align-items-center permission-row">
+                            <div class="col-9 px-3">
+                                <i class="bi bi-buildings text-secondary me-2"></i> <strong>Inventario de todas las compañías</strong>
+                                <div class="small text-muted">Requiere el permiso de edición de inventario.</div>
+                            </div>
+                            <div class="col-3 d-flex justify-content-center">
+                                <div class="form-check form-switch mb-0 fs-5 edit-toggle" title="Permite administrar inventario fuera de la compañía del usuario">{{ rol_form.gestionar_inventario_todas_companias }}</div>
+                            </div>
+                        </div>
+                        <div class="row g-0 py-2 border-bottom align-items-center permission-row">
                             <div class="col-6 px-3">
                                 <i class="bi bi-truck-front-fill text-secondary me-2"></i> <strong>Salidas a terreno</strong>
                             </div>
@@ -877,6 +886,15 @@
                             </div>
                             <div class="col-3 d-flex justify-content-center">
                                 <div class="form-check form-switch mb-0 fs-5 edit-toggle"><input type="checkbox" class="form-check-input mt-0" name="editar_inventario" {% if rol.editar_inventario %}checked{% endif %}></div>
+                            </div>
+                        </div>
+                        <div class="row g-0 py-2 border-bottom align-items-center permission-row">
+                            <div class="col-9 px-3">
+                                <i class="bi bi-buildings text-secondary me-2"></i> <strong>Inventario de todas las compañías</strong>
+                                <div class="small text-muted">Requiere el permiso de edición de inventario.</div>
+                            </div>
+                            <div class="col-3 d-flex justify-content-center">
+                                <div class="form-check form-switch mb-0 fs-5 edit-toggle"><input type="checkbox" class="form-check-input mt-0" name="gestionar_inventario_todas_companias" {% if rol.gestionar_inventario_todas_companias %}checked{% endif %}></div>
                             </div>
                         </div>
                         <div class="row g-0 py-2 border-bottom align-items-center permission-row">

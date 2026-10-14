@@ -7,6 +7,7 @@ from django.db.models import Sum, Case, When, DecimalField, F, Q
 from django.utils import timezone
 from .models import Usuario, Compania, Rol, Proyecto, Documento, Carpeta, SalidaTerreno, SalidaTerrenoUnidad, Emergencia, EmergenciaUnidad, Capacitacion, Mantenimiento, Inventario, CajaChica, Aviso, PasswordResetCode, Vehiculo, RondaVehiculo
 from .validators import validar_rut_chileno, formatear_rut
+from .inventory_permissions import puede_gestionar_inventario_global
 
 
 class RegistroForm(UserCreationForm):
@@ -198,7 +199,7 @@ class RolForm(forms.ModelForm):
             'nombre', 'descripcion',
             'ver_resumen_general', 'ver_documentacion', 'ver_escanear_qr', 'ver_inventario',
             'ver_salidas_terreno', 'ver_emergencias', 'ver_capacitaciones', 'ver_mantenimientos', 'ver_proyectos', 'ver_caja_chica',
-            'ver_avisos', 'ver_inspectores', 'editar_documentacion', 'editar_inventario', 'editar_salidas_terreno',
+            'ver_avisos', 'ver_inspectores', 'editar_documentacion', 'editar_inventario', 'gestionar_inventario_todas_companias', 'editar_salidas_terreno',
             'editar_emergencias', 'editar_capacitaciones', 'editar_mantenimientos', 'editar_proyectos', 'editar_caja_chica', 'editar_avisos', 'editar_inspectores'
         ]
         widgets = {
@@ -212,11 +213,20 @@ class RolForm(forms.ModelForm):
         permisos_fields = [
             'ver_resumen_general', 'ver_documentacion', 'ver_escanear_qr', 'ver_inventario',
             'ver_salidas_terreno', 'ver_emergencias', 'ver_capacitaciones', 'ver_mantenimientos', 'ver_proyectos', 'ver_caja_chica',
-            'ver_avisos', 'ver_inspectores', 'editar_documentacion', 'editar_inventario', 'editar_salidas_terreno',
+            'ver_avisos', 'ver_inspectores', 'editar_documentacion', 'editar_inventario', 'gestionar_inventario_todas_companias', 'editar_salidas_terreno',
             'editar_emergencias', 'editar_capacitaciones', 'editar_mantenimientos', 'editar_proyectos', 'editar_caja_chica', 'editar_avisos', 'editar_inspectores'
         ]
         for field in permisos_fields:
             self.fields[field].widget.attrs.update({'class': 'form-check-input'})
+
+    def clean(self):
+        cleaned_data = super().clean()
+        if cleaned_data.get('gestionar_inventario_todas_companias'):
+            if not cleaned_data.get('editar_inventario'):
+                self.add_error('gestionar_inventario_todas_companias', 'Activa también Editar Inventario para usar el alcance global.')
+            if not cleaned_data.get('ver_inventario'):
+                self.add_error('gestionar_inventario_todas_companias', 'Activa también Ver Inventario para usar el alcance global.')
+        return cleaned_data
 
 class CompaniaForm(forms.ModelForm):
     generar_inventario = forms.BooleanField(
@@ -859,7 +869,7 @@ class InventarioForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields['fecha_adquisicion'].required = False
         
-        if self.user and not self.user.is_superuser:
+        if self.user and not puede_gestionar_inventario_global(self.user):
             if 'compania' in self.fields:
                 del self.fields['compania']
         elif 'compania' in self.fields:
@@ -914,7 +924,7 @@ class VehiculoForm(forms.ModelForm):
         for field_name in ('anio_fabricacion', 'anio_puesta_servicio'):
             self.fields[field_name].max_value = current_year
             self.fields[field_name].widget.attrs['max'] = current_year
-        if self.user and not self.user.is_superuser:
+        if self.user and not puede_gestionar_inventario_global(self.user):
             if 'compania' in self.fields:
                 del self.fields['compania']
 
@@ -1023,10 +1033,14 @@ class InventarioEditForm(forms.ModelForm):
         self.user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
         
-        # Filtrar usuarios y vehículos por la compañía a la que pertenece el ítem
-        if self.instance and self.instance.pk and self.instance.compania:
-            self.fields['asignado_a'].queryset = Usuario.objects.miembros_activos().filter(compania=self.instance.compania).order_by('nombre')
-            self.fields['asignado_a_vehiculo'].queryset = Vehiculo.objects.filter(compania=self.instance.compania).order_by('nombre')
+        # Para roles globales, los usuarios y vehículos corresponden a la compañía elegida.
+        compania_id = self.instance.compania_id if self.instance and self.instance.pk else None
+        if self.user and puede_gestionar_inventario_global(self.user):
+            compania_id = self.data.get('compania') or compania_id
+
+        if compania_id:
+            self.fields['asignado_a'].queryset = Usuario.objects.miembros_activos().filter(compania_id=compania_id).order_by('nombre')
+            self.fields['asignado_a_vehiculo'].queryset = Vehiculo.objects.filter(compania_id=compania_id).order_by('nombre')
         else:
             self.fields['asignado_a'].queryset = Usuario.objects.miembros_activos().order_by('nombre')
             self.fields['asignado_a_vehiculo'].queryset = Vehiculo.objects.filter().order_by('nombre')
@@ -1037,7 +1051,7 @@ class InventarioEditForm(forms.ModelForm):
         self.fields['asignado_a_vehiculo'].required = False
         self.fields['fecha_adquisicion'].required = False
         
-        if self.user and not self.user.is_superuser:
+        if self.user and not puede_gestionar_inventario_global(self.user):
             if 'compania' in self.fields:
                 del self.fields['compania']
         elif 'compania' in self.fields:
@@ -1048,9 +1062,14 @@ class InventarioEditForm(forms.ModelForm):
         cleaned_data = super().clean()
         asignado_a = cleaned_data.get('asignado_a')
         asignado_a_vehiculo = cleaned_data.get('asignado_a_vehiculo')
+        compania = cleaned_data.get('compania') or getattr(self.instance, 'compania', None)
 
         if asignado_a and asignado_a_vehiculo:
             raise forms.ValidationError("Un ítem no puede estar asignado a un voluntario y a un carro al mismo tiempo.")
+        if asignado_a and asignado_a.compania_id != getattr(compania, 'id', None):
+            self.add_error('asignado_a', 'El usuario debe pertenecer a la misma compañía que el ítem.')
+        if asignado_a_vehiculo and asignado_a_vehiculo.compania_id != getattr(compania, 'id', None):
+            self.add_error('asignado_a_vehiculo', 'El carro debe pertenecer a la misma compañía que el ítem.')
         return cleaned_data
 
 class InventarioGroupEditForm(forms.Form):
@@ -1083,6 +1102,16 @@ class InventarioGroupEditForm(forms.Form):
         required=False,
         widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej: 50.000', 'inputmode': 'numeric'})
     )
+
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+        self.fields['compania'].required = False
+        if user and not puede_gestionar_inventario_global(user):
+            if user.compania_id:
+                self.fields['compania'].queryset = Compania.objects.filter(pk=user.compania_id)
+            else:
+                self.fields['compania'].queryset = Compania.objects.none()
 
     def clean_valor(self):
         val = self.cleaned_data.get('valor')

@@ -29,6 +29,11 @@ from reportlab.lib.units import inch
 from .forms import RegistroForm, LoginForm, ProyectoForm, ArchivoProyectoForm, DocumentoForm, CarpetaForm, SalidaTerrenoForm, EmergenciaForm, PerfilForm, PasswordChangeForm, CapacitacionForm, ReunionForm, MantenimientoForm, ArchivoMantenimientoForm, InventarioForm, CajaChicaForm, AdminUserCreationForm, AdminUserChangeForm, RolForm, CompaniaForm, InventarioEditForm, InventarioGroupEditForm, AvisoForm, PasswordResetRequestForm, PasswordResetVerifyForm, PasswordResetNewPasswordForm, VehiculoForm, VehiculoHojaVidaForm, VehiculoDocumentacionForm, RondaVehiculoForm
 from .models import Rol, Compania, Proyecto, ArchivoProyecto, Documento, Carpeta, SalidaTerreno, SalidaTerrenoUnidad, Emergencia, EmergenciaUnidad, Usuario, Capacitacion, Mantenimiento, ArchivoMantenimiento, Inventario, CajaChica, Notificacion, Aviso, AvisoDestinatario, PasswordResetCode, RegistroPendiente, Vehiculo, RondaVehiculo
 from .decorators import admin_required, permiso_requerido, pertenencia_compania
+from .inventory_permissions import (
+    puede_acceder_inventario_compania,
+    puede_editar_inventario,
+    puede_gestionar_inventario_global,
+)
 import logging
 
 logger = logging.getLogger('usuarios')
@@ -1180,7 +1185,7 @@ def inventario_view(request):
 
     # Esta vista ahora solo maneja la creación de nuevos ítems.
     if request.method == 'POST':
-        if not request.user.is_superuser and not (request.user.rol and request.user.rol.editar_inventario):
+        if not puede_editar_inventario(request.user):
             messages.error(request, 'No tienes permiso para agregar ítems.')
             return redirect('inventario')
             
@@ -1198,7 +1203,7 @@ def inventario_view(request):
                     agregado_por=request.user
                 )
                 # Asignación Automática de Compañía
-                if request.user.is_superuser:
+                if puede_gestionar_inventario_global(request.user):
                     item.compania = form.cleaned_data.get('compania')
                 else:
                     item.compania = request.user.compania
@@ -1212,22 +1217,15 @@ def inventario_view(request):
 
     # --- Lógica de visualización ---
     inventario_por_compania = {}
+    puede_ver_todas_companias = puede_gestionar_inventario_global(request.user)
     companias_a_mostrar = Compania.objects.all()
 
-    # Si el usuario no es superusuario, solo mostramos su compañía
-    if not request.user.is_superuser and request.user.compania:
-        companias_a_mostrar = Compania.objects.filter(pk=request.user.compania.pk)
+    if not puede_ver_todas_companias:
+        companias_a_mostrar = Compania.objects.filter(pk=request.user.compania_id) if request.user.compania_id else Compania.objects.none()
 
     # Búsqueda general
     query = request.GET.get('q')
     compania_activa_id = request.GET.get('compania_activa')
-
-    # Si se está buscando en una compañía específica, filtramos la lista de compañías a mostrar
-    if query and compania_activa_id:
-        try:
-            companias_a_mostrar = companias_a_mostrar.filter(id=int(compania_activa_id))
-        except (ValueError, TypeError):
-            pass # Si el ID no es válido, simplemente mostramos todo como antes
 
     for compania in companias_a_mostrar:
         base_queryset = Inventario.objects.filter(compania=compania).select_related('asignado_a', 'compania', 'asignado_a_vehiculo')
@@ -1275,15 +1273,18 @@ def inventario_view(request):
             'disponibles_agrupados': items_disponibles_agrupados
         }
 
+    if compania_activa_id and not any(str(compania.id) == compania_activa_id for compania in inventario_por_compania):
+        compania_activa_id = ''
+
     # Datos para el nuevo panel de asignación
     usuarios_activos = Usuario.objects.miembros_activos().order_by('nombre')
-    # Si el usuario no es superusuario, filtramos para que solo vea/asigne a miembros de su compañía
-    if not request.user.is_superuser and request.user.compania:
-        usuarios_activos = usuarios_activos.filter(compania=request.user.compania)
+    # Los roles limitados solo pueden asignar a miembros de su propia compañía.
+    if not puede_ver_todas_companias:
+        usuarios_activos = usuarios_activos.filter(compania_id=request.user.compania_id)
     
     # Obtener vehículos activos para la asignación
     vehiculos_activos = Vehiculo.objects.all().order_by('nombre')
-    if not request.user.is_superuser and request.user.compania:
+    if not puede_ver_todas_companias and request.user.compania_id:
         vehiculos_activos = vehiculos_activos.filter(compania=request.user.compania)
 
     # CORRECCIÓN: Agrupar los ítems disponibles por nombre Y por compañía para el selector de asignación.
@@ -1295,7 +1296,7 @@ def inventario_view(request):
         items_disponibles_para_asignar.append(item)
 
     resumen_general = None
-    if request.user.is_superuser:
+    if puede_ver_todas_companias:
         resumen_general_qs = Inventario.objects.values('nombre').annotate(
             total=Count('id'),
             buenos=Count('id', filter=Q(estado='Bueno')),
@@ -1315,7 +1316,7 @@ def inventario_view(request):
     context = {
         'form': InventarioForm(user=request.user), 
         'edit_form': InventarioEditForm(user=request.user), # Para el modal de edición
-        'group_edit_form': InventarioGroupEditForm(), # Para el modal de edición de grupo
+        'group_edit_form': InventarioGroupEditForm(user=request.user), # Para el modal de edición de grupo
         'vehiculo_form': VehiculoForm(user=request.user), # Formulario para crear carro
         'inventario_por_compania': inventario_por_compania,
         'items_disponibles_para_asignar': items_disponibles_para_asignar,
@@ -1323,16 +1324,18 @@ def inventario_view(request):
         'vehiculos_activos': vehiculos_activos,
         'resumen_general': resumen_general,
         'first_compania_id': list(inventario_por_compania.keys())[0].id if inventario_por_compania else None,
+        'puede_gestionar_inventario_global': puede_ver_todas_companias,
+        'compania_activa_id': compania_activa_id or '',
     }
     return render(request, 'usuarios/inventario.html', context)
 
 @login_required
 def inventario_edit_view(request, item_id):
     item = get_object_or_404(Inventario, id=item_id)
-    if not request.user.is_superuser and not (request.user.rol and request.user.rol.editar_inventario):
+    if not puede_editar_inventario(request.user):
         messages.error(request, 'No tienes permiso para editar este ítem.')
         return redirect('inventario')
-    if not pertenencia_compania(request.user, item.compania):
+    if not puede_acceder_inventario_compania(request.user, item.compania):
         messages.error(request, 'No tienes acceso al inventario de esta compañía.')
         return redirect('inventario')
 
@@ -1349,10 +1352,10 @@ def inventario_edit_view(request, item_id):
 @login_required
 def inventario_delete_view(request, item_id):
     item = get_object_or_404(Inventario, id=item_id)
-    if not request.user.is_superuser and not (request.user.rol and request.user.rol.editar_inventario):
+    if not puede_editar_inventario(request.user):
         messages.error(request, 'No tienes permiso para eliminar este ítem.')
         return redirect('inventario')
-    if not pertenencia_compania(request.user, item.compania):
+    if not puede_acceder_inventario_compania(request.user, item.compania):
         messages.error(request, 'No tienes acceso al inventario de esta compañía.')
         return redirect('inventario')
 
@@ -1364,7 +1367,7 @@ def inventario_delete_view(request, item_id):
 
 @login_required
 def vehiculo_create_view(request):
-    if not request.user.is_superuser and not (request.user.rol and request.user.rol.editar_inventario):
+    if not puede_editar_inventario(request.user):
         messages.error(request, 'No tienes permiso para realizar esta acción.')
         return redirect('inventario')
 
@@ -1372,7 +1375,7 @@ def vehiculo_create_view(request):
         form = VehiculoForm(request.POST, user=request.user)
         if form.is_valid():
             vehiculo = form.save(commit=False)
-            if not request.user.is_superuser:
+            if not puede_gestionar_inventario_global(request.user):
                 vehiculo.compania = request.user.compania
             vehiculo.save()
             messages.success(request, f'Carro "{vehiculo.nombre}" registrado exitosamente.')
@@ -1383,10 +1386,10 @@ def vehiculo_create_view(request):
 @login_required
 def vehiculo_edit_view(request, vehiculo_id):
     vehiculo = get_object_or_404(Vehiculo, id=vehiculo_id)
-    if not request.user.is_superuser and not (request.user.rol and request.user.rol.editar_inventario):
+    if not puede_editar_inventario(request.user):
         messages.error(request, 'No tienes permiso para realizar esta acción.')
         return redirect('inventario')
-    if not pertenencia_compania(request.user, vehiculo.compania):
+    if not puede_acceder_inventario_compania(request.user, vehiculo.compania):
         messages.error(request, 'No tienes acceso a carros de esta compañía.')
         return redirect('inventario')
 
@@ -1394,7 +1397,7 @@ def vehiculo_edit_view(request, vehiculo_id):
         form = VehiculoForm(request.POST, instance=vehiculo, user=request.user)
         if form.is_valid():
             vehiculo = form.save(commit=False)
-            if not request.user.is_superuser:
+            if not puede_gestionar_inventario_global(request.user):
                 vehiculo.compania = request.user.compania
             vehiculo.save()
             messages.success(request, f'Carro "{vehiculo.nombre}" actualizado exitosamente.')
@@ -1411,12 +1414,12 @@ def vehiculo_hoja_vida_view(request, vehiculo_id):
     if not puede_ver:
         messages.error(request, 'No tienes permiso para acceder a la hoja de vida del carro.')
         return redirect('dashboard')
-    if not pertenencia_compania(request.user, vehiculo.compania):
+    if not puede_acceder_inventario_compania(request.user, vehiculo.compania):
         messages.error(request, 'No tienes acceso a carros de esta compañía.')
         return redirect('inventario')
 
-    puede_editar = request.user.is_superuser or bool(rol and rol.editar_inventario)
-    puede_registrar_ronda = request.user.is_superuser or bool(rol and (rol.editar_inventario or rol.editar_mantenimientos))
+    puede_editar = puede_editar_inventario(request.user)
+    puede_registrar_ronda = puede_editar_inventario(request.user) or bool(rol and rol.editar_mantenimientos)
     puede_editar_mantenimientos = request.user.is_superuser or bool(rol and rol.editar_mantenimientos)
     form = VehiculoHojaVidaForm(instance=vehiculo)
     documento_form = VehiculoDocumentacionForm(instance=vehiculo)
@@ -1538,10 +1541,10 @@ def vehiculo_hoja_vida_view(request, vehiculo_id):
 @login_required
 def vehiculo_delete_view(request, vehiculo_id):
     vehiculo = get_object_or_404(Vehiculo, id=vehiculo_id)
-    if not request.user.is_superuser and not (request.user.rol and request.user.rol.editar_inventario):
+    if not puede_editar_inventario(request.user):
         messages.error(request, 'No tienes permiso para realizar esta acción.')
         return redirect('inventario')
-    if not pertenencia_compania(request.user, vehiculo.compania):
+    if not puede_acceder_inventario_compania(request.user, vehiculo.compania):
         messages.error(request, 'No tienes acceso a carros de esta compañía.')
         return redirect('inventario')
 
@@ -1558,8 +1561,11 @@ def vehiculo_delete_view(request, vehiculo_id):
 @login_required
 def inventario_unassign_view(request, item_id):
     item = get_object_or_404(Inventario, id=item_id)
-    if not request.user.is_superuser and not (request.user.rol and request.user.rol.editar_inventario):
+    if not puede_editar_inventario(request.user):
         messages.error(request, 'No tienes permiso para modificar este ítem.')
+        return redirect('inventario')
+    if not puede_acceder_inventario_compania(request.user, item.compania):
+        messages.error(request, 'No tienes acceso al inventario de esta compañía.')
         return redirect('inventario')
 
     if request.method == 'POST':
@@ -1587,7 +1593,7 @@ def inventario_unassign_view(request, item_id):
 
 @login_required
 def inventario_assign_view(request):
-    if not request.user.is_superuser and not (request.user.rol and request.user.rol.editar_inventario):
+    if not puede_editar_inventario(request.user):
         messages.error(request, 'No tienes permiso para realizar esta acción.')
         return redirect('inventario')
 
@@ -1621,6 +1627,10 @@ def inventario_assign_view(request):
                 return redirect('inventario')
             vehiculo = get_object_or_404(Vehiculo, id=vehiculo_id)
             compania_objetivo = vehiculo.compania
+
+        if not puede_acceder_inventario_compania(request.user, compania_objetivo):
+            messages.error(request, 'No tienes permiso para administrar inventario de esta compañía.')
+            return redirect('inventario')
 
         num_asignados_total = 0
         items_asignados_detalle = []
@@ -1685,11 +1695,23 @@ def inventario_assign_view(request):
 
 @login_required
 def inventario_group_edit_view(request):
-    if request.method != 'POST' or (not request.user.is_superuser and not (request.user.rol and request.user.rol.editar_inventario)):
+    if request.method != 'POST' or not puede_editar_inventario(request.user):
         messages.error(request, 'Acción no permitida.')
         return redirect('inventario')
 
-    form = InventarioGroupEditForm(request.POST)
+    compania_origen_id = request.POST.get('group_compania') or ''
+    if compania_origen_id and not compania_origen_id.isdigit():
+        messages.error(request, 'La compañía del grupo no es válida.')
+        return redirect('inventario')
+    compania_origen = Compania.objects.filter(pk=compania_origen_id).first() if compania_origen_id else None
+    if compania_origen_id and compania_origen is None:
+        messages.error(request, 'La compañía del grupo no existe.')
+        return redirect('inventario')
+    if not puede_acceder_inventario_compania(request.user, compania_origen):
+        messages.error(request, 'No tienes acceso al inventario de esta compañía.')
+        return redirect('inventario')
+
+    form = InventarioGroupEditForm(request.POST, user=request.user)
     if form.is_valid():
         nombre = request.POST.get('group_nombre')
         ubicacion_actual = request.POST.get('group_ubicacion')
@@ -1726,8 +1748,20 @@ def inventario_group_edit_view(request):
 
 @login_required
 def inventario_group_delete_view(request):
-    if request.method != 'POST' or (not request.user.is_superuser and not (request.user.rol and request.user.rol.editar_inventario)):
+    if request.method != 'POST' or not puede_editar_inventario(request.user):
         messages.error(request, 'Acción no permitida.')
+        return redirect('inventario')
+
+    compania_origen_id = request.POST.get('group_compania') or ''
+    if compania_origen_id and not compania_origen_id.isdigit():
+        messages.error(request, 'La compañía del grupo no es válida.')
+        return redirect('inventario')
+    compania_origen = Compania.objects.filter(pk=compania_origen_id).first() if compania_origen_id else None
+    if compania_origen_id and compania_origen is None:
+        messages.error(request, 'La compañía del grupo no existe.')
+        return redirect('inventario')
+    if not puede_acceder_inventario_compania(request.user, compania_origen):
+        messages.error(request, 'No tienes acceso al inventario de esta compañía.')
         return redirect('inventario')
 
     Inventario.objects.filter(
