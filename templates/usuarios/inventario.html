@@ -80,6 +80,21 @@
     .inventory-company-section.active { display: block !important; }
     .inventory-category-tabs .nav-link { white-space: nowrap; }
 
+    /* En la vista de una compañía, los detalles ocupan 2/3 y la asignación 1/3. */
+    .inventory-detail-layout {
+        display: grid;
+        grid-template-columns: minmax(0, 2fr) minmax(320px, 1fr);
+        gap: 1.5rem;
+        align-items: start;
+    }
+    .inventory-detail-layout > #inventory-main-column,
+    .inventory-detail-layout > #inventory-assignment-column {
+        width: auto;
+        max-width: none;
+        min-width: 0;
+        padding: 0;
+    }
+
     body.dark-mode .inventory-company-button:not(.active) {
         background: #2c3034;
         box-shadow: 0 6px 12px rgba(0, 0, 0, .2);
@@ -95,6 +110,10 @@
         .inventory-company-button .bi { font-size: 1.85rem; margin-bottom: .25rem; }
         .inventory-category-tabs { flex-wrap: nowrap; overflow-x: auto; }
         .inventory-category-tabs .nav-link { font-size: .82rem; padding: .55rem .65rem; }
+    }
+
+    @media (max-width: 767.98px) {
+        .inventory-detail-layout { grid-template-columns: minmax(0, 1fr); }
     }
 
     /* Estilos para las filas de los carros de bomberos (Vehículos) */
@@ -164,15 +183,9 @@
         </div>
     {% endif %}
 
-    {% if puede_gestionar_inventario_global and compania_activa_id %}
-    <a href="{% url 'inventario' %}" class="btn btn-outline-secondary mb-3">
-        <i class="bi bi-arrow-left me-1"></i> Volver a compañías
-    </a>
-    {% endif %}
-
-    <div class="row g-4 align-items-start">
+    <div class="{% if puede_gestionar_inventario_global and not compania_activa_id %}row g-4 align-items-start{% else %}inventory-detail-layout{% endif %}">
         <!-- Columna Principal (Izquierda) -->
-        <div class="{% if puede_gestionar_inventario_global and not compania_activa_id %}col-12{% else %}col-md-8{% endif %}">
+        <div id="inventory-main-column" class="{% if puede_gestionar_inventario_global and not compania_activa_id %}w-100{% else %}inventory-main-column{% endif %}">
             <!-- Barra de Búsqueda -->
             {% if not puede_gestionar_inventario_global or compania_activa_id %}
             <form method="get" class="mb-3">
@@ -184,18 +197,27 @@
             </form>
             {% endif %}
 
-            <!-- Acordeón por Compañía -->
-            {% if puede_gestionar_inventario_global and not compania_activa_id and resumen_general %}
+            {% if puede_gestionar_inventario_global and not compania_activa_id %}
+            <div class="inventory-company-picker" id="inventoryCompanyPicker" aria-label="Seleccionar compañía">
+                {% for compania in companias_selector %}
+                <button type="button" class="inventory-company-button" data-company-id="{{ compania.id }}">
+                    <i class="bi bi-building-fill" aria-hidden="true"></i>
+                    <span>{{ compania.nombre }}</span>
+                </button>
+                {% endfor %}
+            </div>
+            {% if not companias_selector %}<div class="alert alert-light border">No hay compañías registradas para mostrar.</div>{% endif %}
+
+            {% if resumen_general %}
             <div class="accordion mb-3" id="accordionInventario">
-                {% if resumen_general %}
                 <div class="accordion-item mb-3 border-0 shadow-sm">
                     <h2 class="accordion-header" id="heading-resumen">
-                        <button class="accordion-button collapsed bg-light" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-resumen" aria-expanded="false" aria-controls="collapse-resumen">
+                        <button class="accordion-button bg-light" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-resumen" aria-expanded="true" aria-controls="collapse-resumen">
                             <i class="bi bi-bar-chart-fill me-2 text-primary"></i>
                             Resumen General de Todo el Material
                         </button>
                     </h2>
-                    <div id="collapse-resumen" class="accordion-collapse collapse" aria-labelledby="heading-resumen">
+                    <div id="collapse-resumen" class="accordion-collapse collapse show" aria-labelledby="heading-resumen">
                         <div class="accordion-body">
                             <div class="table-responsive">
                                 <table class="table table-hover mb-0">
@@ -228,21 +250,8 @@
                         </div>
                     </div>
                 </div>
-                {% endif %}
-
             </div>
             {% endif %}
-
-            {% if puede_gestionar_inventario_global and not compania_activa_id %}
-            <div class="inventory-company-picker" id="inventoryCompanyPicker" aria-label="Seleccionar compañía">
-                {% for compania in companias_selector %}
-                <button type="button" class="inventory-company-button" data-company-id="{{ compania.id }}">
-                    <i class="bi bi-building-fill" aria-hidden="true"></i>
-                    <span>{{ compania.nombre }}</span>
-                </button>
-                {% endfor %}
-            </div>
-            {% if not companias_selector %}<div class="alert alert-light border">No hay compañías registradas para mostrar.</div>{% endif %}
             {% endif %}
 
             <div id="company-sections">
@@ -435,7 +444,7 @@
         </div>
 
         <!-- Columna Lateral (Derecha) -->
-        <div class="col-md-4 {% if puede_gestionar_inventario_global and not compania_activa_id %}d-none{% endif %}" id="inventory-assignment-column">
+        <div class="inventory-assignment-column {% if puede_gestionar_inventario_global and not compania_activa_id %}d-none{% endif %}" id="inventory-assignment-column">
             {% if request.user.is_superuser or request.user.rol.editar_inventario %}
             <div class="card shadow-sm">
                 <div class="card-header bg-light">
