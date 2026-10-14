@@ -17,7 +17,7 @@ import secrets
 from io import BytesIO
 from django.core.files.base import ContentFile
 from django.http import HttpResponse, JsonResponse
-from django.core.mail import send_mail
+from django.core.mail import send_mail, send_mass_mail
 from django.conf import settings
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -2837,8 +2837,33 @@ def aviso_create_view(request):
                     link=f"/avisos/{dest.id}/leer/"
                 ))
             Notificacion.objects.bulk_create(notificaciones)
-            
-            messages.success(request, 'Aviso enviado exitosamente.')
+
+            avisos_por_correo = []
+            asunto = f"Aviso: {' '.join(aviso.titulo.splitlines())}"
+            for destinatario in destinatarios_db.select_related('usuario'):
+                if not destinatario.usuario.email:
+                    continue
+                enlace = request.build_absolute_uri(reverse('aviso_leer', args=[destinatario.id]))
+                cuerpo = (
+                    f"Hola {destinatario.usuario.get_full_name()},\n\n"
+                    f"{aviso.titulo}\n\n{aviso.mensaje}\n\n"
+                    f"Puedes revisar el aviso en el sistema: {enlace}\n"
+                )
+                avisos_por_correo.append((asunto, cuerpo, settings.DEFAULT_FROM_EMAIL, [destinatario.usuario.email]))
+
+            if avisos_por_correo:
+                try:
+                    correos_enviados = send_mass_mail(avisos_por_correo, fail_silently=False)
+                except Exception:
+                    logger.exception('No se pudieron enviar por correo todos los avisos para el aviso %s', aviso.pk)
+                    messages.warning(request, 'El aviso quedó publicado en el sistema, pero hubo un problema enviando los correos.')
+                else:
+                    if correos_enviados == len(avisos_por_correo):
+                        messages.success(request, 'Aviso enviado por correo y notificado en el sistema a los destinatarios seleccionados.')
+                    else:
+                        messages.warning(request, 'El aviso quedó publicado en el sistema, pero no se enviaron todos los correos.')
+            else:
+                messages.success(request, 'Aviso enviado en el sistema. Los destinatarios seleccionados no tienen correo registrado.')
         else:
             messages.error(request, 'Error al enviar el aviso.')
     return redirect('administracion')

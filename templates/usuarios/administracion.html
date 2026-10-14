@@ -1091,15 +1091,33 @@
                                 <button type="button" class="btn btn-sm btn-link text-decoration-none text-muted p-0" id="deselectAllAvisoUsers"><i class="bi bi-x-circle me-1"></i>Desmarcar todos</button>
                             </div>
                         </div>
+                        <div class="row g-2 mb-2">
+                            <div class="col-md-7">
+                                <input class="form-control" type="search" id="avisoRecipientNameFilter" placeholder="Filtrar por nombre..." aria-label="Filtrar destinatarios por nombre">
+                            </div>
+                            <div class="col-md-5">
+                                <select class="form-select" id="avisoRecipientCompanyFilter" aria-label="Filtrar destinatarios por compañía">
+                                    <option value="">Todas las compañías</option>
+                                    {% for compania in companias %}
+                                    <option value="{{ compania.id }}">{{ compania.nombre }}</option>
+                                    {% endfor %}
+                                    <option value="sin-compania">Sin compañía</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-text mb-2">Los usuarios seleccionados recibirán este aviso por correo y como notificación en el sistema.</div>
                         <div class="border rounded p-0 custom-scroll-list" style="max-height: 200px; overflow-y: auto;" id="aviso-users-list">
-                            {% for checkbox in aviso_form.usuarios %}
-                                <div class="form-check m-0">
-                                    {{ checkbox.tag }}
-                                    <label class="form-check-label w-100" style="cursor: pointer;" for="{{ checkbox.id_for_label }}">
-                                        {{ checkbox.choice_label }}
+                            {% for usuario in aviso_form.usuarios.field.queryset %}
+                                <div class="form-check m-0 aviso-recipient-row" data-recipient-name="{{ usuario.get_full_name|default:'Usuario sin nombre'|lower }}" data-recipient-company="{{ usuario.compania_id|default_if_none:'sin-compania' }}">
+                                    <input class="form-check-input" type="checkbox" name="{{ aviso_form.usuarios.html_name }}" value="{{ usuario.pk }}" id="id_aviso_usuario_{{ usuario.pk }}">
+                                    <label class="form-check-label w-100" style="cursor: pointer;" for="id_aviso_usuario_{{ usuario.pk }}">
+                                        {{ usuario.get_full_name|default:'Usuario sin nombre' }}
                                     </label>
                                 </div>
+                            {% empty %}
+                                <div class="text-center text-muted py-3" id="aviso-users-empty">No hay usuarios registrados.</div>
                             {% endfor %}
+                            <div class="text-center text-muted py-3 d-none" id="aviso-users-no-match">No hay usuarios que coincidan con los filtros.</div>
                         </div>
                     </div>
                 </div>
@@ -1329,13 +1347,39 @@ document.addEventListener('DOMContentLoaded', function () {
     // Lógica para seleccionar/desmarcar todos los destinatarios del aviso
     const btnSelectAllAviso = document.getElementById('selectAllAvisoUsers');
     const btnDeselectAllAviso = document.getElementById('deselectAllAvisoUsers');
-    const avisoUserCheckboxes = document.querySelectorAll('#aviso-users-list input[type="checkbox"]');
+    const avisoRecipientRows = document.querySelectorAll('#aviso-users-list .aviso-recipient-row');
+    const avisoRecipientNameFilter = document.getElementById('avisoRecipientNameFilter');
+    const avisoRecipientCompanyFilter = document.getElementById('avisoRecipientCompanyFilter');
+    const avisoUsersNoMatch = document.getElementById('aviso-users-no-match');
+    const normalizarTextoAviso = texto => (texto || '')
+        .toLocaleLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '');
+
+    function filterAvisoRecipients() {
+        const nameQuery = normalizarTextoAviso(avisoRecipientNameFilter?.value.trim());
+        const companyId = avisoRecipientCompanyFilter?.value || '';
+        let visibleRows = 0;
+
+        avisoRecipientRows.forEach(row => {
+            const matchesName = normalizarTextoAviso(row.dataset.recipientName).includes(nameQuery);
+            const matchesCompany = !companyId || row.dataset.recipientCompany === companyId;
+            const visible = matchesName && matchesCompany;
+            row.classList.toggle('d-none', !visible);
+            if (visible) visibleRows++;
+        });
+
+        if (avisoUsersNoMatch) avisoUsersNoMatch.classList.toggle('d-none', visibleRows > 0);
+    }
+
+    if (avisoRecipientNameFilter) avisoRecipientNameFilter.addEventListener('input', filterAvisoRecipients);
+    if (avisoRecipientCompanyFilter) avisoRecipientCompanyFilter.addEventListener('change', filterAvisoRecipients);
 
     if (btnSelectAllAviso) btnSelectAllAviso.addEventListener('click', () => {
-        avisoUserCheckboxes.forEach(cb => cb.checked = true);
+        document.querySelectorAll('#aviso-users-list .aviso-recipient-row:not(.d-none) input[type="checkbox"]').forEach(cb => cb.checked = true);
     });
     if (btnDeselectAllAviso) btnDeselectAllAviso.addEventListener('click', () => {
-        avisoUserCheckboxes.forEach(cb => cb.checked = false);
+        document.querySelectorAll('#aviso-users-list .aviso-recipient-row:not(.d-none) input[type="checkbox"]').forEach(cb => cb.checked = false);
     });
 
     // --- Lógica de Filtrado en Tiempo Real para Avisos ---

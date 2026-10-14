@@ -1096,10 +1096,17 @@ class InventarioGroupEditForm(forms.Form):
 
 class AvisoForm(forms.ModelForm):
     usuarios = forms.ModelMultipleChoiceField(
-        queryset=Usuario.objects.miembros_activos().order_by('nombre'),
+        queryset=Usuario.objects.none(),
         widget=forms.CheckboxSelectMultiple(attrs={'class': 'form-check-input'}),
         label="Seleccionar Destinatarios"
     )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['usuarios'].queryset = Usuario.objects.select_related('compania').order_by(
+            'compania__nombre', 'nombre', 'apellido'
+        )
+        self.fields['usuarios'].label_from_instance = lambda usuario: usuario.get_full_name() or 'Usuario sin nombre'
 
     class Meta:
         model = Aviso
