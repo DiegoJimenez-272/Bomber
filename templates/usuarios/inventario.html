@@ -80,10 +80,10 @@
     .inventory-company-section.active { display: block !important; }
     .inventory-category-tabs .nav-link { white-space: nowrap; }
 
-    /* En la vista de una compañía, los detalles ocupan 2/3 y la asignación 1/3. */
+    /* En la vista de una compañía, los detalles del inventario quedan al lado izquierdo y la asignación al lado derecho. */
     .inventory-detail-layout {
         display: grid;
-        grid-template-columns: minmax(0, 2fr) minmax(320px, 1fr);
+        grid-template-columns: minmax(0, 1.75fr) minmax(320px, 1.25fr);
         gap: 1.5rem;
         align-items: start;
     }
@@ -93,6 +93,11 @@
         max-width: none;
         min-width: 0;
         padding: 0;
+    }
+
+    .inventory-assignment-column {
+        position: sticky;
+        top: 1rem;
     }
 
     body.dark-mode .inventory-company-button:not(.active) {
@@ -114,6 +119,7 @@
 
     @media (max-width: 767.98px) {
         .inventory-detail-layout { grid-template-columns: minmax(0, 1fr); }
+        .inventory-assignment-column { position: static; }
     }
 
     /* Estilos para las filas de los carros de bomberos (Vehículos) */
@@ -183,20 +189,20 @@
         </div>
     {% endif %}
 
-    <div class="{% if puede_gestionar_inventario_global and not compania_activa_id %}row g-4 align-items-start{% else %}inventory-detail-layout{% endif %}">
-        <!-- Columna Principal (Izquierda) -->
-        <div id="inventory-main-column" class="{% if puede_gestionar_inventario_global and not compania_activa_id %}w-100{% else %}inventory-main-column{% endif %}">
-            <!-- Barra de Búsqueda -->
-            {% if not puede_gestionar_inventario_global or compania_activa_id %}
-            <form method="get" class="mb-3">
-                <div class="input-group">
-                    <input type="text" name="q" class="form-control" placeholder="Buscar por nombre de ítem, usuario asignado, ubicación..." value="{{ request.GET.q|default:'' }}">
-                    <input type="hidden" name="compania_activa" id="compania_activa_input" value="{{ compania_activa_id|default:'' }}">
-                    <button class="btn btn-outline-secondary" type="submit"><i class="bi bi-search"></i></button>
-                </div>
-            </form>
-            {% endif %}
+    <!-- Barra de Búsqueda -->
+    {% if not puede_gestionar_inventario_global or compania_activa_id %}
+    <form method="get" class="mb-4">
+        <div class="input-group">
+            <input type="text" name="q" class="form-control" placeholder="Buscar por nombre de ítem, usuario asignado, ubicación..." value="{{ request.GET.q|default:'' }}">
+            <input type="hidden" name="compania_activa" id="compania_activa_input" value="{{ compania_activa_id|default:'' }}">
+            <button class="btn btn-outline-secondary" type="submit"><i class="bi bi-search"></i></button>
+        </div>
+    </form>
+    {% endif %}
 
+    <div id="inventory-layout-container" class="{% if puede_gestionar_inventario_global and not compania_activa_id or not request.user.is_superuser and not request.user.rol.editar_inventario %}row g-4 align-items-start{% else %}inventory-detail-layout{% endif %}">
+        <!-- Columna Principal (Izquierda) -->
+        <div id="inventory-main-column" class="{% if puede_gestionar_inventario_global and not compania_activa_id or not request.user.is_superuser and not request.user.rol.editar_inventario %}w-100{% else %}inventory-main-column{% endif %}">
             {% if puede_gestionar_inventario_global and not compania_activa_id %}
             <div class="inventory-company-picker" id="inventoryCompanyPicker" aria-label="Seleccionar compañía">
                 {% for compania in companias_selector %}
@@ -427,7 +433,6 @@
                                 </div>
                             </div>
                         </div>
-                    </div>
                 </section>
                 {% empty %}
                 {% endfor %}
@@ -443,9 +448,9 @@
             {% endif %}
         </div>
 
-        <!-- Columna Lateral (Derecha) -->
+        <!-- Columna Lateral (Derecha): Módulo de Asignar -->
+        {% if request.user.is_superuser or request.user.rol.editar_inventario %}
         <div class="inventory-assignment-column {% if puede_gestionar_inventario_global and not compania_activa_id %}d-none{% endif %}" id="inventory-assignment-column">
-            {% if request.user.is_superuser or request.user.rol.editar_inventario %}
             <div class="card shadow-sm">
                 <div class="card-header bg-light">
                     <h5 class="mb-0"><i class="bi bi-person-check-fill me-2"></i>Asignación de Equipos</h5>
@@ -506,8 +511,8 @@
                     </form>
                 </div>
             </div>
-            {% endif %}
         </div>
+        {% endif %}
     </div>
 </main>
 
@@ -1658,6 +1663,16 @@ document.addEventListener('DOMContentLoaded', function () {
 
         if (companyHint) companyHint.classList.add('d-none');
         if (assignmentColumn) assignmentColumn.classList.remove('d-none');
+        const layoutContainer = document.getElementById('inventory-layout-container');
+        const mainColumn = document.getElementById('inventory-main-column');
+        if (layoutContainer) {
+            layoutContainer.classList.remove('row', 'g-4', 'align-items-start');
+            layoutContainer.classList.add('inventory-detail-layout');
+        }
+        if (mainColumn) {
+            mainColumn.classList.remove('w-100');
+            mainColumn.classList.add('inventory-main-column');
+        }
         if (companiaActivaInput) companiaActivaInput.value = companiaId;
         if (companiaAsignarInput) companiaAsignarInput.value = companiaId;
         actualizarUsuariosPorCompania(String(companiaId));
