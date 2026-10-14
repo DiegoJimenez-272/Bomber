@@ -54,9 +54,9 @@
                 </header>
                 <div class="malla-ramos">
                     {% for ramo in nivel.ramos %}
-                    <article class="malla-ramo">
+                    <article class="malla-ramo{% if not puede_editar_malla and not ramo.usuario_inscrito %} malla-ramo-no-cursando{% endif %}" {% if not puede_editar_malla and not ramo.usuario_inscrito %}title="No estás cursando este ramo"{% endif %}>
                         <div class="d-flex justify-content-between align-items-start gap-2">
-                            <h3>{{ ramo.nombre }}</h3>
+                            <h3>{{ ramo.nombre }}{% if not puede_editar_malla and ramo.usuario_inscrito %} <span class="badge rounded-pill text-bg-success malla-cursando-badge">Cursando</span>{% endif %}</h3>
                             {% if ramo.aula_virtual %}<span class="malla-virtual" title="Incluye aula virtual"><i class="bi bi-globe2"></i></span>{% endif %}
                         </div>
                         <details class="malla-inscritos">
@@ -98,8 +98,8 @@
             <div class="row g-3 p-3">
                 {% for ramo in nivel.ramos %}
                 <div class="col-12 col-md-6 col-xl-4">
-                    <article class="malla-ramo malla-ramo-complementario h-100">
-                        <div class="d-flex justify-content-between align-items-start gap-2"><h3>{{ ramo.nombre }}</h3><i class="bi bi-globe2 malla-virtual" title="Incluye aula virtual"></i></div>
+                    <article class="malla-ramo malla-ramo-complementario h-100{% if not puede_editar_malla and not ramo.usuario_inscrito %} malla-ramo-no-cursando{% endif %}" {% if not puede_editar_malla and not ramo.usuario_inscrito %}title="No estás cursando este ramo"{% endif %}>
+                        <div class="d-flex justify-content-between align-items-start gap-2"><h3>{{ ramo.nombre }}{% if not puede_editar_malla and ramo.usuario_inscrito %} <span class="badge rounded-pill text-bg-success malla-cursando-badge">Cursando</span>{% endif %}</h3><i class="bi bi-globe2 malla-virtual" title="Incluye aula virtual"></i></div>
                         <details class="malla-inscritos">
                             <summary><i class="bi bi-people me-1"></i>{{ ramo.usuarios_actuales|length }} cursando</summary>
                             {% if ramo.usuarios_actuales %}<ul>{% for usuario in ramo.usuarios_actuales %}<li><span>{{ usuario.get_full_name }}</span><small>{{ usuario.compania.nombre|default:"Sin compañía" }}</small></li>{% endfor %}</ul>{% else %}<p class="text-muted small mb-0 mt-2">Todavía no hay voluntarios asignados.</p>{% endif %}
@@ -165,6 +165,9 @@
     .nivel-profesional .malla-nivel-header { background: #202d4f; }
     .malla-ramos { display: grid; gap: .75rem; padding: .8rem; }
     .malla-ramo { min-width: 0; padding: .85rem; border: 1px solid #dfe4e9; border-left: 4px solid #579ac5; border-radius: .55rem; background: #fff; }
+    .malla-ramo-no-cursando { background: #e9ecef !important; border-color: #d4d8dc !important; border-left-color: #adb5bd !important; color: #6c757d; filter: grayscale(1); }
+    .malla-ramo-no-cursando h3, .malla-ramo-no-cursando .malla-inscritos summary { color: #6c757d; }
+    .malla-cursando-badge { display: inline-block; vertical-align: middle; font-size: .65rem; font-weight: 600; }
     .nivel-operativo .malla-ramo { border-left-color: #b4423e; }
     .nivel-profesional .malla-ramo { border-left-color: #202d4f; }
     .nivel-postulante .malla-ramo { border-left-color: #adb5bd; }
@@ -192,6 +195,8 @@
     }
     body.dark-mode .malla-resumen > div, body.dark-mode .malla-nivel, body.dark-mode .malla-ramo, body.dark-mode .malla-complementarios { background: #24272b; color: #e9ecef; border-color: #41464b; }
     body.dark-mode .malla-ramo h3, body.dark-mode .malla-inscritos summary { color: #e9ecef; }
+    body.dark-mode .malla-ramo-no-cursando { background: #343a40 !important; border-color: #495057 !important; border-left-color: #6c757d !important; color: #adb5bd; }
+    body.dark-mode .malla-ramo-no-cursando h3, body.dark-mode .malla-ramo-no-cursando .malla-inscritos summary { color: #adb5bd; }
     body.dark-mode .malla-nivel-header { filter: brightness(.85); }
     body.dark-mode .malla-usuario-opcion { border-color: #41464b; }
 </style>

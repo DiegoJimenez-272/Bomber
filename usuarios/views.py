@@ -2270,6 +2270,9 @@ def malla_curricular_view(request):
         )
         for ramo in ramos:
             ramo.usuarios_actuales = list(ramo.usuarios.all())
+            ramo.usuario_inscrito = any(
+                usuario.id == request.user.id for usuario in ramo.usuarios_actuales
+            )
             ramo.usuarios_actuales_json = json.dumps(
                 [usuario.id for usuario in ramo.usuarios_actuales]
             )
