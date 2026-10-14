@@ -41,13 +41,22 @@
             background-color: var(--bs-body-bg);
         }
         .sidebar-toggler {
-            display: none; /* Oculto por defecto en pantallas grandes */
+            display: flex;
+            align-items: center;
+            justify-content: center;
             border: none;
             background: transparent;
             font-size: 1.5rem;
             padding: 0.25rem 0.5rem;
             line-height: 1;
             color: var(--text-color);
+            min-width: 44px;
+            min-height: 44px;
+            border-radius: .5rem;
+        }
+        .sidebar-toggler:hover {
+            background-color: rgba(var(--bs-primary-rgb), .08);
+            color: var(--bs-primary);
         }
         .sidebar {
             position: fixed;
@@ -84,6 +93,10 @@
             transition: margin-left 0.3s ease-in-out;
             width: calc(100% - 260px);
             min-height: 100vh;
+        }
+        @media (min-width: 992px) {
+            body.sidebar-collapsed .sidebar { transform: translateX(-100%); }
+            body.sidebar-collapsed .main-content { margin-left: 0; width: 100%; }
         }
         .sidebar-header {
             padding: 1.5rem 1.5rem;
@@ -235,7 +248,7 @@
 <body>
     <div class="d-flex">
         <!-- Sidebar -->
-        <div class="sidebar d-flex flex-column flex-shrink-0">
+        <div class="sidebar d-flex flex-column flex-shrink-0" id="appSidebar">
             <div class="sidebar-header d-flex align-items-center justify-content-between">
                 <a href="{% url 'dashboard' %}" class="text-decoration-none d-flex align-items-center justify-content-between flex-grow-1 text-dark">
                     <div class="d-flex align-items-center">
@@ -331,7 +344,7 @@
             <!-- Top Navigation -->
             <header class="bg-white border-bottom d-flex align-items-center justify-content-between py-2 px-3 py-md-3 px-md-4">
                 <div class="d-flex align-items-center">
-                    <button class="sidebar-toggler me-2 me-sm-3" type="button" id="sidebarToggle" aria-label="Abrir menú">
+                    <button class="sidebar-toggler me-2 me-sm-3" type="button" id="sidebarToggle" aria-label="Ocultar menú" aria-expanded="true" aria-controls="appSidebar">
                         <i class="bi bi-list fs-3"></i>
                     </button>
                     <span class="d-lg-none fw-bold text-danger d-flex align-items-center" style="font-size: 1rem;">
@@ -413,29 +426,74 @@
             const sidebarToggler = document.getElementById('sidebarToggle');
             const sidebarBackdrop = document.getElementById('sidebarBackdrop');
             const sidebarCloseBtn = document.getElementById('sidebarCloseBtn');
+            const esMovil = () => window.matchMedia('(max-width: 991.98px)').matches;
+
+            function actualizarBotonSidebar() {
+                if (!sidebarToggler) return;
+                const menuAbierto = esMovil()
+                    ? Boolean(sidebar && sidebar.classList.contains('visible'))
+                    : !document.body.classList.contains('sidebar-collapsed');
+                const etiqueta = esMovil()
+                    ? (menuAbierto ? 'Cerrar menú' : 'Abrir menú')
+                    : (menuAbierto ? 'Ocultar menú' : 'Mostrar menú');
+                sidebarToggler.setAttribute('aria-label', etiqueta);
+                sidebarToggler.setAttribute('title', etiqueta);
+                sidebarToggler.setAttribute('aria-expanded', String(menuAbierto));
+                const icono = sidebarToggler.querySelector('i');
+                if (icono) {
+                    icono.classList.toggle('bi-x-lg', esMovil() && menuAbierto);
+                    icono.classList.toggle('bi-list', !(esMovil() && menuAbierto));
+                }
+            }
+
+            try {
+                if (!esMovil() && localStorage.getItem('sidebarCollapsed') === 'true') {
+                    document.body.classList.add('sidebar-collapsed');
+                }
+            } catch (e) {}
+            actualizarBotonSidebar();
 
             function openSidebar() {
                 if (sidebar) sidebar.classList.add('visible');
                 if (sidebarBackdrop) sidebarBackdrop.classList.add('show');
                 document.body.style.overflow = 'hidden';
+                actualizarBotonSidebar();
             }
 
             function closeSidebar() {
                 if (sidebar) sidebar.classList.remove('visible');
                 if (sidebarBackdrop) sidebarBackdrop.classList.remove('show');
                 document.body.style.overflow = '';
+                actualizarBotonSidebar();
             }
 
             if (sidebarToggler) {
                 sidebarToggler.addEventListener('click', function (e) {
                     e.stopPropagation();
-                    if (sidebar && sidebar.classList.contains('visible')) {
-                        closeSidebar();
+                    if (esMovil()) {
+                        if (sidebar && sidebar.classList.contains('visible')) closeSidebar();
+                        else openSidebar();
                     } else {
-                        openSidebar();
+                        const oculto = document.body.classList.toggle('sidebar-collapsed');
+                        try { localStorage.setItem('sidebarCollapsed', String(oculto)); } catch (e) {}
+                        actualizarBotonSidebar();
                     }
                 });
             }
+
+            window.addEventListener('resize', function () {
+                if (!esMovil()) {
+                    if (sidebar) sidebar.classList.remove('visible');
+                    if (sidebarBackdrop) sidebarBackdrop.classList.remove('show');
+                    document.body.style.overflow = '';
+                    try {
+                        document.body.classList.toggle('sidebar-collapsed', localStorage.getItem('sidebarCollapsed') === 'true');
+                    } catch (e) {}
+                } else {
+                    document.body.classList.remove('sidebar-collapsed');
+                }
+                actualizarBotonSidebar();
+            });
 
             if (sidebarCloseBtn) {
                 sidebarCloseBtn.addEventListener('click', closeSidebar);
@@ -449,7 +507,7 @@
             document.querySelectorAll('.sidebar .nav-link').forEach(link => {
                 if (!link.classList.contains('theme-toggle-btn')) {
                     link.addEventListener('click', function() {
-                        if (window.innerWidth < 992) {
+                        if (esMovil()) {
                             closeSidebar();
                         }
                     });
