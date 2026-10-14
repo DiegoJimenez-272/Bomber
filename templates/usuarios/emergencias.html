@@ -194,6 +194,10 @@
                     </tbody>
                 </table>
             </div>
+            <div id="emPaginationContainer" class="d-flex justify-content-between align-items-center flex-wrap gap-2 pt-3" hidden>
+                <small id="emPaginationInfo" class="text-muted" aria-live="polite"></small>
+                <nav aria-label="Paginación de emergencias"><ul id="emPagination" class="pagination pagination-sm mb-0"></ul></nav>
+            </div>
         </div>
     </div>
 </main>
@@ -461,6 +465,10 @@
         width: 171px;
         justify-content: center;
     }
+    #emPaginationContainer[hidden] { display: none !important; }
+    #emPagination .page-link { color: #dc3545; }
+    #emPagination .page-item.active .page-link { color: #fff; background-color: #dc3545; border-color: #dc3545; }
+    #emPagination .page-link:focus-visible { box-shadow: 0 0 0 .2rem rgba(220, 53, 69, .2); }
 </style>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
@@ -694,20 +702,76 @@ document.addEventListener('DOMContentLoaded', function () {
     const emUserFilter = document.getElementById('emUserFilter');
     const emsTableBody = document.getElementById('emergenciasTableBody');
     const noEmsRow = document.getElementById('no-ems-found');
+    const emPaginationContainer = document.getElementById('emPaginationContainer');
+    const emPaginationInfo = document.getElementById('emPaginationInfo');
+    const emPagination = document.getElementById('emPagination');
+    const emPageSize = 10;
+    let emCurrentPage = 1;
 
-    function filterEms() {
+    function renderEmPagination(totalPages) {
+        if (!emPagination) return;
+        emPagination.replaceChildren();
+        if (emPaginationContainer) emPaginationContainer.hidden = totalPages <= 1;
+        if (totalPages <= 1) return;
+
+        function addPage(label, page, disabled, active, ariaLabel) {
+            const item = document.createElement('li');
+            item.className = `page-item${disabled ? ' disabled' : ''}${active ? ' active' : ''}`;
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'page-link';
+            button.textContent = label;
+            button.disabled = disabled;
+            button.setAttribute('aria-label', ariaLabel);
+            if (active) button.setAttribute('aria-current', 'page');
+            button.addEventListener('click', function () {
+                emCurrentPage = page;
+                filterEms(false);
+            });
+            item.appendChild(button);
+            emPagination.appendChild(item);
+        }
+
+        addPage('‹', emCurrentPage - 1, emCurrentPage === 1, false, 'Página anterior');
+        let firstPage = Math.max(1, emCurrentPage - 2);
+        let lastPage = Math.min(totalPages, firstPage + 4);
+        firstPage = Math.max(1, lastPage - 4);
+        if (firstPage > 1) {
+            addPage('1', 1, false, false, 'Página 1');
+            if (firstPage > 2) {
+                const gap = document.createElement('li');
+                gap.className = 'page-item disabled';
+                gap.innerHTML = '<span class="page-link" aria-hidden="true">…</span>';
+                emPagination.appendChild(gap);
+            }
+        }
+        for (let page = firstPage; page <= lastPage; page++) {
+            if (page === 1 && firstPage > 1) continue;
+            addPage(String(page), page, false, page === emCurrentPage, `Página ${page}`);
+        }
+        if (lastPage < totalPages) {
+            if (lastPage < totalPages - 1) {
+                const gap = document.createElement('li');
+                gap.className = 'page-item disabled';
+                gap.innerHTML = '<span class="page-link" aria-hidden="true">…</span>';
+                emPagination.appendChild(gap);
+            }
+            addPage(String(totalPages), totalPages, false, false, `Página ${totalPages}`);
+        }
+        addPage('›', emCurrentPage + 1, emCurrentPage === totalPages, false, 'Página siguiente');
+    }
+
+    function filterEms(resetPage = true) {
         if (!emsTableBody) return;
-        const searchText = emSearchInput.value.toLowerCase();
-        const selectedType = emTypeFilter.value.toLowerCase(); 
+        if (resetPage) emCurrentPage = 1;
+        const searchText = (emSearchInput?.value || '').toLowerCase();
+        const selectedType = (emTypeFilter?.value || '').toLowerCase();
         const isUserSelected = emUserFilter.value !== "";
         const selectedUserText = emUserFilter.options[emUserFilter.selectedIndex].text.toLowerCase();
 
-        const rows = emsTableBody.querySelectorAll('tr:not(#no-ems-found)');
-        let visibleRows = 0;
-
-        rows.forEach(row => {
-            if (row.children.length === 1 && row.textContent.includes('No hay emergencias registradas todavía')) return;
-
+        const rows = Array.from(emsTableBody.querySelectorAll('tr:not(#no-ems-found)'))
+            .filter(row => !(row.children.length === 1 && row.textContent.includes('No hay emergencias registradas todavía')));
+        const filteredRows = rows.filter(row => {
             const textContent = row.textContent.toLowerCase();
             const typeCell = row.children[0].textContent.toLowerCase();
             const userCell = row.children[4].textContent.toLowerCase();
@@ -715,16 +779,26 @@ document.addEventListener('DOMContentLoaded', function () {
             const matchesSearch = searchText === "" || textContent.includes(searchText);
             const matchesType = selectedType === "" || typeCell.includes(selectedType);
             const matchesUser = !isUserSelected || userCell.includes(selectedUserText) || selectedUserText === "todos";
-
-            if (matchesSearch && matchesType && matchesUser) { row.style.display = ""; visibleRows++; } 
-            else { row.style.display = "none"; }
+            return matchesSearch && matchesType && matchesUser;
         });
-        if (noEmsRow) noEmsRow.style.display = visibleRows === 0 && rows.length > 0 ? "" : "none";
+        const totalPages = Math.max(1, Math.ceil(filteredRows.length / emPageSize));
+        if (emCurrentPage > totalPages) emCurrentPage = totalPages;
+        const startIndex = (emCurrentPage - 1) * emPageSize;
+        const visibleRows = new Set(filteredRows.slice(startIndex, startIndex + emPageSize));
+        rows.forEach(row => { row.style.display = visibleRows.has(row) ? '' : 'none'; });
+        if (noEmsRow) noEmsRow.style.display = filteredRows.length === 0 && rows.length > 0 ? '' : 'none';
+        if (emPaginationInfo) {
+            const firstVisible = filteredRows.length ? startIndex + 1 : 0;
+            const lastVisible = Math.min(startIndex + emPageSize, filteredRows.length);
+            emPaginationInfo.textContent = `Mostrando ${firstVisible}–${lastVisible} de ${filteredRows.length} emergencias`;
+        }
+        renderEmPagination(totalPages);
     }
 
-    if (emSearchInput) emSearchInput.addEventListener('keyup', filterEms);
+    if (emSearchInput) emSearchInput.addEventListener('input', filterEms);
     if (emTypeFilter) emTypeFilter.addEventListener('change', filterEms);
     if (emUserFilter) emUserFilter.addEventListener('change', filterEms);
+    filterEms();
 });
 </script>
 {% endblock %}
