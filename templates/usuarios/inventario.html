@@ -32,6 +32,27 @@
         color: #fff;
     }
 
+    /* Las tres pestañas de contenido usan rojo institucional, incluso al quedar activas. */
+    .inventario-company-tabs .nav-link {
+        color: #dc3545;
+        transition: color .15s ease-in-out, background-color .15s ease-in-out, border-color .15s ease-in-out;
+    }
+
+    .inventario-company-tabs .nav-link.active,
+    .inventario-company-tabs .show > .nav-link {
+        color: #fff;
+        background-color: #dc3545;
+        border-color: #dc3545;
+    }
+
+    .inventario-company-tabs .nav-link:not(.active):hover,
+    .inventario-company-tabs .nav-link:not(.active):focus-visible {
+        color: #b02a37;
+        background-color: #fff5f5;
+        border-color: #f1b0b7 #f1b0b7 #dee2e6;
+        box-shadow: 0 0 0 .2rem rgba(220, 53, 69, .18);
+    }
+
     .inventory-company-picker {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -120,17 +141,6 @@
     @media (max-width: 767.98px) {
         .inventory-detail-layout { grid-template-columns: minmax(0, 1fr); }
         .inventory-assignment-column { position: static; }
-    /* Mantener las pestañas secundarias del inventario en el color institucional. */
-    .inventario-company-tabs .nav-link:not(.active) {
-        color: var(--bs-danger);
-    }
-
-    .inventario-company-tabs .nav-link:not(.active):hover,
-    .inventario-company-tabs .nav-link:not(.active):focus-visible {
-        color: #b02a37;
-        background-color: #fff5f5;
-        border-color: #f1b0b7 #f1b0b7 #dee2e6;
-    }
     }
 
     /* Estilos para las filas de los carros de bomberos (Vehículos) */
