@@ -27,7 +27,7 @@ from reportlab.lib.pagesizes import letter
 import openpyxl
 from reportlab.lib.units import inch
 from .forms import RegistroForm, LoginForm, ProyectoForm, ArchivoProyectoForm, DocumentoForm, CarpetaForm, SalidaTerrenoForm, EmergenciaForm, PerfilForm, PasswordChangeForm, CapacitacionForm, ReunionForm, MantenimientoForm, ArchivoMantenimientoForm, InventarioForm, CajaChicaForm, AdminUserCreationForm, AdminUserChangeForm, RolForm, CompaniaForm, InventarioEditForm, InventarioGroupEditForm, AvisoForm, PasswordResetRequestForm, PasswordResetVerifyForm, PasswordResetNewPasswordForm, VehiculoForm, VehiculoHojaVidaForm, VehiculoDocumentacionForm, RondaVehiculoForm
-from .models import Rol, Compania, Proyecto, ArchivoProyecto, Documento, Carpeta, SalidaTerreno, SalidaTerrenoUnidad, Emergencia, EmergenciaUnidad, Usuario, Capacitacion, Mantenimiento, ArchivoMantenimiento, Inventario, CajaChica, Notificacion, Aviso, AvisoDestinatario, PasswordResetCode, RegistroPendiente, Vehiculo, RondaVehiculo
+from .models import Rol, Compania, Proyecto, ArchivoProyecto, Documento, Carpeta, SalidaTerreno, SalidaTerrenoUnidad, Emergencia, EmergenciaUnidad, Usuario, Capacitacion, CursoMalla, Mantenimiento, ArchivoMantenimiento, Inventario, CajaChica, Notificacion, Aviso, AvisoDestinatario, PasswordResetCode, RegistroPendiente, Vehiculo, RondaVehiculo
 from .decorators import admin_required, permiso_requerido, pertenencia_compania
 from .inventory_permissions import (
     puede_acceder_inventario_compania,
@@ -2207,6 +2207,75 @@ def enviar_email_capacitacion(capacitacion, usuarios, accion="invitado al"):
         msg.send(fail_silently=True)
     except Exception as e:
         print(f"Error al enviar correo de capacitacion: {e}")
+
+@login_required
+def malla_curricular_view(request):
+    rol = getattr(request.user, 'rol', None)
+    puede_gestionar = bool(
+        request.user.is_superuser
+        or request.user.is_staff
+        or (rol and rol.editar_capacitaciones)
+    )
+    if not puede_gestionar:
+        messages.error(request, 'Solo administradores pueden gestionar la malla curricular.')
+        return redirect('dashboard')
+
+    if request.method == 'POST':
+        ramo = get_object_or_404(CursoMalla, pk=request.POST.get('ramo_id'))
+        usuarios_validos = Usuario.objects.filter(is_active=True, compania__isnull=False)
+        ids_seleccionados = [
+            int(user_id) for user_id in request.POST.getlist('usuarios')
+            if user_id.isdigit()
+        ]
+        ramo.usuarios.set(usuarios_validos.filter(id__in=ids_seleccionados))
+        messages.success(request, f'Se actualizaron los voluntarios de “{ramo.nombre}”.')
+        return redirect('malla_curricular')
+
+    usuarios = list(
+        Usuario.objects.filter(is_active=True, compania__isnull=False)
+        .select_related('compania')
+        .order_by('nombre', 'apellido')
+    )
+    usuarios_json = json.dumps([
+        {'id': usuario.id, 'nombre': usuario.get_full_name(), 'compania': usuario.compania.nombre}
+        for usuario in usuarios
+    ], ensure_ascii=False)
+
+    definiciones_niveles = [
+        ('Nivel postulante', 'postulante'),
+        ('Nivel inicial', 'inicial'),
+        ('Nivel operativo', 'operativo'),
+        ('Nivel profesional', 'profesional'),
+        ('Cursos complementarios', 'complementario'),
+    ]
+    niveles = []
+    for nombre, estilo in definiciones_niveles:
+        ramos = list(
+            CursoMalla.objects.filter(nivel=nombre)
+            .prefetch_related(Prefetch(
+                'usuarios',
+                queryset=Usuario.objects.select_related('compania').order_by('nombre', 'apellido'),
+            ))
+            .order_by('orden', 'nombre')
+        )
+        for ramo in ramos:
+            ramo.usuarios_actuales = list(ramo.usuarios.all())
+            ramo.usuarios_actuales_json = json.dumps(
+                [usuario.id for usuario in ramo.usuarios_actuales]
+            )
+        niveles.append({
+            'nombre': nombre,
+            'estilo': estilo,
+            'ramos': ramos,
+            'total_inscritos': sum(len(ramo.usuarios_actuales) for ramo in ramos),
+        })
+
+    return render(request, 'usuarios/malla_curricular.html', {
+        'niveles': niveles,
+        'usuarios_json': usuarios_json,
+        'total_usuarios': len(usuarios),
+        'total_ramos': CursoMalla.objects.count(),
+    })
 
 def capacitaciones_view(request):
     if not request.user.is_superuser and not (request.user.rol and request.user.rol.ver_capacitaciones):

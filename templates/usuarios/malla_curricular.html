@@ -1,0 +1,263 @@
+{% extends 'base_con_condicion.html' %}
+
+{% block title %}Malla Curricular - {{ block.super }}{% endblock %}
+
+{% block content %}
+<main class="malla-page container-fluid py-3">
+    <header class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 pb-3 mb-4 border-bottom">
+        <div>
+            <div class="text-danger fw-bold small text-uppercase mb-1">Formación bomberil</div>
+            <h1 class="h2 mb-1">Malla Curricular</h1>
+            <p class="text-muted mb-0">Organiza y consulta qué ramos está cursando cada voluntario.</p>
+        </div>
+        <a class="btn btn-outline-danger" href="{% url 'capacitaciones' %}"><i class="bi bi-arrow-left me-1"></i>Cursos y Capacitaciones</a>
+    </header>
+
+    {% if messages %}
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+        </div>
+        {% endfor %}
+    {% endif %}
+
+    <section class="malla-resumen d-flex flex-wrap gap-3 mb-4" aria-label="Resumen de la malla">
+        <div><i class="bi bi-journal-bookmark-fill text-danger me-2"></i><strong>{{ total_ramos }}</strong> ramos</div>
+        <div><i class="bi bi-people-fill text-danger me-2"></i><strong>{{ total_usuarios }}</strong> voluntarios disponibles</div>
+        <div><i class="bi bi-person-check-fill text-danger me-2"></i>Asignación por ramo</div>
+    </section>
+
+    <div class="malla-ruta mb-4" aria-label="Progresión por niveles">
+        {% for nivel in niveles %}
+            {% if nivel.estilo != 'complementario' %}
+            <div class="malla-ruta-paso nivel-{{ nivel.estilo }}">
+                <span>{{ nivel.nombre }}</span>
+                <small>{{ nivel.ramos|length }} ramos</small>
+            </div>
+            {% if not forloop.counter == 4 %}<i class="bi bi-arrow-right-short malla-ruta-flecha" aria-hidden="true"></i>{% endif %}
+            {% endif %}
+        {% endfor %}
+    </div>
+
+    <div class="row g-3 align-items-start">
+        {% for nivel in niveles %}
+        {% if nivel.estilo != 'complementario' %}
+        <div class="col-12 col-md-6 col-xxl-3">
+            <section class="malla-nivel nivel-{{ nivel.estilo }} h-100">
+                <header class="malla-nivel-header">
+                    <div>
+                        <h2>{{ nivel.nombre }}</h2>
+                        <small>{{ nivel.ramos|length }} ramos · {{ nivel.total_inscritos }} inscripciones</small>
+                    </div>
+                    <i class="bi bi-mortarboard-fill" aria-hidden="true"></i>
+                </header>
+                <div class="malla-ramos">
+                    {% for ramo in nivel.ramos %}
+                    <article class="malla-ramo">
+                        <div class="d-flex justify-content-between align-items-start gap-2">
+                            <h3>{{ ramo.nombre }}</h3>
+                            {% if ramo.aula_virtual %}<span class="malla-virtual" title="Incluye aula virtual"><i class="bi bi-globe2"></i></span>{% endif %}
+                        </div>
+                        <details class="malla-inscritos">
+                            <summary><i class="bi bi-people me-1"></i>{{ ramo.usuarios_actuales|length }} cursando</summary>
+                            {% if ramo.usuarios_actuales %}
+                            <ul>
+                                {% for usuario in ramo.usuarios_actuales %}
+                                <li><span>{{ usuario.get_full_name }}</span><small>{{ usuario.compania.nombre }}</small></li>
+                                {% endfor %}
+                            </ul>
+                            {% else %}
+                            <p class="text-muted small mb-0 mt-2">Todavía no hay voluntarios asignados.</p>
+                            {% endif %}
+                        </details>
+                        <button type="button" class="btn btn-sm btn-outline-danger mt-3"
+                                data-bs-toggle="modal" data-bs-target="#asignarRamoModal"
+                                data-ramo-id="{{ ramo.id }}" data-ramo-nombre="{{ ramo.nombre }}"
+                                data-usuarios-actuales="{{ ramo.usuarios_actuales_json }}">
+                            <i class="bi bi-person-plus-fill me-1"></i>Asignar voluntarios
+                        </button>
+                    </article>
+                    {% empty %}
+                    <p class="text-muted small mb-0">No hay ramos configurados en este nivel.</p>
+                    {% endfor %}
+                </div>
+            </section>
+        </div>
+        {% endif %}
+        {% endfor %}
+    </div>
+
+    {% for nivel in niveles %}
+        {% if nivel.estilo == 'complementario' %}
+        <section class="malla-complementarios mt-4">
+            <header class="malla-complementarios-header">
+                <div><h2>{{ nivel.nombre }}</h2><p class="mb-0">Cursos que complementan la formación desde el nivel inicial.</p></div>
+                <span>{{ nivel.ramos|length }} cursos</span>
+            </header>
+            <div class="row g-3 p-3">
+                {% for ramo in nivel.ramos %}
+                <div class="col-12 col-md-6 col-xl-4">
+                    <article class="malla-ramo malla-ramo-complementario h-100">
+                        <div class="d-flex justify-content-between align-items-start gap-2"><h3>{{ ramo.nombre }}</h3><i class="bi bi-globe2 malla-virtual" title="Incluye aula virtual"></i></div>
+                        <details class="malla-inscritos">
+                            <summary><i class="bi bi-people me-1"></i>{{ ramo.usuarios_actuales|length }} cursando</summary>
+                            {% if ramo.usuarios_actuales %}<ul>{% for usuario in ramo.usuarios_actuales %}<li><span>{{ usuario.get_full_name }}</span><small>{{ usuario.compania.nombre }}</small></li>{% endfor %}</ul>{% else %}<p class="text-muted small mb-0 mt-2">Todavía no hay voluntarios asignados.</p>{% endif %}
+                        </details>
+                        <button type="button" class="btn btn-sm btn-outline-danger mt-3" data-bs-toggle="modal" data-bs-target="#asignarRamoModal" data-ramo-id="{{ ramo.id }}" data-ramo-nombre="{{ ramo.nombre }}" data-usuarios-actuales="{{ ramo.usuarios_actuales_json }}"><i class="bi bi-person-plus-fill me-1"></i>Asignar voluntarios</button>
+                    </article>
+                </div>
+                {% empty %}<div class="col-12"><p class="text-muted small mb-0">No hay cursos complementarios configurados.</p></div>{% endfor %}
+            </div>
+        </section>
+        {% endif %}
+    {% endfor %}
+</main>
+
+<div class="modal fade" id="asignarRamoModal" tabindex="-1" aria-labelledby="asignarRamoModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <form method="post" id="asignarRamoForm">
+                {% csrf_token %}
+                <input type="hidden" name="ramo_id" id="mallaRamoId">
+                <div class="modal-header">
+                    <div><h2 class="modal-title fs-5" id="asignarRamoModalLabel">Asignar voluntarios</h2><p class="text-muted small mb-0" id="mallaRamoNombre"></p></div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                    <label for="mallaBuscarUsuario" class="form-label fw-semibold">Buscar por nombre o compañía</label>
+                    <input type="search" id="mallaBuscarUsuario" class="form-control mb-3" placeholder="Escribe un nombre o compañía..." autocomplete="off">
+                    <div id="mallaUsuariosLista" class="malla-usuarios-lista" aria-live="polite"></div>
+                    <small class="text-muted d-block mt-2">Marca a quienes están cursando este ramo. Puedes seleccionar más de un voluntario.</small>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-danger"><i class="bi bi-check-lg me-1"></i>Guardar asignación</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{{ usuarios_json|json_script:"malla-usuarios-data" }}
+
+<style>
+    .malla-resumen { color: #495057; }
+    .malla-resumen > div { background: #fff; border: 1px solid #dee2e6; border-radius: .65rem; padding: .65rem 1rem; }
+    .malla-ruta { display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
+    .malla-ruta-paso { flex: 1; min-width: 0; display: flex; justify-content: space-between; align-items: center; gap: .5rem; padding: .7rem .85rem; border-radius: .5rem; color: #fff; font-weight: 700; }
+    .malla-ruta-paso small { font-weight: 500; opacity: .9; white-space: nowrap; }
+    .malla-ruta-paso.nivel-postulante { color: #26364f; background: #fff; border: 2px solid #adb5bd; }
+    .malla-ruta-paso.nivel-inicial { background: #579ac5; }
+    .malla-ruta-paso.nivel-operativo { background: #b4423e; }
+    .malla-ruta-paso.nivel-profesional { background: #202d4f; }
+    .malla-ruta-flecha { color: #337fae; font-size: 1.8rem; flex-shrink: 0; }
+    .malla-nivel { overflow: hidden; border: 1px solid #d9dfe5; border-radius: .75rem; background: #fff; box-shadow: 0 .15rem .5rem rgba(18, 38, 63, .06); }
+    .malla-nivel-header { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: 1rem; color: #fff; }
+    .malla-nivel-header h2, .malla-complementarios-header h2 { margin: 0; font-size: 1.05rem; font-weight: 700; }
+    .malla-nivel-header small { display: block; margin-top: .2rem; opacity: .9; }
+    .malla-nivel-header > i { font-size: 1.35rem; opacity: .9; }
+    .nivel-postulante .malla-nivel-header { color: #26364f; background: #f0f2f4; border-bottom: 1px solid #d9dfe5; }
+    .nivel-inicial .malla-nivel-header { background: #579ac5; }
+    .nivel-operativo .malla-nivel-header { background: #b4423e; }
+    .nivel-profesional .malla-nivel-header { background: #202d4f; }
+    .malla-ramos { display: grid; gap: .75rem; padding: .8rem; }
+    .malla-ramo { min-width: 0; padding: .85rem; border: 1px solid #dfe4e9; border-left: 4px solid #579ac5; border-radius: .55rem; background: #fff; }
+    .nivel-operativo .malla-ramo { border-left-color: #b4423e; }
+    .nivel-profesional .malla-ramo { border-left-color: #202d4f; }
+    .nivel-postulante .malla-ramo { border-left-color: #adb5bd; }
+    .malla-ramo h3 { font-size: .94rem; line-height: 1.35; font-weight: 650; margin: 0 0 .55rem; }
+    .malla-virtual { flex: 0 0 auto; color: #fff; background: #343a40; border-radius: 50%; width: 1.2rem; height: 1.2rem; display: inline-flex; justify-content: center; align-items: center; font-size: .7rem; }
+    .malla-inscritos summary { cursor: pointer; color: #495057; font-size: .84rem; }
+    .malla-inscritos ul { list-style: none; padding: 0; margin: .5rem 0 0; max-height: 150px; overflow-y: auto; }
+    .malla-inscritos li { display: flex; flex-direction: column; padding: .3rem 0; border-bottom: 1px solid #edf0f2; font-size: .82rem; }
+    .malla-inscritos li small { color: #6c757d; }
+    .malla-complementarios { border: 1px solid #e6cc8b; border-radius: .75rem; overflow: hidden; background: #fffaf0; }
+    .malla-complementarios-header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem 1.2rem; color: #634d20; background: #f3d58d; }
+    .malla-complementarios-header p { margin-top: .25rem; font-size: .88rem; }
+    .malla-ramo-complementario { border-left-color: #e4b74c; }
+    .malla-usuarios-lista { max-height: 360px; overflow-y: auto; border: 1px solid #dee2e6; border-radius: .5rem; }
+    .malla-usuario-opcion { display: flex; align-items: flex-start; gap: .65rem; padding: .65rem .8rem; border-bottom: 1px solid #edf0f2; cursor: pointer; }
+    .malla-usuario-opcion[hidden] { display: none !important; }
+    .malla-usuario-opcion:last-child { border-bottom: 0; }
+    .malla-usuario-opcion:hover { background: #fff5f5; }
+    .malla-usuario-opcion input { margin-top: .25rem; accent-color: #dc3545; }
+    .malla-usuario-opcion span { display: flex; flex-direction: column; }
+    .malla-usuario-opcion small { color: #6c757d; }
+    @media (max-width: 767.98px) {
+        .malla-ruta { overflow-x: auto; justify-content: flex-start; padding-bottom: .35rem; }
+        .malla-ruta-paso { min-width: 210px; }
+    }
+    body.dark-mode .malla-resumen > div, body.dark-mode .malla-nivel, body.dark-mode .malla-ramo, body.dark-mode .malla-complementarios { background: #24272b; color: #e9ecef; border-color: #41464b; }
+    body.dark-mode .malla-ramo h3, body.dark-mode .malla-inscritos summary { color: #e9ecef; }
+    body.dark-mode .malla-nivel-header { filter: brightness(.85); }
+    body.dark-mode .malla-usuario-opcion { border-color: #41464b; }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const usuarios = JSON.parse(document.getElementById('malla-usuarios-data').textContent);
+    const modal = document.getElementById('asignarRamoModal');
+    const form = document.getElementById('asignarRamoForm');
+    const lista = document.getElementById('mallaUsuariosLista');
+    const buscador = document.getElementById('mallaBuscarUsuario');
+
+    function filtrarUsuarios() {
+        const termino = (buscador.value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase().trim();
+        let coincidencias = 0;
+        lista.querySelectorAll('[data-malla-usuario]').forEach(function (fila) {
+            const coincide = fila.dataset.searchText.includes(termino);
+            fila.hidden = !coincide;
+            if (coincide) coincidencias++;
+        });
+        const sinResultados = lista.querySelector('[data-malla-sin-resultados]');
+        sinResultados.hidden = coincidencias > 0;
+    }
+
+    function dibujarUsuarios(idsSeleccionados) {
+        lista.replaceChildren();
+        usuarios.forEach(function (usuario) {
+            const label = document.createElement('label');
+            label.className = 'malla-usuario-opcion';
+            label.dataset.mallaUsuario = '';
+            label.dataset.searchText = (usuario.nombre + ' ' + usuario.compania).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase();
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.name = 'usuarios';
+            checkbox.value = usuario.id;
+            checkbox.checked = idsSeleccionados.includes(Number(usuario.id));
+            const texto = document.createElement('span');
+            const nombre = document.createElement('strong');
+            nombre.className = 'fw-normal';
+            nombre.textContent = usuario.nombre;
+            const compania = document.createElement('small');
+            compania.textContent = usuario.compania;
+            texto.append(nombre, compania);
+            label.append(checkbox, texto);
+            lista.appendChild(label);
+        });
+        const empty = document.createElement('p');
+        empty.className = 'text-muted small p-3 mb-0';
+        empty.dataset.mallaSinResultados = '';
+        empty.textContent = usuarios.length ? 'No hay voluntarios que coincidan con la búsqueda.' : 'No hay voluntarios activos con compañía asignada.';
+        empty.hidden = usuarios.length > 0;
+        lista.appendChild(empty);
+        filtrarUsuarios();
+    }
+
+    modal.addEventListener('show.bs.modal', function (event) {
+        const button = event.relatedTarget;
+        document.getElementById('mallaRamoId').value = button.dataset.ramoId;
+        document.getElementById('mallaRamoNombre').textContent = button.dataset.ramoNombre;
+        let seleccionados = [];
+        try { seleccionados = JSON.parse(button.dataset.usuariosActuales || '[]').map(Number); } catch (error) { seleccionados = []; }
+        form.dataset.seleccionados = JSON.stringify(seleccionados);
+        buscador.value = '';
+        dibujarUsuarios(seleccionados);
+    });
+    buscador.addEventListener('input', function () {
+        filtrarUsuarios();
+    });
+});
+</script>
+{% endblock %}

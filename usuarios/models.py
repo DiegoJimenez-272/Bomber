@@ -363,6 +363,35 @@ class Capacitacion(models.Model):
     def __str__(self):
         return self.nombre
 
+
+class CursoMalla(models.Model):
+    NIVELES = [
+        ('Nivel postulante', 'Nivel postulante'),
+        ('Nivel inicial', 'Nivel inicial'),
+        ('Nivel operativo', 'Nivel operativo'),
+        ('Nivel profesional', 'Nivel profesional'),
+        ('Cursos complementarios', 'Cursos complementarios'),
+    ]
+
+    nombre = models.CharField(max_length=220, unique=True)
+    nivel = models.CharField(max_length=40, choices=NIVELES)
+    orden = models.PositiveSmallIntegerField(default=0)
+    complementario = models.BooleanField(default=False)
+    aula_virtual = models.BooleanField(default=False)
+    usuarios = models.ManyToManyField(
+        settings.AUTH_USER_MODEL,
+        blank=True,
+        related_name='ramos_malla_curricular',
+    )
+
+    class Meta:
+        ordering = ['nivel', 'orden', 'nombre']
+        verbose_name = 'Ramo de la malla curricular'
+        verbose_name_plural = 'Ramos de la malla curricular'
+
+    def __str__(self):
+        return self.nombre
+
 class Notificacion(models.Model):
     usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='notificaciones_recibidas')
     mensaje = models.CharField(max_length=255)

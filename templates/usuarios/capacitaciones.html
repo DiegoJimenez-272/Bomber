@@ -6,11 +6,16 @@
 <!-- Header del contenido principal -->
 <header class="d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-3 pb-3 mb-4 border-bottom">
     <h1 class="h2 mb-0">Gestión de Cursos y Capacitaciones</h1>
+    <div class="d-flex flex-wrap gap-2">
+    {% if request.user.is_superuser or request.user.is_staff or request.user.rol.editar_capacitaciones %}
+    <a class="btn btn-outline-danger" href="{% url 'malla_curricular' %}"><i class="bi bi-diagram-3-fill me-1"></i>Malla Curricular</a>
+    {% endif %}
     {% if request.user.is_superuser or request.user.rol.editar_capacitaciones %}
     <button class="btn btn-danger" type="button" data-bs-toggle="modal" data-bs-target="#createCapacitacionModal">
         <i class="bi bi-plus-lg me-1"></i> Nueva actividad
     </button>
     {% endif %}
+    </div>
 </header>
 
 <!-- Contenido de Cursos -->

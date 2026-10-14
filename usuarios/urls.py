@@ -64,6 +64,7 @@ urlpatterns = [
 
     # Capacitaciones
     path('capacitaciones/', views.capacitaciones_view, name='capacitaciones'),
+    path('malla-curricular/', views.malla_curricular_view, name='malla_curricular'),
     path('capacitaciones/<int:capacitacion_id>/edit/', views.capacitacion_edit_view, name='capacitacion_edit'),
     path('capacitaciones/<int:capacitacion_id>/delete/', views.capacitacion_delete_view, name='capacitacion_delete'),
 
