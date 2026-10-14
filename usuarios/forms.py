@@ -198,9 +198,9 @@ class RolForm(forms.ModelForm):
         fields = [
             'nombre', 'descripcion',
             'ver_resumen_general', 'ver_documentacion', 'ver_escanear_qr', 'ver_inventario',
-            'ver_salidas_terreno', 'ver_emergencias', 'ver_capacitaciones', 'ver_mantenimientos', 'ver_proyectos', 'ver_caja_chica',
+            'ver_salidas_terreno', 'ver_emergencias', 'ver_capacitaciones', 'ver_malla_curricular', 'ver_mantenimientos', 'ver_proyectos', 'ver_caja_chica',
             'ver_avisos', 'ver_inspectores', 'editar_documentacion', 'editar_inventario', 'gestionar_inventario_todas_companias', 'editar_salidas_terreno',
-            'editar_emergencias', 'editar_capacitaciones', 'editar_mantenimientos', 'editar_proyectos', 'editar_caja_chica', 'editar_avisos', 'editar_inspectores'
+            'editar_emergencias', 'editar_capacitaciones', 'editar_malla_curricular', 'editar_mantenimientos', 'editar_proyectos', 'editar_caja_chica', 'editar_avisos', 'editar_inspectores'
         ]
         widgets = {
             'nombre': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej: Capitán', 'list': 'roles-sugeridos'}),
@@ -212,9 +212,9 @@ class RolForm(forms.ModelForm):
         # Asegurar la clase form-check-input para que se rendericen como Switches
         permisos_fields = [
             'ver_resumen_general', 'ver_documentacion', 'ver_escanear_qr', 'ver_inventario',
-            'ver_salidas_terreno', 'ver_emergencias', 'ver_capacitaciones', 'ver_mantenimientos', 'ver_proyectos', 'ver_caja_chica',
+            'ver_salidas_terreno', 'ver_emergencias', 'ver_capacitaciones', 'ver_malla_curricular', 'ver_mantenimientos', 'ver_proyectos', 'ver_caja_chica',
             'ver_avisos', 'ver_inspectores', 'editar_documentacion', 'editar_inventario', 'gestionar_inventario_todas_companias', 'editar_salidas_terreno',
-            'editar_emergencias', 'editar_capacitaciones', 'editar_mantenimientos', 'editar_proyectos', 'editar_caja_chica', 'editar_avisos', 'editar_inspectores'
+            'editar_emergencias', 'editar_capacitaciones', 'editar_malla_curricular', 'editar_mantenimientos', 'editar_proyectos', 'editar_caja_chica', 'editar_avisos', 'editar_inspectores'
         ]
         for field in permisos_fields:
             self.fields[field].widget.attrs.update({'class': 'form-check-input'})
@@ -226,6 +226,8 @@ class RolForm(forms.ModelForm):
                 self.add_error('gestionar_inventario_todas_companias', 'Activa también Editar Inventario para usar el alcance global.')
             if not cleaned_data.get('ver_inventario'):
                 self.add_error('gestionar_inventario_todas_companias', 'Activa también Ver Inventario para usar el alcance global.')
+        if cleaned_data.get('editar_malla_curricular') and not cleaned_data.get('ver_malla_curricular'):
+            self.add_error('editar_malla_curricular', 'Activa también Ver Malla Curricular para permitir su edición.')
         return cleaned_data
 
 class CompaniaForm(forms.ModelForm):

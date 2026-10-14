@@ -2211,16 +2211,24 @@ def enviar_email_capacitacion(capacitacion, usuarios, accion="invitado al"):
 @login_required
 def malla_curricular_view(request):
     rol = getattr(request.user, 'rol', None)
-    puede_gestionar = bool(
+    puede_ver = bool(
         request.user.is_superuser
         or request.user.is_staff
-        or (rol and rol.editar_capacitaciones)
+        or (rol and (rol.ver_malla_curricular or rol.editar_malla_curricular))
     )
-    if not puede_gestionar:
-        messages.error(request, 'Solo administradores pueden gestionar la malla curricular.')
+    puede_editar = bool(
+        request.user.is_superuser
+        or request.user.is_staff
+        or (rol and rol.editar_malla_curricular)
+    )
+    if not puede_ver:
+        messages.error(request, 'No tienes permiso para ver la malla curricular.')
         return redirect('dashboard')
 
     if request.method == 'POST':
+        if not puede_editar:
+            messages.error(request, 'No tienes permiso para modificar la malla curricular.')
+            return redirect('malla_curricular')
         ramo = get_object_or_404(CursoMalla, pk=request.POST.get('ramo_id'))
         usuarios_validos = Usuario.objects.all()
         ids_seleccionados = [
@@ -2232,10 +2240,8 @@ def malla_curricular_view(request):
         return redirect('malla_curricular')
 
     usuarios = list(
-        Usuario.objects.all()
-        .select_related('compania')
-        .order_by('nombre', 'apellido')
-    )
+        Usuario.objects.all().select_related('compania').order_by('nombre', 'apellido')
+    ) if puede_editar else []
     usuarios_json = [
         {
             'id': usuario.id,
@@ -2277,8 +2283,9 @@ def malla_curricular_view(request):
     return render(request, 'usuarios/malla_curricular.html', {
         'niveles': niveles,
         'usuarios_json': usuarios_json,
-        'total_usuarios': len(usuarios),
+        'total_usuarios': Usuario.objects.count(),
         'total_ramos': CursoMalla.objects.count(),
+        'puede_editar_malla': puede_editar,
     })
 
 def capacitaciones_view(request):

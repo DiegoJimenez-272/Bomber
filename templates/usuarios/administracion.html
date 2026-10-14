@@ -759,6 +759,17 @@
                         </div>
                         <div class="row g-0 py-2 border-bottom align-items-center permission-row">
                             <div class="col-6 px-3">
+                                <i class="bi bi-diagram-3-fill text-secondary me-2"></i> <strong>Malla Curricular</strong>
+                            </div>
+                            <div class="col-3 d-flex justify-content-center">
+                                <div class="form-check form-switch mb-0 fs-5 view-toggle">{{ rol_form.ver_malla_curricular }}</div>
+                            </div>
+                            <div class="col-3 d-flex justify-content-center">
+                                <div class="form-check form-switch mb-0 fs-5 edit-toggle" title="Permite asignar voluntarios a cada ramo">{{ rol_form.editar_malla_curricular }}</div>
+                            </div>
+                        </div>
+                        <div class="row g-0 py-2 border-bottom align-items-center permission-row">
+                            <div class="col-6 px-3">
                                 <i class="bi bi-wrench-adjustable-circle-fill text-secondary me-2"></i> <strong>Mantenimientos</strong>
                             </div>
                             <div class="col-3 d-flex justify-content-center">
@@ -928,6 +939,17 @@
                             </div>
                             <div class="col-3 d-flex justify-content-center">
                                 <div class="form-check form-switch mb-0 fs-5 edit-toggle"><input type="checkbox" class="form-check-input mt-0" name="editar_capacitaciones" {% if rol.editar_capacitaciones %}checked{% endif %}></div>
+                            </div>
+                        </div>
+                        <div class="row g-0 py-2 border-bottom align-items-center permission-row">
+                            <div class="col-6 px-3">
+                                <i class="bi bi-diagram-3-fill text-secondary me-2"></i> <strong>Malla Curricular</strong>
+                            </div>
+                            <div class="col-3 d-flex justify-content-center">
+                                <div class="form-check form-switch mb-0 fs-5 view-toggle"><input type="checkbox" class="form-check-input mt-0" name="ver_malla_curricular" {% if rol.ver_malla_curricular %}checked{% endif %}></div>
+                            </div>
+                            <div class="col-3 d-flex justify-content-center">
+                                <div class="form-check form-switch mb-0 fs-5 edit-toggle" title="Permite asignar voluntarios a cada ramo"><input type="checkbox" class="form-check-input mt-0" name="editar_malla_curricular" {% if rol.editar_malla_curricular %}checked{% endif %}></div>
                             </div>
                         </div>
                         <div class="row g-0 py-2 border-bottom align-items-center permission-row">

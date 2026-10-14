@@ -71,12 +71,12 @@
                             <p class="text-muted small mb-0 mt-2">Todavía no hay voluntarios asignados.</p>
                             {% endif %}
                         </details>
-                        <button type="button" class="btn btn-sm btn-outline-danger mt-3"
+                        {% if puede_editar_malla %}<button type="button" class="btn btn-sm btn-outline-danger mt-3"
                                 data-bs-toggle="modal" data-bs-target="#asignarRamoModal"
                                 data-ramo-id="{{ ramo.id }}" data-ramo-nombre="{{ ramo.nombre }}"
                                 data-usuarios-actuales="{{ ramo.usuarios_actuales_json }}">
                             <i class="bi bi-person-plus-fill me-1"></i>Asignar voluntarios
-                        </button>
+                        </button>{% endif %}
                     </article>
                     {% empty %}
                     <p class="text-muted small mb-0">No hay ramos configurados en este nivel.</p>
@@ -104,7 +104,7 @@
                             <summary><i class="bi bi-people me-1"></i>{{ ramo.usuarios_actuales|length }} cursando</summary>
                             {% if ramo.usuarios_actuales %}<ul>{% for usuario in ramo.usuarios_actuales %}<li><span>{{ usuario.get_full_name }}</span><small>{{ usuario.compania.nombre|default:"Sin compañía" }}</small></li>{% endfor %}</ul>{% else %}<p class="text-muted small mb-0 mt-2">Todavía no hay voluntarios asignados.</p>{% endif %}
                         </details>
-                        <button type="button" class="btn btn-sm btn-outline-danger mt-3" data-bs-toggle="modal" data-bs-target="#asignarRamoModal" data-ramo-id="{{ ramo.id }}" data-ramo-nombre="{{ ramo.nombre }}" data-usuarios-actuales="{{ ramo.usuarios_actuales_json }}"><i class="bi bi-person-plus-fill me-1"></i>Asignar voluntarios</button>
+                        {% if puede_editar_malla %}<button type="button" class="btn btn-sm btn-outline-danger mt-3" data-bs-toggle="modal" data-bs-target="#asignarRamoModal" data-ramo-id="{{ ramo.id }}" data-ramo-nombre="{{ ramo.nombre }}" data-usuarios-actuales="{{ ramo.usuarios_actuales_json }}"><i class="bi bi-person-plus-fill me-1"></i>Asignar voluntarios</button>{% endif %}
                     </article>
                 </div>
                 {% empty %}<div class="col-12"><p class="text-muted small mb-0">No hay cursos complementarios configurados.</p></div>{% endfor %}
@@ -114,6 +114,7 @@
     {% endfor %}
 </main>
 
+{% if puede_editar_malla %}
 <div class="modal fade" id="asignarRamoModal" tabindex="-1" aria-labelledby="asignarRamoModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content">
@@ -140,6 +141,7 @@
 </div>
 
 {{ usuarios_json|json_script:"malla-usuarios-data" }}
+{% endif %}
 
 <style>
     .malla-resumen { color: #495057; }
@@ -194,6 +196,7 @@
     body.dark-mode .malla-usuario-opcion { border-color: #41464b; }
 </style>
 
+{% if puede_editar_malla %}
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const usuarios = JSON.parse(document.getElementById('malla-usuarios-data').textContent);
@@ -260,4 +263,5 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 });
 </script>
+{% endif %}
 {% endblock %}
