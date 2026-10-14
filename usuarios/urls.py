@@ -43,6 +43,7 @@ urlpatterns = [
     path('inventario/assign/', views.inventario_assign_view, name='inventario_assign'),
     path('inventario/group/edit/', views.inventario_group_edit_view, name='inventario_group_edit'),
     path('inventario/group/delete/', views.inventario_group_delete_view, name='inventario_group_delete'),
+    path('inventario/global/delete/', views.inventario_global_delete_view, name='inventario_global_delete'),
     path('inventario/<int:item_id>/unassign/', views.inventario_unassign_view, name='inventario_unassign'),
     path('scan/', views.scan_qr_page_view, name='scan_qr_page'),
     path('inventario/qr-lookup/', views.inventario_qr_lookup_view, name='inventario_qr_lookup'),

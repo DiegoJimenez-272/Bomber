@@ -844,11 +844,10 @@ class InventarioForm(forms.ModelForm):
 
     class Meta:
         model = Inventario
-        # 'cantidad' del formulario no es el del modelo, lo sacamos de fields
-        fields = ['nombre', 'compania', 'ubicacion', 'estado', 'fecha_adquisicion', 'valor']
+        # La compañía se determina en la vista según la compañía activa o la del usuario.
+        fields = ['nombre', 'ubicacion', 'estado', 'fecha_adquisicion', 'valor']
         widgets = {
             'nombre': forms.TextInput(attrs={'class': 'form-control', 'list': 'datalist-items', 'placeholder': 'Ej: Casco de bombero, Motosierra...'}),
-            'compania': forms.Select(attrs={'class': 'form-select'}),
             'ubicacion': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej: Bodega 1, Carro B-2'}),
             'estado': forms.Select(attrs={'class': 'form-select'}),
             'fecha_adquisicion': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
@@ -869,13 +868,6 @@ class InventarioForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields['fecha_adquisicion'].required = False
         
-        if self.user and not puede_gestionar_inventario_global(self.user):
-            if 'compania' in self.fields:
-                del self.fields['compania']
-        elif 'compania' in self.fields:
-            self.fields['compania'].queryset = Compania.objects.all()
-            self.fields['compania'].empty_label = "Seleccionar compañía"
-
         if self.errors:
             for field_name in self.errors:
                 if field_name in self.fields:

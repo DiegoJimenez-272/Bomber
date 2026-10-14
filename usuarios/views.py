@@ -1191,27 +1191,33 @@ def inventario_view(request):
             
         form = InventarioForm(request.POST, user=request.user)
         if form.is_valid():
-            cantidad = form.cleaned_data.get('cantidad', 1)
-            
-            for _ in range(cantidad):
-                item = Inventario(
-                    nombre=form.cleaned_data['nombre'],
-                    ubicacion=form.cleaned_data['ubicacion'],
-                    estado=form.cleaned_data['estado'],
-                    fecha_adquisicion=form.cleaned_data.get('fecha_adquisicion'),
-                    valor=form.cleaned_data.get('valor'),
-                    agregado_por=request.user
-                )
-                # Asignación Automática de Compañía
-                if puede_gestionar_inventario_global(request.user):
-                    item.compania = form.cleaned_data.get('compania')
-                else:
-                    item.compania = request.user.compania
-                    
-                item.save() # El método save() del modelo se encarga del QR
+            if puede_gestionar_inventario_global(request.user):
+                compania_id = request.POST.get('compania_activa', '')
+                compania_objetivo = Compania.objects.filter(pk=compania_id).first() if compania_id.isdigit() else None
+            else:
+                compania_objetivo = request.user.compania
 
-            messages.success(request, f'{cantidad} ítem(s) de "{item.get_nombre_display()}" agregados exitosamente.')
-            return redirect('inventario')
+            if not compania_objetivo:
+                form.add_error(None, 'Selecciona una compañía antes de agregar ítems al inventario.')
+            else:
+                cantidad = form.cleaned_data.get('cantidad', 1)
+
+                for _ in range(cantidad):
+                    item = Inventario(
+                        nombre=form.cleaned_data['nombre'],
+                        compania=compania_objetivo,
+                        ubicacion=form.cleaned_data['ubicacion'],
+                        estado=form.cleaned_data['estado'],
+                        fecha_adquisicion=form.cleaned_data.get('fecha_adquisicion'),
+                        valor=form.cleaned_data.get('valor'),
+                        agregado_por=request.user
+                    )
+                    item.save() # El método save() del modelo se encarga del QR
+
+                messages.success(request, f'{cantidad} ítem(s) de "{item.get_nombre_display()}" agregados exitosamente.')
+                if puede_gestionar_inventario_global(request.user):
+                    return redirect(f"{reverse('inventario')}?compania_activa={compania_objetivo.id}")
+                return redirect('inventario')
         else:
             messages.error(request, 'Error al agregar el ítem. Por favor, revisa el formulario.')
 
@@ -1226,7 +1232,7 @@ def inventario_view(request):
 
     # Búsqueda general
     query = request.GET.get('q')
-    compania_activa_id = request.GET.get('compania_activa')
+    compania_activa_id = request.POST.get('compania_activa', request.GET.get('compania_activa'))
 
     # El selector global y el detalle son pantallas distintas. En el detalle
     # solo se consulta y renderiza la compañía seleccionada.
@@ -1785,6 +1791,27 @@ def inventario_group_delete_view(request):
         valor=request.POST.get('group_valor') or None
     ).delete()
     messages.success(request, f'El grupo de ítems "{request.POST.get("group_nombre")}" ha sido eliminado.')
+    return redirect('inventario')
+
+
+@login_required
+def inventario_global_delete_view(request):
+    if request.method != 'POST' or not puede_gestionar_inventario_global(request.user):
+        messages.error(request, 'No tienes permiso para eliminar ítems del inventario global.')
+        return redirect('inventario')
+
+    nombre = request.POST.get('nombre', '').strip()
+    if not nombre:
+        messages.error(request, 'No se indicó el ítem que se desea eliminar.')
+        return redirect('inventario')
+
+    items = Inventario.objects.filter(nombre=nombre)
+    cantidad = items.count()
+    if cantidad:
+        items.delete()
+        messages.success(request, f'Se eliminaron {cantidad} ítem(s) de "{nombre}" de todas las compañías.')
+    else:
+        messages.info(request, f'No se encontraron ítems de "{nombre}" para eliminar.')
     return redirect('inventario')
 
 @login_required
