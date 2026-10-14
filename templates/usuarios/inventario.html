@@ -80,17 +80,6 @@
     .inventory-company-section.active { display: block !important; }
     .inventory-category-tabs .nav-link { white-space: nowrap; }
 
-    .inventory-layout {
-        display: grid;
-        grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
-        gap: 1.5rem;
-        align-items: start;
-    }
-    .inventory-layout > div { min-width: 0; }
-    .inventory-main-column { grid-column: 1; }
-    .inventory-assignment-column { grid-column: 2; width: 100%; }
-    .inventory-layout.inventory-selector-layout { grid-template-columns: minmax(0, 1fr); }
-
     body.dark-mode .inventory-company-button:not(.active) {
         background: #2c3034;
         box-shadow: 0 6px 12px rgba(0, 0, 0, .2);
@@ -106,12 +95,6 @@
         .inventory-company-button .bi { font-size: 1.85rem; margin-bottom: .25rem; }
         .inventory-category-tabs { flex-wrap: nowrap; overflow-x: auto; }
         .inventory-category-tabs .nav-link { font-size: .82rem; padding: .55rem .65rem; }
-    }
-
-    @media (max-width: 767.98px) {
-        .inventory-layout { grid-template-columns: minmax(0, 1fr); }
-        .inventory-main-column,
-        .inventory-assignment-column { grid-column: 1; }
     }
 
     /* Estilos para las filas de los carros de bomberos (Vehículos) */
@@ -187,9 +170,9 @@
     </a>
     {% endif %}
 
-    <div class="inventory-layout {% if puede_gestionar_inventario_global and not compania_activa_id %}inventory-selector-layout{% endif %}">
+    <div class="row g-4 align-items-start">
         <!-- Columna Principal (Izquierda) -->
-        <div class="inventory-main-column">
+        <div class="{% if puede_gestionar_inventario_global and not compania_activa_id %}col-12{% else %}col-md-8{% endif %}">
             <!-- Barra de Búsqueda -->
             {% if not puede_gestionar_inventario_global or compania_activa_id %}
             <form method="get" class="mb-3">
@@ -452,7 +435,7 @@
         </div>
 
         <!-- Columna Lateral (Derecha) -->
-        <div class="inventory-assignment-column {% if puede_gestionar_inventario_global and not compania_activa_id %}d-none{% endif %}" id="inventory-assignment-column">
+        <div class="col-md-4 {% if puede_gestionar_inventario_global and not compania_activa_id %}d-none{% endif %}" id="inventory-assignment-column">
             {% if request.user.is_superuser or request.user.rol.editar_inventario %}
             <div class="card shadow-sm">
                 <div class="card-header bg-light">
