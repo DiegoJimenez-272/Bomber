@@ -82,11 +82,13 @@
 
     .inventory-layout {
         display: grid;
-        grid-template-columns: minmax(0, 2fr) minmax(300px, 1fr);
+        grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
         gap: 1.5rem;
         align-items: start;
     }
     .inventory-layout > div { min-width: 0; }
+    .inventory-main-column { grid-column: 1; }
+    .inventory-assignment-column { grid-column: 2; width: 100%; }
     .inventory-layout.inventory-selector-layout { grid-template-columns: minmax(0, 1fr); }
 
     body.dark-mode .inventory-company-button:not(.active) {
@@ -106,8 +108,10 @@
         .inventory-category-tabs .nav-link { font-size: .82rem; padding: .55rem .65rem; }
     }
 
-    @media (max-width: 991.98px) {
+    @media (max-width: 767.98px) {
         .inventory-layout { grid-template-columns: minmax(0, 1fr); }
+        .inventory-main-column,
+        .inventory-assignment-column { grid-column: 1; }
     }
 
     /* Estilos para las filas de los carros de bomberos (Vehículos) */
