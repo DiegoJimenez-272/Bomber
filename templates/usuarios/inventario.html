@@ -120,6 +120,17 @@
     @media (max-width: 767.98px) {
         .inventory-detail-layout { grid-template-columns: minmax(0, 1fr); }
         .inventory-assignment-column { position: static; }
+    /* Mantener las pestañas secundarias del inventario en el color institucional. */
+    .inventario-company-tabs .nav-link:not(.active) {
+        color: var(--bs-danger);
+    }
+
+    .inventario-company-tabs .nav-link:not(.active):hover,
+    .inventario-company-tabs .nav-link:not(.active):focus-visible {
+        color: #b02a37;
+        background-color: #fff5f5;
+        border-color: #f1b0b7 #f1b0b7 #dee2e6;
+    }
     }
 
     /* Estilos para las filas de los carros de bomberos (Vehículos) */
@@ -284,7 +295,7 @@
                     </div>
                     <div class="card-body p-0">
                                 <!-- Sub-pestañas para Asignados y Disponibles -->
-                            <ul class="nav nav-tabs nav-justified" id="subTab-{{ compania.id }}" role="tablist">
+                            <ul class="nav nav-tabs nav-justified inventario-company-tabs" id="subTab-{{ compania.id }}" role="tablist">
                                 <li class="nav-item" role="presentation">
                                     <button class="nav-link active" id="asignados-tab-{{ compania.id }}" data-bs-toggle="tab" data-bs-target="#asignados-content-{{ compania.id }}" type="button" role="tab">
                                         <i class="bi bi-person-badge me-1"></i>Ítems Asignados
