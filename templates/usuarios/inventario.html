@@ -80,6 +80,15 @@
     .inventory-company-section.active { display: block !important; }
     .inventory-category-tabs .nav-link { white-space: nowrap; }
 
+    .inventory-layout {
+        display: grid;
+        grid-template-columns: minmax(0, 2fr) minmax(300px, 1fr);
+        gap: 1.5rem;
+        align-items: start;
+    }
+    .inventory-layout > div { min-width: 0; }
+    .inventory-layout.inventory-selector-layout { grid-template-columns: minmax(0, 1fr); }
+
     body.dark-mode .inventory-company-button:not(.active) {
         background: #2c3034;
         box-shadow: 0 6px 12px rgba(0, 0, 0, .2);
@@ -95,6 +104,10 @@
         .inventory-company-button .bi { font-size: 1.85rem; margin-bottom: .25rem; }
         .inventory-category-tabs { flex-wrap: nowrap; overflow-x: auto; }
         .inventory-category-tabs .nav-link { font-size: .82rem; padding: .55rem .65rem; }
+    }
+
+    @media (max-width: 991.98px) {
+        .inventory-layout { grid-template-columns: minmax(0, 1fr); }
     }
 
     /* Estilos para las filas de los carros de bomberos (Vehículos) */
@@ -170,9 +183,9 @@
     </a>
     {% endif %}
 
-    <div class="row g-4">
+    <div class="inventory-layout {% if puede_gestionar_inventario_global and not compania_activa_id %}inventory-selector-layout{% endif %}">
         <!-- Columna Principal (Izquierda) -->
-        <div class="{% if puede_gestionar_inventario_global and not compania_activa_id %}col-12{% else %}col-lg-8{% endif %}">
+        <div class="inventory-main-column">
             <!-- Barra de Búsqueda -->
             {% if not puede_gestionar_inventario_global or compania_activa_id %}
             <form method="get" class="mb-3">
@@ -421,21 +434,21 @@
                     </div>
                 </section>
                 {% empty %}
-                <div class="col-12"> <!-- Este col-12 no es necesario pero lo dejamos por si acaso -->
-                    <div class="card text-center p-5 border-dashed mt-4">
-                        <div class="card-body">
-                        <i class="bi bi-box-seam display-1 text-muted"></i>
-                        <h5 class="card-title mt-3">No hay ítems en el inventario</h5>
-                        <p class="card-text text-muted">Agrega un nuevo ítem para comenzar a gestionar el inventario.</p>
-                        </div>
-                    </div>
-                </div>
                 {% endfor %}
             </div>
+            {% if not inventario_por_compania and not puede_gestionar_inventario_global %}
+            <div class="card text-center p-5 border-dashed mt-4">
+                <div class="card-body">
+                    <i class="bi bi-box-seam display-1 text-muted"></i>
+                    <h5 class="card-title mt-3">No hay una compañía asociada</h5>
+                    <p class="card-text text-muted">Tu usuario no tiene una compañía asignada para consultar el inventario.</p>
+                </div>
+            </div>
+            {% endif %}
         </div>
 
         <!-- Columna Lateral (Derecha) -->
-        <div class="col-lg-4 {% if puede_gestionar_inventario_global and not compania_activa_id %}d-none{% endif %}" id="inventory-assignment-column">
+        <div class="inventory-assignment-column {% if puede_gestionar_inventario_global and not compania_activa_id %}d-none{% endif %}" id="inventory-assignment-column">
             {% if request.user.is_superuser or request.user.rol.editar_inventario %}
             <div class="card shadow-sm">
                 <div class="card-header bg-light">
