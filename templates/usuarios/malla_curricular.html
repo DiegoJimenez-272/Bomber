@@ -24,7 +24,7 @@
 
     <section class="malla-resumen d-flex flex-wrap gap-3 mb-4" aria-label="Resumen de la malla">
         <div><i class="bi bi-journal-bookmark-fill text-danger me-2"></i><strong>{{ total_ramos }}</strong> ramos</div>
-        <div><i class="bi bi-people-fill text-danger me-2"></i><strong>{{ total_usuarios }}</strong> voluntarios disponibles</div>
+        <div><i class="bi bi-people-fill text-danger me-2"></i><strong>{{ total_usuarios }}</strong> usuarios del sistema</div>
         <div><i class="bi bi-person-check-fill text-danger me-2"></i>Asignación por ramo</div>
     </section>
 
@@ -64,7 +64,7 @@
                             {% if ramo.usuarios_actuales %}
                             <ul>
                                 {% for usuario in ramo.usuarios_actuales %}
-                                <li><span>{{ usuario.get_full_name }}</span><small>{{ usuario.compania.nombre }}</small></li>
+                                <li><span>{{ usuario.get_full_name }}</span><small>{{ usuario.compania.nombre|default:"Sin compañía" }}</small></li>
                                 {% endfor %}
                             </ul>
                             {% else %}
@@ -102,7 +102,7 @@
                         <div class="d-flex justify-content-between align-items-start gap-2"><h3>{{ ramo.nombre }}</h3><i class="bi bi-globe2 malla-virtual" title="Incluye aula virtual"></i></div>
                         <details class="malla-inscritos">
                             <summary><i class="bi bi-people me-1"></i>{{ ramo.usuarios_actuales|length }} cursando</summary>
-                            {% if ramo.usuarios_actuales %}<ul>{% for usuario in ramo.usuarios_actuales %}<li><span>{{ usuario.get_full_name }}</span><small>{{ usuario.compania.nombre }}</small></li>{% endfor %}</ul>{% else %}<p class="text-muted small mb-0 mt-2">Todavía no hay voluntarios asignados.</p>{% endif %}
+                            {% if ramo.usuarios_actuales %}<ul>{% for usuario in ramo.usuarios_actuales %}<li><span>{{ usuario.get_full_name }}</span><small>{{ usuario.compania.nombre|default:"Sin compañía" }}</small></li>{% endfor %}</ul>{% else %}<p class="text-muted small mb-0 mt-2">Todavía no hay voluntarios asignados.</p>{% endif %}
                         </details>
                         <button type="button" class="btn btn-sm btn-outline-danger mt-3" data-bs-toggle="modal" data-bs-target="#asignarRamoModal" data-ramo-id="{{ ramo.id }}" data-ramo-nombre="{{ ramo.nombre }}" data-usuarios-actuales="{{ ramo.usuarios_actuales_json }}"><i class="bi bi-person-plus-fill me-1"></i>Asignar voluntarios</button>
                     </article>
@@ -239,7 +239,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const empty = document.createElement('p');
         empty.className = 'text-muted small p-3 mb-0';
         empty.dataset.mallaSinResultados = '';
-        empty.textContent = usuarios.length ? 'No hay voluntarios que coincidan con la búsqueda.' : 'No hay voluntarios activos con compañía asignada.';
+        empty.textContent = usuarios.length ? 'No hay usuarios que coincidan con la búsqueda.' : 'No hay usuarios registrados en el sistema.';
         empty.hidden = usuarios.length > 0;
         lista.appendChild(empty);
         filtrarUsuarios();

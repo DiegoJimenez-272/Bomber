@@ -2222,7 +2222,7 @@ def malla_curricular_view(request):
 
     if request.method == 'POST':
         ramo = get_object_or_404(CursoMalla, pk=request.POST.get('ramo_id'))
-        usuarios_validos = Usuario.objects.filter(is_active=True, compania__isnull=False)
+        usuarios_validos = Usuario.objects.all()
         ids_seleccionados = [
             int(user_id) for user_id in request.POST.getlist('usuarios')
             if user_id.isdigit()
@@ -2232,12 +2232,16 @@ def malla_curricular_view(request):
         return redirect('malla_curricular')
 
     usuarios = list(
-        Usuario.objects.filter(is_active=True, compania__isnull=False)
+        Usuario.objects.all()
         .select_related('compania')
         .order_by('nombre', 'apellido')
     )
     usuarios_json = json.dumps([
-        {'id': usuario.id, 'nombre': usuario.get_full_name(), 'compania': usuario.compania.nombre}
+        {
+            'id': usuario.id,
+            'nombre': usuario.get_full_name(),
+            'compania': usuario.compania.nombre if usuario.compania else 'Sin compañía',
+        }
         for usuario in usuarios
     ], ensure_ascii=False)
 
