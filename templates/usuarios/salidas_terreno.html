@@ -3,6 +3,14 @@
 {% block title %}Salidas a Terreno - {{ block.super }}{% endblock %}
 
 {% block content %}
+<style>
+    .salidas-filter-form .form-control:focus,
+    .salidas-filter-form .form-select:focus {
+        border-color: #dc3545;
+        box-shadow: 0 0 0 .25rem rgba(220, 53, 69, .25);
+    }
+</style>
+
 <!-- Header del contenido principal -->
 <header class="d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-3 pb-3 mb-4 border-bottom">
     <h1 class="h2 mb-0">Gestión de Salidas a Terreno</h1>
@@ -35,7 +43,7 @@
     <div class="collapse d-md-block" id="salidasFilterCollapse">
     <div class="card shadow-sm mb-4">
         <div class="card-body">
-            <form method="get" class="row g-3 align-items-end">
+            <form method="get" class="row g-3 align-items-end salidas-filter-form">
                 <div class="col-lg-4">
                     <label for="q" class="form-label">Buscar por dirección, unidades...</label>
                     <input type="text" name="q" id="salidaSearchInput" class="form-control" value="{{ request.GET.q|default:'' }}">
