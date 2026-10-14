@@ -17,7 +17,7 @@ import secrets
 from io import BytesIO
 from django.core.files.base import ContentFile
 from django.http import HttpResponse, JsonResponse
-from django.core.mail import send_mail, send_mass_mail
+from django.core.mail import EmailMultiAlternatives, send_mail
 from django.conf import settings
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -2844,16 +2844,50 @@ def aviso_create_view(request):
                 if not destinatario.usuario.email:
                     continue
                 enlace = request.build_absolute_uri(reverse('aviso_leer', args=[destinatario.id]))
-                cuerpo = (
-                    f"Hola {destinatario.usuario.get_full_name()},\n\n"
+                nombre = escape(destinatario.usuario.get_full_name() or destinatario.usuario.get_username())
+                titulo_html = escape(aviso.titulo).replace('\n', '<br>')
+                mensaje_html = escape(aviso.mensaje).replace('\n', '<br>')
+                cuerpo_texto = (
+                    f"Hola {destinatario.usuario.get_full_name() or destinatario.usuario.get_username()},\n\n"
                     f"{aviso.titulo}\n\n{aviso.mensaje}\n\n"
-                    f"Puedes revisar el aviso en el sistema: {enlace}\n"
+                    f"Abre el aviso en el sistema: {enlace}\n\n"
+                    "Sistema de Gestión de Bomberos — Cuerpo de Bomberos de Mulchén"
                 )
-                avisos_por_correo.append((asunto, cuerpo, settings.DEFAULT_FROM_EMAIL, [destinatario.usuario.email]))
+                cuerpo_html = f'''<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+<body style="margin:0;padding:0;background:#f3f5f8;font-family:Arial,Helvetica,sans-serif;color:#263238;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f3f5f8;padding:32px 12px;">
+    <tr><td align="center">
+      <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="width:100%;max-width:600px;background:#ffffff;border:1px solid #e2e6ea;border-radius:12px;overflow:hidden;">
+        <tr><td style="background:#c9233a;padding:22px 30px;color:#ffffff;">
+          <div style="font-size:12px;letter-spacing:1.2px;text-transform:uppercase;opacity:.9;">Cuerpo de Bomberos de Mulchén</div>
+          <div style="font-size:21px;font-weight:700;margin-top:6px;">Sistema de Gestión de Bomberos</div>
+        </td></tr>
+        <tr><td style="padding:30px;">
+          <p style="font-size:15px;margin:0 0 18px;">Hola {nombre},</p>
+          <div style="border-left:4px solid #c9233a;background:#fff7f8;padding:16px 18px;border-radius:4px;margin:0 0 22px;">
+            <div style="font-size:19px;line-height:1.35;font-weight:700;color:#252a30;">{titulo_html}</div>
+          </div>
+          <div style="font-size:15px;line-height:1.7;color:#4b5563;">{mensaje_html}</div>
+          <table role="presentation" cellspacing="0" cellpadding="0" style="margin:28px 0 20px;"><tr><td bgcolor="#c9233a" style="border-radius:6px;">
+            <a href="{escape(enlace)}" style="display:inline-block;padding:13px 22px;color:#ffffff;text-decoration:none;font-size:15px;font-weight:700;">Ver aviso en el sistema</a>
+          </td></tr></table>
+          <p style="font-size:12px;line-height:1.6;color:#7b8490;margin:0;">Si el botón no funciona, copia este enlace en tu navegador:<br><a href="{escape(enlace)}" style="color:#b51f34;word-break:break-all;">{escape(enlace)}</a></p>
+        </td></tr>
+        <tr><td style="border-top:1px solid #edf0f2;padding:17px 30px;background:#fafbfc;color:#7b8490;font-size:12px;line-height:1.5;">
+          Mensaje automático del Sistema de Gestión de Bomberos.<br>Por favor, no respondas a este correo.
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body></html>'''
+                correo = EmailMultiAlternatives(asunto, cuerpo_texto, settings.DEFAULT_FROM_EMAIL, [destinatario.usuario.email])
+                correo.attach_alternative(cuerpo_html, 'text/html')
+                avisos_por_correo.append(correo)
 
             if avisos_por_correo:
                 try:
-                    correos_enviados = send_mass_mail(avisos_por_correo, fail_silently=False)
+                    correos_enviados = sum(correo.send(fail_silently=False) for correo in avisos_por_correo)
                 except Exception:
                     logger.exception('No se pudieron enviar por correo todos los avisos para el aviso %s', aviso.pk)
                     messages.warning(request, 'El aviso quedó publicado en el sistema, pero hubo un problema enviando los correos.')
