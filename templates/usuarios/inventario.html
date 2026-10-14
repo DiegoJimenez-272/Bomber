@@ -1,7 +1,7 @@
 {% extends 'base_con_condicion.html' %}
 
 {% block title %}Inventario - {{ block.super }}{% endblock %}
-{% block extra_css %}
+{% block content %}
 <style>
     /* Estilos personalizados para las pestañas de las compañías */
     .nav-pills-custom .nav-item {
@@ -34,45 +34,65 @@
 
     .inventory-company-picker {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
-        gap: .75rem;
-        margin-bottom: 1rem;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 1.25rem;
+        margin: 0 0 1.5rem;
     }
 
     .inventory-company-button {
-        min-height: 105px;
+        position: relative;
+        width: 100%;
+        min-height: 125px;
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        gap: .55rem;
-        border: 1px solid var(--bs-border-color);
-        border-radius: .85rem;
-        background: var(--bs-body-bg);
-        color: var(--bs-secondary-color);
-        font-weight: 700;
+        gap: .25rem;
+        padding: 1.5rem 1rem;
+        border: 2px solid transparent;
+        border-radius: 16px;
+        background: var(--card-bg);
+        color: var(--text-muted-light);
+        font-weight: 800;
+        font-size: 1.05rem;
         text-transform: uppercase;
-        box-shadow: 0 .25rem .75rem rgba(0, 0, 0, .06);
-        transition: transform .15s ease, background-color .15s ease, color .15s ease;
+        letter-spacing: 1px;
+        box-shadow: 0 6px 12px rgba(0, 0, 0, .05);
+        transition: all .25s ease;
     }
 
-    .inventory-company-button:hover { transform: translateY(-2px); color: var(--bs-danger); }
-    .inventory-company-button .bi { font-size: 1.65rem; }
+    .inventory-company-button:hover:not(.active) {
+        transform: translateY(-5px) scale(1.02);
+        box-shadow: 0 12px 24px rgba(0, 0, 0, .1);
+        border-color: rgba(220, 53, 69, .4);
+        color: #dc3545;
+    }
+    .inventory-company-button .bi { font-size: 2.8rem; margin-bottom: .45rem; }
     .inventory-company-button.active {
+        background: linear-gradient(135deg, #dc3545 0%, #901622 100%);
         color: #fff;
-        border-color: var(--bs-danger);
-        background: linear-gradient(135deg, #dc3545, #a71d2a);
-        box-shadow: 0 .45rem 1rem rgba(220, 53, 69, .25);
+        border-color: transparent;
+        box-shadow: 0 12px 24px rgba(220, 53, 69, .35);
+        transform: translateY(-4px);
     }
 
-    .inventory-company-section { display: none; }
-    .inventory-company-section.active { display: block; }
+    .inventory-company-section { display: none !important; }
+    .inventory-company-section.active { display: block !important; }
     .inventory-category-tabs .nav-link { white-space: nowrap; }
 
-    @media (max-width: 767.98px) {
-        .inventory-company-picker { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem; }
-        .inventory-company-button { min-height: 82px; padding: .5rem; font-size: .78rem; }
-        .inventory-company-button .bi { font-size: 1.35rem; }
+    body.dark-mode .inventory-company-button:not(.active) {
+        background: #2c3034;
+        box-shadow: 0 6px 12px rgba(0, 0, 0, .2);
+    }
+    body.dark-mode .inventory-company-button:hover:not(.active) {
+        border-color: rgba(220, 53, 69, .5);
+        color: #ff6b6b;
+    }
+
+    @media (max-width: 575.98px) {
+        .inventory-company-picker { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; }
+        .inventory-company-button { min-height: 105px; padding: 1rem .5rem; font-size: .82rem; letter-spacing: 0; border-radius: 12px; }
+        .inventory-company-button .bi { font-size: 1.85rem; margin-bottom: .25rem; }
         .inventory-category-tabs { flex-wrap: nowrap; overflow-x: auto; }
         .inventory-category-tabs .nav-link { font-size: .82rem; padding: .55rem .65rem; }
     }
@@ -111,9 +131,6 @@
         color: #ffc1c6 !important;
     }
 </style>
-{% endblock %}
-
-{% block content %}
 <!-- Header del contenido principal -->
 <div class="d-flex flex-column flex-md-row align-items-center justify-content-between pb-3 mb-4 border-bottom gap-3">
     <div>
@@ -1624,7 +1641,6 @@ document.addEventListener('DOMContentLoaded', function () {
         if (assignmentColumn) assignmentColumn.classList.remove('d-none');
         if (companiaActivaInput) companiaActivaInput.value = companiaId;
         if (companiaAsignarInput) companiaAsignarInput.value = companiaId;
-        localStorage.setItem('activeInventarioCompania', companiaId);
         actualizarUsuariosPorCompania(String(companiaId));
         actualizarItemsPorCompania(String(companiaId));
         return true;
@@ -1647,9 +1663,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Un rol limitado usa su única compañía; un rol global espera que se elija una.
     const requestedCompanyId = companiaActivaInput ? companiaActivaInput.value : '';
-    const savedCompaniaId = localStorage.getItem('activeInventarioCompania');
     const firstCompanyId = companySections.length ? companySections[0].dataset.companyId : '';
-    const initialCompanyId = requestedCompanyId || savedCompaniaId || (!inventoryHasGlobalScope ? firstCompanyId : '');
+    const initialCompanyId = requestedCompanyId || (!inventoryHasGlobalScope ? firstCompanyId : '');
     if (initialCompanyId && seleccionarCompania(initialCompanyId)) {
         // Ya quedó activa la compañía solicitada o previamente seleccionada.
     } else if (!inventoryHasGlobalScope && firstCompanyId) {
