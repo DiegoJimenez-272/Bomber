@@ -262,7 +262,6 @@
                                             <th class="text-center text-success">Buenos</th>
                                             <th class="text-center text-warning">Regulares</th>
                                             <th class="text-center text-danger">Malos/Baja/Reparación</th>
-                                            {% if puede_gestionar_inventario_global %}<th class="text-center">Acciones</th>{% endif %}
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -275,16 +274,6 @@
                                             <td class="text-center text-success">{{ item.buenos }}</td>
                                             <td class="text-center text-warning">{{ item.regulares }}</td>
                                             <td class="text-center text-danger">{{ item.malos|add:item.baja|add:item.reparacion }}</td>
-                                            {% if puede_gestionar_inventario_global %}
-                                            <td class="text-center">
-                                                <button type="button" class="btn btn-sm btn-outline-danger btn-delete-global-item"
-                                                    data-bs-toggle="modal" data-bs-target="#deleteGlobalItemModal"
-                                                    data-item-name="{{ item.nombre }}" data-item-display="{{ item.nombre_completo }}"
-                                                    data-item-count="{{ item.total }}" title="Eliminar todos los ítems de este tipo en todas las compañías">
-                                                    <i class="bi bi-trash-fill"></i><span class="visually-hidden">Eliminar {{ item.nombre_completo }} globalmente</span>
-                                                </button>
-                                            </td>
-                                            {% endif %}
                                         </tr>
                                         {% endfor %}
                                     </tbody>
