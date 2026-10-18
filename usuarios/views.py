@@ -1368,7 +1368,14 @@ def inventario_edit_view(request, item_id):
 
 @login_required
 def inventario_delete_view(request, item_id):
-    item = get_object_or_404(Inventario, id=item_id)
+    if request.method != 'POST':
+        return redirect('inventario')
+
+    item = Inventario.objects.filter(id=item_id).first()
+    if item is None:
+        messages.warning(request, 'El ítem ya no existe o fue eliminado anteriormente.')
+        return redirect('inventario')
+
     if not puede_editar_inventario(request.user):
         messages.error(request, 'No tienes permiso para eliminar este ítem.')
         return redirect('inventario')
@@ -1376,10 +1383,9 @@ def inventario_delete_view(request, item_id):
         messages.error(request, 'No tienes acceso al inventario de esta compañía.')
         return redirect('inventario')
 
-    if request.method == 'POST':
-        item_name = item.get_nombre_display()
-        item.delete()
-        messages.success(request, f'Ítem "{item_name}" eliminado exitosamente.')
+    item_name = item.get_nombre_display()
+    item.delete()
+    messages.success(request, f'Ítem "{item_name}" eliminado exitosamente.')
     return redirect('inventario')
 
 @login_required
