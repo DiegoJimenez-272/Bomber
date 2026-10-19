@@ -252,7 +252,7 @@
                     <div id="collapse-resumen" class="accordion-collapse collapse show" aria-labelledby="heading-resumen">
                         <div class="accordion-body">
                             <div class="table-responsive">
-                                <table class="table table-hover mb-0">
+                                <table class="table table-hover mb-0" id="resumenGeneralTable">
                                     <thead>
                                         <tr>
                                             <th>Ítem</th>
@@ -278,6 +278,12 @@
                                         {% endfor %}
                                     </tbody>
                                 </table>
+                            </div>
+                            <div id="resumenGeneralPagination" class="d-flex justify-content-between align-items-center flex-wrap gap-2 mt-3">
+                                <small id="resumenGeneralPaginationInfo" class="text-muted" aria-live="polite"></small>
+                                <nav aria-label="Paginación del resumen general de material">
+                                    <ul id="resumenGeneralPaginationPages" class="pagination pagination-sm mb-0"></ul>
+                                </nav>
                             </div>
                         </div>
                     </div>
@@ -1255,6 +1261,47 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+    const resumenGeneralTable = document.getElementById('resumenGeneralTable');
+    const resumenGeneralPagination = document.getElementById('resumenGeneralPagination');
+    if (resumenGeneralTable && resumenGeneralPagination) {
+        const filasResumen = Array.from(resumenGeneralTable.querySelectorAll('tbody tr'));
+        const paginasResumen = document.getElementById('resumenGeneralPaginationPages');
+        const infoResumen = document.getElementById('resumenGeneralPaginationInfo');
+        const filasPorPagina = 10;
+        const totalPaginasResumen = Math.ceil(filasResumen.length / filasPorPagina);
+        let paginaResumenActual = 1;
+
+        function mostrarPaginaResumen(pagina) {
+            paginaResumenActual = pagina;
+            const inicio = (pagina - 1) * filasPorPagina;
+            filasResumen.forEach((fila, indice) => {
+                fila.hidden = indice < inicio || indice >= inicio + filasPorPagina;
+            });
+
+            infoResumen.textContent = `Mostrando ${inicio + 1}–${Math.min(inicio + filasPorPagina, filasResumen.length)} de ${filasResumen.length} materiales`;
+            paginasResumen.replaceChildren();
+            for (let numero = 1; numero <= totalPaginasResumen; numero += 1) {
+                const elemento = document.createElement('li');
+                elemento.className = `page-item${numero === paginaResumenActual ? ' active' : ''}`;
+                const boton = document.createElement('button');
+                boton.type = 'button';
+                boton.className = 'page-link';
+                boton.textContent = numero;
+                boton.setAttribute('aria-label', `Página ${numero}`);
+                if (numero === paginaResumenActual) boton.setAttribute('aria-current', 'page');
+                boton.addEventListener('click', () => mostrarPaginaResumen(numero));
+                elemento.appendChild(boton);
+                paginasResumen.appendChild(elemento);
+            }
+        }
+
+        if (totalPaginasResumen > 1) {
+            mostrarPaginaResumen(1);
+        } else {
+            resumenGeneralPagination.hidden = true;
+        }
+    }
+
     // Objeto para mapear usuarios a compañías
     const usuariosPorCompania = {
         {% for user in usuarios_activos %}
