@@ -101,6 +101,23 @@
     .inventory-company-section.active { display: block !important; }
     .inventory-category-tabs .nav-link { white-space: nowrap; }
 
+    #resumenGeneralPaginationPages .page-link {
+        color: #dc3545;
+        border-color: #dee2e6;
+    }
+    #resumenGeneralPaginationPages .page-link:hover,
+    #resumenGeneralPaginationPages .page-link:focus {
+        color: #b02a37;
+        background-color: #fff5f5;
+        border-color: #f1b0b7;
+        box-shadow: 0 0 0 .2rem rgba(220, 53, 69, .18);
+    }
+    #resumenGeneralPaginationPages .page-item.active .page-link {
+        color: #fff;
+        background-color: #dc3545;
+        border-color: #dc3545;
+    }
+
     /* En la vista de una compañía, los detalles del inventario quedan al lado izquierdo y la asignación al lado derecho. */
     .inventory-detail-layout {
         display: grid;
