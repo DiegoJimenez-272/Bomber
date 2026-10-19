@@ -1067,6 +1067,11 @@ class InventarioEditForm(forms.ModelForm):
         return cleaned_data
 
 class InventarioGroupEditForm(forms.Form):
+    cantidad = forms.IntegerField(
+        label="Nueva Cantidad",
+        min_value=1,
+        widget=forms.NumberInput(attrs={'class': 'form-control', 'min': '1', 'step': '1'})
+    )
     nombre = forms.CharField(
         label="Nuevo Nombre del Ítem",
         widget=forms.TextInput(attrs={'class': 'form-control', 'list': 'datalist-items'})

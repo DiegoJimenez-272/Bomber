@@ -1740,30 +1740,60 @@ def inventario_group_edit_view(request):
         ubicacion_actual = request.POST.get('group_ubicacion')
         estado_actual = request.POST.get('group_estado')
 
-        items_a_actualizar = Inventario.objects.filter(
-            asignado_a__isnull=True,
-            nombre=nombre,
-            ubicacion=ubicacion_actual,
-            estado=estado_actual,
-            compania_id=request.POST.get('group_compania') or None,
-            fecha_adquisicion=request.POST.get('group_fecha_adquisicion') or None,
-            valor=request.POST.get('group_valor') or None
+        with transaction.atomic():
+            items_a_actualizar = Inventario.objects.filter(
+                asignado_a__isnull=True,
+                asignado_a_vehiculo__isnull=True,
+                nombre=nombre,
+                ubicacion=ubicacion_actual,
+                estado=estado_actual,
+                compania_id=request.POST.get('group_compania') or None,
+                fecha_adquisicion=request.POST.get('group_fecha_adquisicion') or None,
+                valor=request.POST.get('group_valor') or None
+            )
+            items_existentes = list(items_a_actualizar.order_by('id'))
+            cantidad_actual = len(items_existentes)
+            cantidad_nueva = form.cleaned_data['cantidad']
+
+            if not items_existentes:
+                messages.warning(request, 'El grupo ya no existe o fue modificado por otro usuario.')
+                return redirect('inventario')
+
+            update_data = {
+                'nombre': form.cleaned_data['nombre'],
+                'ubicacion': form.cleaned_data['ubicacion'],
+                'estado': form.cleaned_data['estado']
+            }
+            compania_nueva = form.cleaned_data.get('compania') or compania_origen
+            fecha_nueva = form.cleaned_data.get('fecha_adquisicion') or items_existentes[0].fecha_adquisicion
+            valor_nuevo = form.cleaned_data.get('valor')
+            if valor_nuevo is None:
+                valor_nuevo = items_existentes[0].valor
+
+            update_data.update({
+                'compania': compania_nueva,
+                'fecha_adquisicion': fecha_nueva,
+                'valor': valor_nuevo,
+            })
+            items_a_actualizar.update(**update_data)
+
+            diferencia = cantidad_nueva - cantidad_actual
+            if diferencia > 0:
+                Inventario.objects.bulk_create([
+                    Inventario(
+                        **update_data,
+                        agregado_por=request.user,
+                    )
+                    for _ in range(diferencia)
+                ])
+            elif diferencia < 0:
+                ids_eliminar = [item.id for item in items_existentes[-abs(diferencia):]]
+                Inventario.objects.filter(id__in=ids_eliminar).delete()
+
+        messages.success(
+            request,
+            f'Grupo "{nombre}" actualizado. Cantidad: {cantidad_actual} → {cantidad_nueva} ítems.'
         )
-        
-        update_data = {
-            'nombre': form.cleaned_data['nombre'],
-            'ubicacion': form.cleaned_data['ubicacion'],
-            'estado': form.cleaned_data['estado']
-        }
-        if form.cleaned_data.get('compania'):
-            update_data['compania'] = form.cleaned_data['compania']
-        if form.cleaned_data.get('fecha_adquisicion'):
-            update_data['fecha_adquisicion'] = form.cleaned_data['fecha_adquisicion']
-        if form.cleaned_data.get('valor') is not None:
-            update_data['valor'] = form.cleaned_data['valor']
-            
-        count = items_a_actualizar.update(**update_data)
-        messages.success(request, f'{count} ítems del grupo "{nombre}" han sido actualizados.')
     else:
         messages.error(request, 'Error al actualizar el grupo de ítems. Revisa el formulario.')
     

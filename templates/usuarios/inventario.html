@@ -439,7 +439,8 @@
                                                                     data-group-estado="{{ item_agrupado.estado }}"
                                                                     data-group-compania="{{ item_agrupado.compania|default_if_none:'' }}"
                                                                     data-group-fecha_adquisicion="{{ item_agrupado.fecha_adquisicion|date:'Y-m-d'|default_if_none:'' }}"
-                                                                    data-group-valor="{{ item_agrupado.valor|default_if_none:'' }}">
+                                                                    data-group-valor="{{ item_agrupado.valor|default_if_none:'' }}"
+                                                                    data-group-cantidad="{{ item_agrupado.cantidad }}">
                                                                 <i class="bi bi-pencil-fill"></i>
                                                             </button>
                                                             <button type="button" class="btn btn-sm btn-outline-danger" title="Eliminar grupo"
@@ -577,8 +578,13 @@
                 <input type="hidden" name="group_ubicacion" id="edit_group_ubicacion_actual">
                 <input type="hidden" name="group_estado" id="edit_group_estado_actual">
                 <div class="modal-body">
-                    <p>Estás editando todos los ítems del tipo <strong id="edit_group_nombre_text"></strong> que se encuentran en <strong id="edit_group_ubicacion_text"></strong> con estado <strong id="edit_group_estado_text"></strong>.</p>
+                    <p>Estás editando los ítems del tipo <strong id="edit_group_nombre_text"></strong> que se encuentran en <strong id="edit_group_ubicacion_text"></strong> con estado <strong id="edit_group_estado_text"></strong>.</p>
+                    <p class="text-muted small">Cantidad actual: <strong id="edit_group_cantidad_text"></strong>. Puedes actualizarla para agregar o quitar unidades de este grupo.</p>
                     <hr>
+                    <div class="mb-3">
+                        <label for="{{ group_edit_form.cantidad.id_for_label }}" class="form-label">{{ group_edit_form.cantidad.label }}</label>
+                        {{ group_edit_form.cantidad }}
+                    </div>
                     <div class="mb-3">
                         <label for="{{ group_edit_form.nombre.id_for_label }}" class="form-label">{{ group_edit_form.nombre.label }}</label>
                         {{ group_edit_form.nombre }}
@@ -1600,6 +1606,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const nombre = button.dataset.groupNombre;
             const ubicacion = button.dataset.groupUbicacion;
             const estado = button.dataset.groupEstado;
+            const cantidad = button.dataset.groupCantidad;
 
             const compania = button.dataset.groupCompania;
             const fecha_adquisicion = button.dataset.groupFecha_adquisicion;
@@ -1647,11 +1654,13 @@ document.addEventListener('DOMContentLoaded', function () {
             editGroupModal.querySelector('#id_compania').value = compania;
             editGroupModal.querySelector('#id_fecha_adquisicion').value = fecha_adquisicion;
             editGroupModal.querySelector('#id_valor').value = valor;
+            editGroupModal.querySelector('#id_cantidad').value = cantidad;
 
             // Rellenar los textos informativos
             editGroupModal.querySelector('#edit_group_nombre_text').textContent = nombre;
             editGroupModal.querySelector('#edit_group_ubicacion_text').textContent = ubicacion;
             editGroupModal.querySelector('#edit_group_estado_text').textContent = estado;
+            editGroupModal.querySelector('#edit_group_cantidad_text').textContent = cantidad;
         });
     }
 
