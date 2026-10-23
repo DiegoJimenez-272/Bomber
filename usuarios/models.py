@@ -733,6 +733,10 @@ class GuiaChatbot(models.Model):
         ('malla', 'Malla curricular'),
         ('mantenimiento', 'Mantenimiento'),
         ('proyectos', 'Proyectos'),
+        ('resumen', 'Resumen General'),
+        ('inspectores', 'Inspectores'),
+        ('qr', 'Escanear QR'),
+        ('administracion', 'Administración'),
     ]
 
     titulo = models.CharField(max_length=160)

@@ -53,7 +53,7 @@ TOPIC_FALLBACKS = [
     ('emergencias', 'emergencia, emergencias, incendio, incendios, rescate, accidente, siniestro', 'En Emergencias puedes revisar los registros y sus filtros. Para registrar una nueva, abre el formulario del módulo.'),
     ('salidas', 'salida, salidas, terreno, kilometraje, recorrido, carro, unidad despachada', 'En Salidas a Terreno puedes registrar recorridos, unidades, personal y kilometrajes, y revisar el historial.'),
     ('caja', 'caja, saldo, ingreso, egreso, gasto, gastos, movimiento, movimientos, cuenta bancaria', 'En Caja puedes consultar movimientos y saldos. Los movimientos registran ingresos o egresos y su tipo de cuenta.'),
-    ('documentos', 'documento, documentos, archivo, archivos, carpeta, informe', 'En Documentos puedes organizar y consultar archivos y carpetas disponibles para tu cuenta.'),
+    ('documentos', 'documento, documentos, archivo, archivos, carpeta, informe', 'Para crear un documento, abre Documentos y pulsa “Redactar Documento”; completa el título y contenido, y guarda para generar un PDF. Si ya tienes el archivo, elige “Subir Documento”, completa el nombre, clasificación y archivo, y pulsa “Subir”. Necesitas permiso de edición de documentos.'),
     ('capacitaciones', 'curso, cursos, capacitacion, capacitaciones, entrenamiento, reunion', 'En Cursos y Capacitaciones puedes revisar actividades y registros de formación.'),
     ('malla', 'malla curricular, malla, ramo, ramos, asignatura, asignaturas', 'En Malla Curricular puedes revisar los ramos y, según tus permisos, gestionar voluntarios inscritos.'),
     ('mantenimiento', 'mantenimiento, mantencion, mantenciones, revision vehicular, reparacion', 'En Mantenimiento puedes consultar los registros de mantenimiento de vehículos.'),
