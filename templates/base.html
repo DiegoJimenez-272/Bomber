@@ -352,7 +352,15 @@
                     </span>
                 </div>
                 <div class="d-flex align-items-center gap-2 gap-sm-3">
-                    
+                    {% if user.is_authenticated and user.is_superuser %}
+                    <button class="btn btn-light rounded-circle border d-inline-flex align-items-center justify-content-center p-0 text-danger"
+                            style="width: 42px; height: 42px;" type="button" data-bs-toggle="modal"
+                            data-bs-target="#systemErrorReportModal" aria-label="Reportar un error del sistema"
+                            title="Reportar un error">
+                        <i class="bi bi-bug fs-5" aria-hidden="true"></i>
+                    </button>
+                    {% endif %}
+
                     <!-- Campana de Notificaciones -->
                     <div class="dropdown">
                         <button class="btn btn-light position-relative rounded-circle border d-inline-flex align-items-center justify-content-center p-0" style="width: 42px; height: 42px;" type="button" id="userNotificationsBell" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Notificaciones">
@@ -396,6 +404,40 @@
             </div>
         </div>
     </div>
+
+    {% if user.is_authenticated and user.is_superuser %}
+    <div class="modal fade" id="systemErrorReportModal" tabindex="-1" aria-labelledby="systemErrorReportModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 class="modal-title fs-5" id="systemErrorReportModalLabel">
+                        <i class="bi bi-bug text-danger me-2" aria-hidden="true"></i>Reportar un error
+                    </h2>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <form method="post" action="{% url 'enviar_reporte_error' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                    <div class="modal-body">
+                        <p class="text-muted small">El reporte se enviará por correo a los usuarios con clave radial “Programador”.</p>
+                        <div class="mb-3">
+                            <label for="errorReportName" class="form-label">Nombre del error</label>
+                            <input type="text" class="form-control" id="errorReportName" name="nombre" maxlength="120" required placeholder="Ej.: No carga el inventario">
+                        </div>
+                        <div>
+                            <label for="errorReportDescription" class="form-label">Descripción del error</label>
+                            <textarea class="form-control" id="errorReportDescription" name="descripcion" rows="5" maxlength="5000" required placeholder="Describe qué ocurrió y qué pasos permiten reproducirlo."></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-danger"><i class="bi bi-send me-1" aria-hidden="true"></i>Enviar reporte</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% endif %}
 
     <!-- Contenedor de Notificaciones Modernas -->
     <div id="toast-container" class="toast-container toast-container-modern position-fixed top-0 end-0 p-3"></div>

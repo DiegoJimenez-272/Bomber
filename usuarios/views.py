@@ -6,6 +6,7 @@ from django.core.paginator import Paginator
 from django.contrib import messages
 from django.contrib.auth import update_session_auth_hash
 from django.utils.html import escape
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.db import IntegrityError, transaction
 from django.db.models import Sum, Case, When, DecimalField, F, Q, Count, Prefetch
 from django.utils import timezone
@@ -26,7 +27,7 @@ from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter
 import openpyxl
 from reportlab.lib.units import inch
-from .forms import RegistroForm, LoginForm, ProyectoForm, ArchivoProyectoForm, DocumentoForm, CarpetaForm, SalidaTerrenoForm, EmergenciaForm, PerfilForm, PasswordChangeForm, CapacitacionForm, ReunionForm, MantenimientoForm, ArchivoMantenimientoForm, InventarioForm, CajaChicaForm, AdminUserCreationForm, AdminUserChangeForm, RolForm, CompaniaForm, InventarioEditForm, InventarioGroupEditForm, AvisoForm, PasswordResetRequestForm, PasswordResetVerifyForm, PasswordResetNewPasswordForm, VehiculoForm, VehiculoHojaVidaForm, VehiculoDocumentacionForm, RondaVehiculoForm
+from .forms import RegistroForm, LoginForm, ProyectoForm, ArchivoProyectoForm, DocumentoForm, CarpetaForm, SalidaTerrenoForm, EmergenciaForm, PerfilForm, PasswordChangeForm, CapacitacionForm, ReunionForm, MantenimientoForm, ArchivoMantenimientoForm, InventarioForm, CajaChicaForm, AdminUserCreationForm, AdminUserChangeForm, RolForm, CompaniaForm, InventarioEditForm, InventarioGroupEditForm, AvisoForm, ReporteErrorForm, PasswordResetRequestForm, PasswordResetVerifyForm, PasswordResetNewPasswordForm, VehiculoForm, VehiculoHojaVidaForm, VehiculoDocumentacionForm, RondaVehiculoForm
 from .models import Rol, Compania, Proyecto, ArchivoProyecto, Documento, Carpeta, SalidaTerreno, SalidaTerrenoUnidad, Emergencia, EmergenciaUnidad, Usuario, Capacitacion, CursoMalla, Mantenimiento, ArchivoMantenimiento, Inventario, CajaChica, Notificacion, Aviso, AvisoDestinatario, PasswordResetCode, RegistroPendiente, Vehiculo, RondaVehiculo
 from .decorators import admin_required, permiso_requerido, pertenencia_compania
 from .inventory_permissions import (
@@ -3191,6 +3192,86 @@ def perfil_view(request):
         'equipos_asignados': equipos_asignados
     }
     return render(request, 'usuarios/perfil.html', context)
+
+@login_required
+def enviar_reporte_error_view(request):
+    if not request.user.is_superuser:
+        messages.error(request, 'No tienes permiso para enviar reportes de errores.')
+        return redirect('dashboard')
+    if request.method != 'POST':
+        return redirect('dashboard')
+
+    destino = request.POST.get('next', '')
+    if not url_has_allowed_host_and_scheme(
+        destino,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure(),
+    ):
+        destino = reverse('dashboard')
+
+    form = ReporteErrorForm(request.POST)
+    if not form.is_valid():
+        messages.error(request, 'Completa el nombre y la descripción del error para enviar el reporte.')
+        return redirect(destino)
+
+    destinatarios = sorted({
+        usuario.email.strip()
+        for usuario in Usuario.objects.filter(is_active=True).only('email', 'clave_radial')
+        if usuario.clave_radial and usuario.clave_radial.strip().casefold() == 'programador'
+        and usuario.email and usuario.email.strip()
+    })
+    if not destinatarios:
+        messages.error(request, 'No hay usuarios activos con clave radial “Programador” y correo registrado.')
+        return redirect(destino)
+
+    nombre = form.cleaned_data['nombre']
+    descripcion = form.cleaned_data['descripcion']
+    reportante = request.user.get_full_name().strip() or request.user.get_username()
+    cuerpo_texto = (
+        f"Se recibió un nuevo reporte de error.\n\n"
+        f"Nombre: {nombre}\n\n"
+        f"Descripción:\n{descripcion}\n\n"
+        f"Reportado por: {reportante}"
+    )
+    descripcion_html = escape(descripcion).replace('\r\n', '\n').replace('\n', '<br>')
+    cuerpo_html = f'''<!doctype html>
+    <html><body style="margin:0;background:#f4f5f7;font-family:Arial,sans-serif;color:#212529;padding:24px">
+      <table role="presentation" style="max-width:640px;width:100%;margin:auto;background:#fff;border-radius:12px;border:1px solid #e5e7eb;border-collapse:separate;border-spacing:0;overflow:hidden">
+        <tr><td style="background:#dc3545;color:#fff;padding:20px 24px;font-size:20px;font-weight:700">Reporte de error del sistema</td></tr>
+        <tr><td style="padding:24px">
+          <p style="margin:0 0 8px;color:#6c757d;font-size:13px">NOMBRE DEL ERROR</p>
+          <h1 style="font-size:21px;margin:0 0 22px">{escape(nombre)}</h1>
+          <p style="margin:0 0 8px;color:#6c757d;font-size:13px">DESCRIPCIÓN</p>
+          <div style="padding:16px;background:#f8f9fa;border-radius:8px;line-height:1.6">{descripcion_html}</div>
+          <p style="margin:22px 0 0;color:#6c757d;font-size:13px">Enviado por <strong>{escape(reportante)}</strong>.</p>
+        </td></tr>
+      </table>
+    </body></html>'''
+
+    enviados = 0
+    fallidos = 0
+    for destinatario in destinatarios:
+        try:
+            correo = EmailMultiAlternatives(
+                subject='Nuevo reporte de error del sistema',
+                body=cuerpo_texto,
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                to=[destinatario],
+            )
+            correo.attach_alternative(cuerpo_html, 'text/html')
+            enviados += correo.send(fail_silently=False)
+        except Exception:
+            fallidos += 1
+            logger.exception('No se pudo enviar un reporte de error a un programador.')
+
+    if enviados and not fallidos:
+        messages.success(request, f'Reporte enviado por correo a {enviados} programador(es).')
+    elif enviados:
+        messages.warning(request, f'Reporte enviado a {enviados} programador(es), pero falló el envío a {fallidos}.')
+    else:
+        messages.error(request, 'No se pudo enviar el reporte por correo. Inténtalo nuevamente más tarde.')
+    return redirect(destino)
+
 
 @login_required
 def api_notificaciones(request):

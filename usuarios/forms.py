@@ -1124,6 +1124,27 @@ class InventarioGroupEditForm(forms.Form):
                 raise forms.ValidationError("Ingrese un valor numérico válido.")
         return None
 
+class ReporteErrorForm(forms.Form):
+    nombre = forms.CharField(
+        label="Nombre del error",
+        max_length=120,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Ej.: No carga el inventario',
+            'autocomplete': 'off',
+        }),
+    )
+    descripcion = forms.CharField(
+        label="Descripción del error",
+        max_length=5000,
+        widget=forms.Textarea(attrs={
+            'class': 'form-control',
+            'rows': 5,
+            'placeholder': 'Describe qué ocurrió y qué pasos permiten reproducirlo.',
+        }),
+    )
+
+
 class AvisoForm(forms.ModelForm):
     usuarios = forms.ModelMultipleChoiceField(
         queryset=Usuario.objects.none(),
