@@ -392,7 +392,7 @@
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end text-small shadow" aria-labelledby="dropdownUser">
                             <li><a class="dropdown-item" href="{% url 'perfil' %}"><i class="bi bi-person me-2"></i>Mi Perfil</a></li>
-                            {% if user.is_superuser or user.es_programador %}
+                            {% if user.es_programador %}
                             <li><a class="dropdown-item" href="{% url 'reportes_errores' %}"><i class="bi bi-clipboard2-check me-2"></i>Seguimiento de errores</a></li>
                             {% endif %}
                             <li><hr class="dropdown-divider"></li>
@@ -433,7 +433,9 @@
                         </div>
                     </div>
                     <div class="modal-footer">
+                        {% if user.es_programador %}
                         <a href="{% url 'reportes_errores' %}" class="btn btn-outline-danger me-auto"><i class="bi bi-list-check me-1" aria-hidden="true"></i>Ver seguimiento</a>
+                        {% endif %}
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
                         <button type="submit" class="btn btn-danger"><i class="bi bi-send me-1" aria-hidden="true"></i>Enviar reporte</button>
                     </div>
