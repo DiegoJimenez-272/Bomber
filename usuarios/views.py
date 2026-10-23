@@ -28,7 +28,7 @@ from reportlab.lib.pagesizes import letter
 import openpyxl
 from reportlab.lib.units import inch
 from .forms import RegistroForm, LoginForm, ProyectoForm, ArchivoProyectoForm, DocumentoForm, CarpetaForm, SalidaTerrenoForm, EmergenciaForm, PerfilForm, PasswordChangeForm, CapacitacionForm, ReunionForm, MantenimientoForm, ArchivoMantenimientoForm, InventarioForm, CajaChicaForm, AdminUserCreationForm, AdminUserChangeForm, RolForm, CompaniaForm, InventarioEditForm, InventarioGroupEditForm, AvisoForm, ReporteErrorForm, PasswordResetRequestForm, PasswordResetVerifyForm, PasswordResetNewPasswordForm, VehiculoForm, VehiculoHojaVidaForm, VehiculoDocumentacionForm, RondaVehiculoForm
-from .models import Rol, Compania, Proyecto, ArchivoProyecto, Documento, Carpeta, SalidaTerreno, SalidaTerrenoUnidad, Emergencia, EmergenciaUnidad, Usuario, Capacitacion, CursoMalla, Mantenimiento, ArchivoMantenimiento, Inventario, CajaChica, Notificacion, Aviso, AvisoDestinatario, PasswordResetCode, RegistroPendiente, Vehiculo, RondaVehiculo
+from .models import Rol, Compania, Proyecto, ArchivoProyecto, Documento, Carpeta, SalidaTerreno, SalidaTerrenoUnidad, Emergencia, EmergenciaUnidad, Usuario, Capacitacion, CursoMalla, Mantenimiento, ArchivoMantenimiento, Inventario, CajaChica, Notificacion, Aviso, AvisoDestinatario, ReporteError, PasswordResetCode, RegistroPendiente, Vehiculo, RondaVehiculo
 from .decorators import admin_required, permiso_requerido, pertenencia_compania
 from .inventory_permissions import (
     puede_acceder_inventario_compania,
@@ -3214,6 +3214,20 @@ def enviar_reporte_error_view(request):
         messages.error(request, 'Completa el nombre y la descripción del error para enviar el reporte.')
         return redirect(destino)
 
+    nombre = form.cleaned_data['nombre']
+    descripcion = form.cleaned_data['descripcion']
+    reportante = request.user.get_full_name().strip() or request.user.get_username()
+    compania_reportante = request.user.compania.nombre if request.user.compania else 'Sin compañía'
+    rol_reportante = request.user.rol.nombre if request.user.rol else ('Superusuario' if request.user.is_superuser else 'Sin rol')
+    reporte = ReporteError.objects.create(
+        nombre=nombre,
+        descripcion=descripcion,
+        reportante_nombre=reportante,
+        reportante_compania=compania_reportante,
+        reportante_rol=rol_reportante,
+        creado_por=request.user,
+    )
+
     destinatarios = sorted({
         usuario.email.strip()
         for usuario in Usuario.objects.filter(is_active=True).only('email', 'clave_radial')
@@ -3221,27 +3235,28 @@ def enviar_reporte_error_view(request):
         and usuario.email and usuario.email.strip()
     })
     if not destinatarios:
-        messages.error(request, 'No hay usuarios activos con clave radial “Programador” y correo registrado.')
+        messages.warning(
+            request,
+            f'Reporte #{reporte.id} guardado con estado “En espera”, pero no se encontraron desarrolladores con correo registrado.'
+        )
         return redirect(destino)
 
-    nombre = form.cleaned_data['nombre']
-    descripcion = form.cleaned_data['descripcion']
-    reportante = request.user.get_full_name().strip() or request.user.get_username()
-    compania_reportante = request.user.compania.nombre if request.user.compania else 'Sin compañía'
-    rol_reportante = request.user.rol.nombre if request.user.rol else ('Superusuario' if request.user.is_superuser else 'Sin rol')
+    url_seguimiento = request.build_absolute_uri(reverse('reportes_errores'))
     cuerpo_texto = (
-        f"Se recibió un nuevo reporte de error.\n\n"
+        f"Se recibió el reporte de error #{reporte.id}.\n\n"
         f"Nombre: {nombre}\n\n"
         f"Descripción:\n{descripcion}\n\n"
         f"Reportado por: {reportante}\n"
         f"Compañía: {compania_reportante}\n"
-        f"Rol: {rol_reportante}"
+        f"Rol: {rol_reportante}\n\n"
+        f"Estado: En espera\n"
+        f"Seguimiento: {url_seguimiento}"
     )
     descripcion_html = escape(descripcion).replace('\r\n', '\n').replace('\n', '<br>')
     cuerpo_html = f'''<!doctype html>
     <html><body style="margin:0;background:#f4f5f7;font-family:Arial,sans-serif;color:#212529;padding:24px">
       <table role="presentation" style="max-width:640px;width:100%;margin:auto;background:#fff;border-radius:12px;border:1px solid #e5e7eb;border-collapse:separate;border-spacing:0;overflow:hidden">
-        <tr><td style="background:#dc3545;color:#fff;padding:20px 24px;font-size:20px;font-weight:700">Reporte de error del sistema</td></tr>
+        <tr><td style="background:#dc3545;color:#fff;padding:20px 24px;font-size:20px;font-weight:700">Reporte de error #{reporte.id}</td></tr>
         <tr><td style="padding:24px">
           <p style="margin:0 0 8px;color:#6c757d;font-size:13px">NOMBRE DEL ERROR</p>
           <h1 style="font-size:21px;margin:0 0 22px">{escape(nombre)}</h1>
@@ -3252,6 +3267,8 @@ def enviar_reporte_error_view(request):
             Compañía: <strong>{escape(compania_reportante)}</strong><br>
             Rol: <strong>{escape(rol_reportante)}</strong>
           </p>
+          <p style="margin:18px 0 0"><strong>Estado:</strong> En espera</p>
+          <p style="margin:16px 0 0"><a href="{escape(url_seguimiento)}" style="display:inline-block;background:#dc3545;color:#fff;text-decoration:none;padding:10px 16px;border-radius:6px">Ver seguimiento del reporte</a></p>
         </td></tr>
       </table>
     </body></html>'''
@@ -3273,12 +3290,42 @@ def enviar_reporte_error_view(request):
             logger.exception('No se pudo enviar un reporte de error a un programador.')
 
     if enviados and not fallidos:
-        messages.success(request, f'Reporte enviado por correo a {enviados} programador(es).')
+        messages.success(request, f'Reporte #{reporte.id} creado y enviado a {enviados} desarrollador(es). Estado: En espera.')
     elif enviados:
-        messages.warning(request, f'Reporte enviado a {enviados} programador(es), pero falló el envío a {fallidos}.')
+        messages.warning(request, f'Reporte #{reporte.id} enviado a {enviados} desarrollador(es), pero falló el envío a {fallidos}. Estado: En espera.')
     else:
-        messages.error(request, 'No se pudo enviar el reporte por correo. Inténtalo nuevamente más tarde.')
+        messages.error(request, f'Reporte #{reporte.id} quedó guardado con estado “En espera”, pero no se pudo enviar el correo.')
     return redirect(destino)
+
+
+@login_required
+def reportes_errores_view(request):
+    if not (request.user.is_superuser or request.user.es_programador):
+        messages.error(request, 'No tienes permiso para consultar los reportes de errores.')
+        return redirect('dashboard')
+
+    reportes = ReporteError.objects.select_related('creado_por', 'corregido_por').all()
+    return render(request, 'usuarios/reportes_errores.html', {'reportes': reportes})
+
+
+@login_required
+def resolver_reporte_error_view(request, reporte_id):
+    if not request.user.es_programador:
+        messages.error(request, 'Solo los usuarios identificados como desarrolladores pueden corregir un reporte.')
+        return redirect('dashboard')
+    if request.method != 'POST':
+        return redirect('reportes_errores')
+
+    reporte = get_object_or_404(ReporteError, pk=reporte_id)
+    if reporte.estado == ReporteError.ESTADO_PENDIENTE:
+        reporte.estado = ReporteError.ESTADO_CORREGIDO
+        reporte.corregido_por = request.user
+        reporte.fecha_resolucion = timezone.now()
+        reporte.save(update_fields=['estado', 'corregido_por', 'fecha_resolucion'])
+        messages.success(request, f'El reporte #{reporte.id} quedó marcado como corregido.')
+    else:
+        messages.info(request, f'El reporte #{reporte.id} ya estaba corregido.')
+    return redirect('reportes_errores')
 
 
 @login_required

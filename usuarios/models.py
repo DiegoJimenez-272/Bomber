@@ -106,6 +106,10 @@ class Usuario(AbstractBaseUser, PermissionsMixin):
     def get_short_name(self):
         return self.nombre
 
+    @property
+    def es_programador(self):
+        return (self.clave_radial or '').strip().casefold() == 'programador'
+
     def save(self, *args, **kwargs):
         if self.pk:
             try:
@@ -675,6 +679,46 @@ class AvisoDestinatario(models.Model):
     usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='avisos_asignados')
     leido = models.BooleanField(default=False)
     fecha_lectura = models.DateTimeField(null=True, blank=True)
+
+
+class ReporteError(models.Model):
+    ESTADO_PENDIENTE = 'pendiente'
+    ESTADO_CORREGIDO = 'corregido'
+    ESTADO_CHOICES = [
+        (ESTADO_PENDIENTE, 'En espera'),
+        (ESTADO_CORREGIDO, 'Corregido'),
+    ]
+
+    nombre = models.CharField(max_length=120, verbose_name='Nombre del error')
+    descripcion = models.TextField(max_length=5000, verbose_name='Descripción del error')
+    reportante_nombre = models.CharField(max_length=200, verbose_name='Nombre del reportante')
+    reportante_compania = models.CharField(max_length=80, blank=True, default='', verbose_name='Compañía del reportante')
+    reportante_rol = models.CharField(max_length=80, blank=True, default='', verbose_name='Rol del reportante')
+    creado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='reportes_errores_creados',
+    )
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+    estado = models.CharField(max_length=20, choices=ESTADO_CHOICES, default=ESTADO_PENDIENTE, db_index=True)
+    corregido_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='reportes_errores_corregidos',
+    )
+    fecha_resolucion = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-fecha_creacion']
+        verbose_name = 'Reporte de error'
+        verbose_name_plural = 'Reportes de errores'
+
+    def __str__(self):
+        return f'{self.nombre} ({self.get_estado_display()})'
 
 class PasswordResetCode(models.Model):
     usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
