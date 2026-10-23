@@ -83,6 +83,7 @@ document.addEventListener('DOMContentLoaded', function () {
         event.preventDefault();
         const message = input.value.trim();
         if (!message) return;
+        const formData = new URLSearchParams(new FormData(form));
         addMessage(message, 'question');
         input.value = '';
         const submit = form.querySelector('button[type="submit"]');
@@ -91,7 +92,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const response = await fetch(root.dataset.endpoint, {
                 method: 'POST',
                 headers: { 'X-Requested-With': 'XMLHttpRequest' },
-                body: new URLSearchParams(new FormData(form)),
+                body: formData,
                 credentials: 'same-origin'
             });
             const data = await response.json();
