@@ -383,6 +383,15 @@ def dashboard_view(request):
                 elif m['id'] == 'scan_qr' and rol.ver_escanear_qr: filtered_modules.append(m)
                 elif m['id'] == 'proyectos' and rol.ver_proyectos: filtered_modules.append(m)
 
+    if request.user.es_programador:
+        filtered_modules.append({
+            'id': 'reportes_errores',
+            'url_name': 'reportes_errores',
+            'icon': 'bi-bug-fill',
+            'title': 'Seguimiento de errores',
+            'desc': 'Revisa y actualiza los reportes de errores del sistema.',
+        })
+
     # Obtener los avisos para el usuario actual
     avisos_usuario = AvisoDestinatario.objects.filter(
         usuario=request.user
@@ -3300,12 +3309,21 @@ def enviar_reporte_error_view(request):
 
 @login_required
 def reportes_errores_view(request):
-    if not (request.user.is_superuser or request.user.es_programador):
+    if not (
+        request.user.es_programador
+        or request.user.is_superuser
+        or ReporteError.objects.filter(creado_por=request.user).exists()
+    ):
         messages.error(request, 'No tienes permiso para consultar los reportes de errores.')
         return redirect('dashboard')
 
-    reportes = ReporteError.objects.select_related('creado_por', 'corregido_por').all()
-    return render(request, 'usuarios/reportes_errores.html', {'reportes': reportes})
+    reportes = ReporteError.objects.select_related('creado_por', 'corregido_por')
+    if not request.user.es_programador:
+        reportes = reportes.filter(creado_por=request.user)
+    return render(request, 'usuarios/reportes_errores.html', {
+        'reportes': reportes,
+        'puede_ver_todos': request.user.es_programador,
+    })
 
 
 @login_required

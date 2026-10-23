@@ -318,6 +318,10 @@
                 {% if request.user.is_superuser or request.user.rol.ver_proyectos %}
                 <li class="nav-item"><a href="{% url 'caja_chica' %}" class="nav-link {% if request.resolver_match.url_name == 'caja_chica' %}active{% endif %}"><i class="bi bi-wallet-fill"></i>Caja</a></li>
                 {% endif %}
+
+                {% if request.user.es_programador %}
+                <li class="nav-item"><a href="{% url 'reportes_errores' %}" class="nav-link {% if request.resolver_match.url_name == 'reportes_errores' %}active{% endif %}"><i class="bi bi-bug-fill"></i>Seguimiento de errores</a></li>
+                {% endif %}
                 
                 {% if request.user.is_superuser %}
                 <li class="nav-item"><a href="{% url 'administracion' %}" class="nav-link {% if request.resolver_match.url_name == 'administracion' %}active{% endif %}"><i class="bi bi-gear-fill"></i>Administración</a></li>
@@ -392,8 +396,8 @@
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end text-small shadow" aria-labelledby="dropdownUser">
                             <li><a class="dropdown-item" href="{% url 'perfil' %}"><i class="bi bi-person me-2"></i>Mi Perfil</a></li>
-                            {% if user.es_programador %}
-                            <li><a class="dropdown-item" href="{% url 'reportes_errores' %}"><i class="bi bi-clipboard2-check me-2"></i>Seguimiento de errores</a></li>
+                            {% if user.es_programador or user.is_superuser %}
+                            <li><a class="dropdown-item" href="{% url 'reportes_errores' %}"><i class="bi bi-clipboard2-check me-2"></i>{% if user.es_programador %}Seguimiento de errores{% else %}Mis reportes de errores{% endif %}</a></li>
                             {% endif %}
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item text-danger-emphasis" href="{% url 'logout' %}"><i class="bi bi-box-arrow-left me-2"></i>Cerrar Sesión</a></li>
