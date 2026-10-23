@@ -15,6 +15,7 @@ from .models import CajaChica, Emergencia, GuiaChatbot, Inventario, ComandoChatb
 
 MODULOS = {
     'dashboard': (None, 'dashboard'),
+    'resumen': ('ver_resumen_general', 'dashboard_summary'),
     'inventario': ('ver_inventario', 'inventario'),
     'emergencias': ('ver_emergencias', 'emergencias'),
     'salidas': ('ver_salidas_terreno', 'salidas_terreno'),
@@ -24,7 +25,44 @@ MODULOS = {
     'malla': ('ver_malla_curricular', 'malla_curricular'),
     'mantenimiento': ('ver_mantenimientos', 'mantenimiento'),
     'proyectos': ('ver_proyectos', 'proyectos'),
+    'inspectores': ('ver_inspectores', 'inspectores'),
+    'qr': ('ver_escanear_qr', 'scan_qr_page'),
+    'administracion': ('__superuser__', 'administracion'),
 }
+MODULO_LABELS = {
+    'dashboard': 'Inicio',
+    'resumen': 'Resumen General',
+    'inventario': 'Inventario',
+    'emergencias': 'Emergencias',
+    'salidas': 'Salidas a Terreno',
+    'caja': 'Caja',
+    'documentos': 'Documentos',
+    'capacitaciones': 'Cursos y Capacitaciones',
+    'malla': 'Malla Curricular',
+    'mantenimiento': 'Mantenimiento',
+    'proyectos': 'Proyectos',
+    'inspectores': 'Inspectores',
+    'qr': 'Escanear QR',
+    'administracion': 'Administración',
+}
+
+# Orientación general para los módulos. Las instrucciones específicas siguen
+# siendo editables en GuiaChatbot y tienen prioridad sobre estas respuestas.
+TOPIC_FALLBACKS = [
+    ('inventario', 'inventario, equipo, equipos, material, materiales, stock, bodega, casco, herramienta', 'En Inventario puedes consultar equipos, buscar por nombre o ubicación y revisar sus asignaciones.'),
+    ('emergencias', 'emergencia, emergencias, incendio, incendios, rescate, accidente, siniestro', 'En Emergencias puedes revisar los registros y sus filtros. Para registrar una nueva, abre el formulario del módulo.'),
+    ('salidas', 'salida, salidas, terreno, kilometraje, recorrido, carro, unidad despachada', 'En Salidas a Terreno puedes registrar recorridos, unidades, personal y kilometrajes, y revisar el historial.'),
+    ('caja', 'caja, saldo, ingreso, egreso, gasto, gastos, movimiento, movimientos, cuenta bancaria', 'En Caja puedes consultar movimientos y saldos. Los movimientos registran ingresos o egresos y su tipo de cuenta.'),
+    ('documentos', 'documento, documentos, archivo, archivos, carpeta, informe', 'En Documentos puedes organizar y consultar archivos y carpetas disponibles para tu cuenta.'),
+    ('capacitaciones', 'curso, cursos, capacitacion, capacitaciones, entrenamiento, reunion', 'En Cursos y Capacitaciones puedes revisar actividades y registros de formación.'),
+    ('malla', 'malla curricular, malla, ramo, ramos, asignatura, asignaturas', 'En Malla Curricular puedes revisar los ramos y, según tus permisos, gestionar voluntarios inscritos.'),
+    ('mantenimiento', 'mantenimiento, mantencion, mantenciones, revision vehicular, reparacion', 'En Mantenimiento puedes consultar los registros de mantenimiento de vehículos.'),
+    ('proyectos', 'proyecto, proyectos, presupuesto, presupuestos', 'En Proyectos puedes consultar el seguimiento y la información de los proyectos.'),
+    ('resumen', 'resumen general, resumen, indicadores, kpi, estadisticas, estadistica', 'El Resumen General presenta indicadores y actividad del sistema.'),
+    ('inspectores', 'inspector, inspectores, inspeccion, inspecciones', 'El módulo Inspectores reúne documentos y archivos disponibles para inspectores.'),
+    ('qr', 'qr, codigo qr, escanear qr, escaner', 'Escanear QR permite identificar un ítem de inventario mediante su código.'),
+    ('administracion', 'administracion, usuarios, roles, companias, permisos', 'Administración permite gestionar usuarios, roles y compañías; está disponible solo para superusuarios.'),
+]
 
 STOPWORDS = {
     'a', 'al', 'como', 'de', 'del', 'el', 'en', 'es', 'esta', 'este', 'hay',
@@ -45,6 +83,8 @@ def _palabras(configuracion):
 
 def _puede_ver_modulo(user, modulo):
     requisito, _ = MODULOS.get(modulo, (None, None))
+    if requisito == '__superuser__':
+        return bool(user.is_superuser)
     if requisito is None:
         return modulo == 'dashboard'
     if user.is_superuser:
@@ -73,7 +113,7 @@ def _coincidencia(texto, entradas):
 
         def tokens_compatibles(a, b):
             # Tolera plurales y conjugaciones frecuentes sin instalar librerías NLP.
-            return a == b or (min(len(a), len(b)) >= 5 and a[:5] == b[:5])
+            return a == b or (min(len(a), len(b)) >= 4 and a[:4] == b[:4])
 
         coincide = any(tokens_compatibles(palabra, token) for palabra in clave_tokens for token in tokens)
         frase_coincide = any(
@@ -163,4 +203,31 @@ def responder(user, mensaje):
             'label': f'Abrir {guia.get_modulo_display()}' if url else None,
         }
 
-    return {'text': 'No encontré una guía o consulta para esa pregunta. Prueba con palabras como “inventario”, “emergencias activas” o “saldo de caja”.'}
+    mejor_modulo = None
+    mejor_puntaje = 0
+    for modulo, palabras, respuesta in TOPIC_FALLBACKS:
+        if not _puede_ver_modulo(user, modulo):
+            continue
+        puntaje = _coincidencia(texto, _palabras(palabras))
+        if puntaje > mejor_puntaje:
+            mejor_modulo = (modulo, respuesta)
+            mejor_puntaje = puntaje
+    if mejor_modulo:
+        modulo, respuesta = mejor_modulo
+        _, ruta = MODULOS[modulo]
+        try:
+            url = reverse(ruta)
+        except Exception:
+            url = None
+        return {
+            'text': respuesta,
+            'url': url,
+            'label': f'Abrir {MODULO_LABELS.get(modulo, modulo)}' if url else None,
+        }
+
+    modulos_visibles = [
+        MODULO_LABELS.get(modulo, modulo)
+        for modulo in MODULOS if _puede_ver_modulo(user, modulo)
+    ]
+    disponibles = ', '.join(modulos_visibles) or 'los módulos habilitados para tu cuenta'
+    return {'text': f'Puedo orientarte sobre estos módulos: {disponibles}. Pregunta por uno de ellos o por una acción específica.'}
