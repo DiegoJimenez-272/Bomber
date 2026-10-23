@@ -720,6 +720,69 @@ class ReporteError(models.Model):
     def __str__(self):
         return f'{self.nombre} ({self.get_estado_display()})'
 
+
+class GuiaChatbot(models.Model):
+    MODULO_CHOICES = [
+        ('dashboard', 'Inicio'),
+        ('inventario', 'Inventario'),
+        ('emergencias', 'Emergencias'),
+        ('salidas', 'Salidas a terreno'),
+        ('caja', 'Caja'),
+        ('documentos', 'Documentos'),
+        ('capacitaciones', 'Cursos y capacitaciones'),
+        ('malla', 'Malla curricular'),
+        ('mantenimiento', 'Mantenimiento'),
+        ('proyectos', 'Proyectos'),
+    ]
+
+    titulo = models.CharField(max_length=160)
+    palabras_clave = models.TextField(
+        help_text='Separa las palabras o frases con coma o una línea nueva.'
+    )
+    pasos = models.TextField(help_text='Instrucciones breves, una por línea.')
+    modulo = models.CharField(max_length=24, choices=MODULO_CHOICES, default='dashboard')
+    prioridad = models.PositiveSmallIntegerField(default=0)
+    activo = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ['-prioridad', 'titulo']
+        verbose_name = 'Guía del chatbot'
+        verbose_name_plural = 'Guías del chatbot'
+
+    def __str__(self):
+        return self.titulo
+
+
+class ComandoChatbot(models.Model):
+    HANDLER_CHOICES = [
+        ('inventario_resumen', 'Resumen de inventario'),
+        ('emergencias_activas', 'Emergencias activas'),
+        ('caja_saldo', 'Saldo de caja'),
+    ]
+
+    MODULO_CHOICES = [
+        ('inventario', 'Inventario'),
+        ('emergencias', 'Emergencias'),
+        ('caja', 'Caja'),
+    ]
+
+    nombre = models.CharField(max_length=120, unique=True)
+    palabras_clave = models.TextField(
+        help_text='Separa las palabras o frases con coma o una línea nueva.'
+    )
+    handler = models.CharField(max_length=40, choices=HANDLER_CHOICES)
+    modulo_requerido = models.CharField(max_length=24, choices=MODULO_CHOICES)
+    prioridad = models.PositiveSmallIntegerField(default=0)
+    activo = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ['-prioridad', 'nombre']
+        verbose_name = 'Comando de consulta del chatbot'
+        verbose_name_plural = 'Comandos de consulta del chatbot'
+
+    def __str__(self):
+        return self.nombre
+
 class PasswordResetCode(models.Model):
     usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     codigo = models.CharField(max_length=6)

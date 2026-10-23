@@ -1,0 +1,107 @@
+<div class="erpbot" data-endpoint="{% url 'chatbot_api' %}">
+    <button class="erpbot-toggle" type="button" aria-label="Abrir asistente" aria-expanded="false" aria-controls="erpbot-panel">
+        <i class="bi bi-chat-dots-fill" aria-hidden="true"></i>
+    </button>
+    <section class="erpbot-panel" id="erpbot-panel" aria-label="Asistente del sistema" hidden>
+        <header class="erpbot-header">
+            <div><strong>Asistente del sistema</strong><small>Respuestas por guías y consultas autorizadas</small></div>
+            <button class="erpbot-close" type="button" aria-label="Cerrar asistente">×</button>
+        </header>
+        <div class="erpbot-messages" role="log" aria-live="polite" aria-relevant="additions">
+            <div class="erpbot-message erpbot-answer">Hola. Puedo mostrar guías y consultar datos de los módulos a los que tienes acceso.</div>
+        </div>
+        <form class="erpbot-form" method="post">
+            {% csrf_token %}
+            <label class="visually-hidden" for="erpbot-input">Escribe tu pregunta</label>
+            <input id="erpbot-input" name="message" maxlength="500" autocomplete="off" placeholder="Escribe tu pregunta…" required>
+            <button type="submit" aria-label="Enviar pregunta"><i class="bi bi-send-fill" aria-hidden="true"></i></button>
+        </form>
+    </section>
+</div>
+
+<style>
+    .erpbot { position: fixed; right: 1.25rem; bottom: 1.25rem; z-index: 1040; font-family: inherit; }
+    .erpbot-toggle { width: 3.5rem; height: 3.5rem; border: 0; border-radius: 50%; color: #fff; background: #dc3545; box-shadow: 0 4px 16px #0003; font-size: 1.35rem; }
+    .erpbot-toggle:hover { background: #bb2d3b; }
+    .erpbot-panel { position: absolute; right: 0; bottom: 4.25rem; display: flex; flex-direction: column; width: min(24rem, calc(100vw - 2rem)); height: min(34rem, calc(100vh - 7rem)); overflow: hidden; background: var(--bs-body-bg, #fff); color: var(--bs-body-color, #212529); border: 1px solid var(--bs-border-color, #dee2e6); border-radius: 1rem; box-shadow: 0 10px 34px #0003; }
+    .erpbot-panel[hidden] { display: none; }
+    .erpbot-header { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: .9rem 1rem; color: white; background: #dc3545; }
+    .erpbot-header small { display: block; opacity: .88; font-size: .72rem; margin-top: .15rem; }
+    .erpbot-close { border: 0; background: transparent; color: white; font-size: 1.6rem; line-height: 1; }
+    .erpbot-messages { flex: 1; overflow-y: auto; padding: 1rem; display: flex; flex-direction: column; align-items: flex-start; gap: .65rem; }
+    .erpbot-message { max-width: 92%; padding: .65rem .8rem; border-radius: .8rem; white-space: pre-wrap; overflow-wrap: anywhere; font-size: .9rem; }
+    .erpbot-answer { background: var(--bs-tertiary-bg, #f1f3f5); }
+    .erpbot-question { align-self: flex-end; background: #dc3545; color: white; }
+    .erpbot-action { display: inline-block; margin-top: .6rem; color: #dc3545; font-weight: 600; }
+    .erpbot-form { display: flex; gap: .5rem; padding: .75rem; border-top: 1px solid var(--bs-border-color, #dee2e6); }
+    .erpbot-form input { min-width: 0; flex: 1; padding: .6rem .75rem; border: 1px solid var(--bs-border-color, #ced4da); border-radius: .6rem; background: var(--bs-body-bg, #fff); color: var(--bs-body-color, #212529); }
+    .erpbot-form button { width: 2.6rem; border: 0; border-radius: .6rem; color: #fff; background: #dc3545; }
+    .erpbot-form button:disabled { opacity: .6; }
+    @media (max-width: 480px) { .erpbot { right: .75rem; bottom: .75rem; } .erpbot-panel { right: -.15rem; bottom: 4rem; width: calc(100vw - 1.5rem); height: min(32rem, calc(100dvh - 5.5rem)); } }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const root = document.querySelector('.erpbot');
+    if (!root) return;
+    const toggle = root.querySelector('.erpbot-toggle');
+    const panel = root.querySelector('.erpbot-panel');
+    const close = root.querySelector('.erpbot-close');
+    const form = root.querySelector('.erpbot-form');
+    const input = root.querySelector('#erpbot-input');
+    const messages = root.querySelector('.erpbot-messages');
+
+    function setOpen(open) {
+        panel.hidden = !open;
+        toggle.setAttribute('aria-expanded', String(open));
+        toggle.setAttribute('aria-label', open ? 'Cerrar asistente' : 'Abrir asistente');
+        if (open) input.focus();
+    }
+    function addMessage(text, kind, action) {
+        const bubble = document.createElement('div');
+        bubble.className = 'erpbot-message ' + (kind === 'question' ? 'erpbot-question' : 'erpbot-answer');
+        bubble.textContent = text;
+        if (action && action.url && action.label) {
+            try {
+                const url = new URL(action.url, window.location.origin);
+                if (url.origin === window.location.origin) {
+                    const link = document.createElement('a');
+                    link.className = 'erpbot-action d-block';
+                    link.href = url.href;
+                    link.textContent = action.label;
+                    bubble.appendChild(link);
+                }
+            } catch (_) {}
+        }
+        messages.appendChild(bubble);
+        messages.scrollTop = messages.scrollHeight;
+    }
+
+    toggle.addEventListener('click', () => setOpen(panel.hidden));
+    close.addEventListener('click', () => setOpen(false));
+    form.addEventListener('submit', async function (event) {
+        event.preventDefault();
+        const message = input.value.trim();
+        if (!message) return;
+        addMessage(message, 'question');
+        input.value = '';
+        const submit = form.querySelector('button[type="submit"]');
+        submit.disabled = true;
+        try {
+            const response = await fetch(root.dataset.endpoint, {
+                method: 'POST',
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                body: new URLSearchParams(new FormData(form)),
+                credentials: 'same-origin'
+            });
+            const data = await response.json();
+            addMessage(data.text || 'No fue posible obtener una respuesta.', 'answer', data.action);
+        } catch (_) {
+            addMessage('No se pudo conectar con el asistente. Inténtalo nuevamente.', 'answer');
+        } finally {
+            submit.disabled = false;
+            input.focus();
+        }
+    });
+});
+</script>

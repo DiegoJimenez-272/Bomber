@@ -452,6 +452,10 @@
     <!-- Contenedor de Notificaciones Modernas -->
     <div id="toast-container" class="toast-container toast-container-modern position-fixed top-0 end-0 p-3"></div>
 
+    {% if user.is_authenticated %}
+        {% include 'usuarios/chatbot_widget.html' %}
+    {% endif %}
+
     <!-- Convertir Mensajes estáticos del sistema a Notificaciones Flotantes -->
     {% if messages %}
     <script>

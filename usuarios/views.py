@@ -18,6 +18,7 @@ import secrets
 from io import BytesIO
 from django.core.files.base import ContentFile
 from django.http import HttpResponse, JsonResponse
+from django.views.decorators.http import require_POST
 from django.core.mail import EmailMultiAlternatives, send_mail
 from django.conf import settings
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak
@@ -35,6 +36,7 @@ from .inventory_permissions import (
     puede_editar_inventario,
     puede_gestionar_inventario_global,
 )
+from .chatbot import responder as responder_chatbot
 import logging
 
 logger = logging.getLogger('usuarios')
@@ -3359,6 +3361,24 @@ def api_notificaciones(request):
     } for n in notifs]
     no_leidas = request.user.notificaciones_recibidas.filter(leida=False).count()
     return JsonResponse({'notificaciones': data, 'no_leidas': no_leidas})
+
+
+@require_POST
+def chatbot_api_view(request):
+    if not request.user.is_authenticated:
+        return JsonResponse({'text': 'Inicia sesión para usar el asistente.'}, status=401)
+
+    mensaje = (request.POST.get('message') or '').strip()
+    if not mensaje:
+        return JsonResponse({'text': 'Escribe una pregunta para poder ayudarte.'}, status=400)
+    if len(mensaje) > 500:
+        return JsonResponse({'text': 'La pregunta es demasiado larga. Usa hasta 500 caracteres.'}, status=400)
+
+    respuesta = responder_chatbot(request.user, mensaje)
+    accion = None
+    if respuesta.get('url'):
+        accion = {'url': respuesta['url'], 'label': respuesta.get('label') or 'Abrir módulo'}
+    return JsonResponse({'text': respuesta['text'], 'action': accion})
 
 @login_required
 def aviso_delete_view(request, aviso_id):
