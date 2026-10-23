@@ -3227,11 +3227,15 @@ def enviar_reporte_error_view(request):
     nombre = form.cleaned_data['nombre']
     descripcion = form.cleaned_data['descripcion']
     reportante = request.user.get_full_name().strip() or request.user.get_username()
+    compania_reportante = request.user.compania.nombre if request.user.compania else 'Sin compañía'
+    rol_reportante = request.user.rol.nombre if request.user.rol else ('Superusuario' if request.user.is_superuser else 'Sin rol')
     cuerpo_texto = (
         f"Se recibió un nuevo reporte de error.\n\n"
         f"Nombre: {nombre}\n\n"
         f"Descripción:\n{descripcion}\n\n"
-        f"Reportado por: {reportante}"
+        f"Reportado por: {reportante}\n"
+        f"Compañía: {compania_reportante}\n"
+        f"Rol: {rol_reportante}"
     )
     descripcion_html = escape(descripcion).replace('\r\n', '\n').replace('\n', '<br>')
     cuerpo_html = f'''<!doctype html>
@@ -3243,7 +3247,11 @@ def enviar_reporte_error_view(request):
           <h1 style="font-size:21px;margin:0 0 22px">{escape(nombre)}</h1>
           <p style="margin:0 0 8px;color:#6c757d;font-size:13px">DESCRIPCIÓN</p>
           <div style="padding:16px;background:#f8f9fa;border-radius:8px;line-height:1.6">{descripcion_html}</div>
-          <p style="margin:22px 0 0;color:#6c757d;font-size:13px">Enviado por <strong>{escape(reportante)}</strong>.</p>
+          <p style="margin:22px 0 0;color:#6c757d;font-size:13px;line-height:1.7">
+            Reportado por: <strong>{escape(reportante)}</strong><br>
+            Compañía: <strong>{escape(compania_reportante)}</strong><br>
+            Rol: <strong>{escape(rol_reportante)}</strong>
+          </p>
         </td></tr>
       </table>
     </body></html>'''
