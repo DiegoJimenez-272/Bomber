@@ -357,7 +357,7 @@
                             style="width: 42px; height: 42px;" type="button" data-bs-toggle="modal"
                             data-bs-target="#systemErrorReportModal" aria-label="Reportar un error del sistema"
                             title="Reportar un error">
-                        <i class="bi bi-bug fs-5" aria-hidden="true"></i>
+                        <i class="bi bi-chat-left-text fs-5" aria-hidden="true"></i>
                     </button>
                     {% endif %}
 
@@ -411,7 +411,7 @@
             <div class="modal-content">
                 <div class="modal-header">
                     <h2 class="modal-title fs-5" id="systemErrorReportModalLabel">
-                        <i class="bi bi-bug text-danger me-2" aria-hidden="true"></i>Reportar un error
+                        <i class="bi bi-chat-left-text text-danger me-2" aria-hidden="true"></i>Reportar un error
                     </h2>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
                 </div>
@@ -419,7 +419,7 @@
                     {% csrf_token %}
                     <input type="hidden" name="next" value="{{ request.get_full_path }}">
                     <div class="modal-body">
-                        <p class="text-muted small">El reporte se enviará por correo a los usuarios con clave radial “Programador”.</p>
+                        <p class="text-muted small">Usa este formulario para reportar errores o fallos al equipo de desarrolladores.</p>
                         <div class="mb-3">
                             <label for="errorReportName" class="form-label">Nombre del error</label>
                             <input type="text" class="form-control" id="errorReportName" name="nombre" maxlength="120" required placeholder="Ej.: No carga el inventario">
