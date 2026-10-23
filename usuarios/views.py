@@ -355,7 +355,7 @@ def dashboard_view(request):
     # Filtrar módulos basados en los permisos del usuario
     if request.user.is_superuser:
         filtered_modules = list(modules)
-        if not (hasattr(request.user, 'rol') and request.user.rol and request.user.rol.ver_inspectores):
+        if not request.user.es_inspector:
             filtered_modules = [m for m in filtered_modules if m['id'] != 'inspectores']
     else:
         filtered_modules = []
@@ -368,7 +368,7 @@ def dashboard_view(request):
                 continue
             
             if m['id'] == 'inspectores':
-                if rol and rol.ver_inspectores:
+                if request.user.es_inspector:
                     filtered_modules.append(m)
                 continue
             
@@ -1121,7 +1121,7 @@ def documento_descargar_view(request, doc_id):
         
     # 2. Verificación si el documento es de inspectores
     if documento.es_de_inspector:
-        if not (request.user.is_superuser or (request.user.rol and request.user.rol.ver_inspectores)):
+        if not request.user.es_inspector:
             messages.error(request, 'No tienes permiso para ver documentos de inspectores.')
             return redirect('dashboard')
             
@@ -1146,6 +1146,9 @@ def documento_delete_view(request, doc_id):
     is_inspector = documento.es_de_inspector
     
     if is_inspector:
+        if not request.user.es_inspector:
+            messages.error(request, 'No tienes permiso para acceder a documentos de inspectores.')
+            return redirect('dashboard')
         if not (request.user.is_superuser or (hasattr(request.user, 'rol') and request.user.rol and request.user.rol.editar_inspectores)):
             messages.error(request, 'No tienes permiso para eliminar documentos de inspectores.')
             return redirect('inspectores')
@@ -1171,6 +1174,9 @@ def carpeta_delete_view(request, carpeta_id):
     is_inspector = carpeta.es_de_inspector
 
     if is_inspector:
+        if not request.user.es_inspector:
+            messages.error(request, 'No tienes permiso para acceder a carpetas de inspectores.')
+            return redirect('dashboard')
         if not (request.user.is_superuser or (hasattr(request.user, 'rol') and request.user.rol and request.user.rol.editar_inspectores)):
             messages.error(request, 'No tienes permiso para eliminar carpetas de inspectores.')
             return redirect('inspectores')
@@ -3554,7 +3560,7 @@ def password_reset_new_password_view(request):
 @login_required
 def inspectores_view(request):
     from .forms import InspectorDocumentoForm, InspectorCarpetaForm
-    if not (request.user.is_superuser or (hasattr(request.user, 'rol') and request.user.rol and request.user.rol.ver_inspectores)):
+    if not request.user.es_inspector:
         messages.error(request, 'No tienes permiso para acceder a Inspectores.')
         return redirect('dashboard')
 

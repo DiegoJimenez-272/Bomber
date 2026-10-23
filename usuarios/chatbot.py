@@ -25,7 +25,7 @@ MODULOS = {
     'malla': ('ver_malla_curricular', 'malla_curricular'),
     'mantenimiento': ('ver_mantenimientos', 'mantenimiento'),
     'proyectos': ('ver_proyectos', 'proyectos'),
-    'inspectores': ('ver_inspectores', 'inspectores'),
+    'inspectores': ('__inspector__', 'inspectores'),
     'qr': ('ver_escanear_qr', 'scan_qr_page'),
     'administracion': ('__superuser__', 'administracion'),
 }
@@ -92,6 +92,8 @@ def _puede_ver_modulo(user, modulo):
     requisito, _ = MODULOS.get(modulo, (None, None))
     if requisito == '__superuser__':
         return bool(user.is_superuser)
+    if requisito == '__inspector__':
+        return bool(getattr(user, 'es_inspector', False))
     if requisito is None:
         return modulo == 'dashboard'
     if user.is_superuser:

@@ -107,6 +107,11 @@ class Usuario(AbstractBaseUser, PermissionsMixin):
         return self.nombre
 
     @property
+    def es_inspector(self):
+        rol = self.rol
+        return bool(rol and (rol.nombre or '').strip().casefold() == 'inspector')
+
+    @property
     def es_programador(self):
         return (self.clave_radial or '').strip().casefold() == 'programador'
 
