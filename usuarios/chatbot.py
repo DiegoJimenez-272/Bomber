@@ -64,15 +64,26 @@ def _url_modulo(modulo):
 
 
 def _coincidencia(texto, entradas):
-    tokens = set(texto.split()) - STOPWORDS
-    texto_sin_stopwords = ' '.join(token for token in texto.split() if token not in STOPWORDS)
+    tokens = [token for token in texto.split() if token not in STOPWORDS]
     mejor = 0
     for clave in entradas:
-        clave_sin_stopwords = ' '.join(token for token in clave.split() if token not in STOPWORDS)
-        if ' ' in clave_sin_stopwords and clave_sin_stopwords in texto_sin_stopwords:
-            mejor = max(mejor, len(clave_sin_stopwords) + 2)
-        elif clave_sin_stopwords in tokens:
-            mejor = max(mejor, len(clave_sin_stopwords))
+        clave_tokens = [token for token in clave.split() if token not in STOPWORDS]
+        if not clave_tokens:
+            continue
+
+        def tokens_compatibles(a, b):
+            # Tolera plurales y conjugaciones frecuentes sin instalar librerías NLP.
+            return a == b or (min(len(a), len(b)) >= 5 and a[:5] == b[:5])
+
+        coincide = any(tokens_compatibles(palabra, token) for palabra in clave_tokens for token in tokens)
+        frase_coincide = any(
+            all(tokens_compatibles(esperada, recibida) for esperada, recibida in zip(clave_tokens, tokens[indice:indice + len(clave_tokens)]))
+            for indice in range(max(0, len(tokens) - len(clave_tokens) + 1))
+        )
+        if frase_coincide:
+            mejor = max(mejor, sum(map(len, clave_tokens)) + 2)
+        elif coincide and len(clave_tokens) == 1:
+            mejor = max(mejor, len(clave_tokens[0]))
     return mejor
 
 
