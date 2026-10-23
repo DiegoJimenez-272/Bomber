@@ -64,6 +64,13 @@ TOPIC_FALLBACKS = [
     ('administracion', 'administracion, usuarios, roles, companias, permisos', 'Administración permite gestionar usuarios, roles y compañías; está disponible solo para superusuarios.'),
 ]
 
+CONSULTAS_SOLO_ADMIN = (
+    'administracion, panel administrativo, crear usuario, nuevo usuario, crear usuarios, nuevo usuario',
+    'gestionar usuarios, administrar usuarios, editar usuario, editar usuarios, eliminar usuario, eliminar usuarios',
+    'crear rol, nuevo rol, administrar roles, gestionar roles, configurar permisos, permisos de usuario',
+    'crear compania, nueva compania, administrar companias, gestionar companias',
+)
+
 STOPWORDS = {
     'a', 'al', 'como', 'de', 'del', 'el', 'en', 'es', 'esta', 'este', 'hay',
     'la', 'las', 'lo', 'los', 'me', 'mi', 'para', 'por', 'que', 'se', 'un',
@@ -180,6 +187,12 @@ def responder(user, mensaje):
     texto = normalizar(mensaje)
     if not texto:
         return {'text': 'Escribe una pregunta para poder ayudarte.'}
+
+    # Administración solo es visible para superusuarios en el ERP. Este bloqueo
+    # explícito evita responder sobre esas pantallas incluso si una guía se
+    # etiqueta por error con otro módulo.
+    if not user.is_superuser and _coincidencia(texto, _palabras(','.join(CONSULTAS_SOLO_ADMIN))):
+        return {'text': 'No puedo responder esa consulta con los permisos de tu cuenta.'}
 
     comandos = [
         comando for comando in ComandoChatbot.objects.filter(activo=True).order_by('-prioridad', 'id')
