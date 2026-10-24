@@ -48,12 +48,21 @@
                                 </div>
                                 {% endif %}
                             </div>
-                            {% if reporte.estado == 'pendiente' and user.es_programador %}
-                            <form method="post" action="{% url 'resolver_reporte_error' reporte.id %}" class="flex-shrink-0"
-                                  onsubmit="return confirm('¿Confirmas que este error ya fue corregido?');">
-                                {% csrf_token %}
-                                <button type="submit" class="btn btn-success"><i class="bi bi-check2-circle me-1"></i>Marcar como corregido</button>
-                            </form>
+                            {% if user.es_programador %}
+                            <div class="d-flex flex-wrap gap-2 flex-shrink-0">
+                                {% if reporte.estado == 'pendiente' %}
+                                <form method="post" action="{% url 'resolver_reporte_error' reporte.id %}"
+                                      onsubmit="return confirm('¿Confirmas que este error ya fue corregido?');">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-success"><i class="bi bi-check2-circle me-1"></i>Marcar como corregido</button>
+                                </form>
+                                {% endif %}
+                                <form method="post" action="{% url 'eliminar_reporte_error' reporte.id %}"
+                                      onsubmit="return confirm('¿Seguro que quieres eliminar este reporte? Esta acción no se puede deshacer.');">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-outline-danger"><i class="bi bi-trash me-1"></i>Eliminar</button>
+                                </form>
+                            </div>
                             {% endif %}
                         </div>
                     </div>

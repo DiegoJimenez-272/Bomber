@@ -3355,6 +3355,21 @@ def resolver_reporte_error_view(request, reporte_id):
 
 
 @login_required
+def eliminar_reporte_error_view(request, reporte_id):
+    if not request.user.es_programador:
+        messages.error(request, 'Solo los usuarios identificados como desarrolladores pueden eliminar reportes.')
+        return redirect('dashboard')
+    if request.method != 'POST':
+        return redirect('reportes_errores')
+
+    reporte = get_object_or_404(ReporteError, pk=reporte_id)
+    reporte_id = reporte.id
+    reporte.delete()
+    messages.success(request, f'El reporte #{reporte_id} fue eliminado.')
+    return redirect('reportes_errores')
+
+
+@login_required
 def api_notificaciones(request):
     # Filtramos para mostrar y enviar al frontend SOLO las notificaciones no leídas
     notifs = request.user.notificaciones_recibidas.filter(leida=False)[:10]
