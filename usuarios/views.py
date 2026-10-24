@@ -1723,7 +1723,10 @@ def inventario_assign_view(request):
             if tipo_asignacion == 'usuario':
                 Notificacion.objects.create(
                     usuario=usuario,
-                    mensaje=f"Se te han asignado nuevos equipos: {detalle_msg}.",
+                    mensaje=(
+                        f"Se te asignaron {num_asignados_total} equipos nuevos. "
+                        "Revisa Inventario para ver el detalle."
+                    ),
                     link="/inventario/"
                 )
                 messages.success(request, f'Se asignaron exitosamente a {usuario.get_full_name()}: {detalle_msg}.')
