@@ -164,7 +164,7 @@
                                             data-mov-tipo="{{ mov.tipo }}"
                                             data-mov-tipo-cuenta="{{ mov.tipo_cuenta }}"
                                             data-mov-fecha="{{ mov.fecha|date:'Y-m-d' }}T{{ mov.fecha|date:'H:i' }}"
-                                            data-mov-monto="{{ mov.monto|floatformat:0|intcomma }}"
+                                            data-mov-monto="{{ mov.monto|floatformat:'2u' }}"
                                             data-mov-descripcion="{{ mov.descripcion }}"
                                             data-mov-compania="{{ mov.compania.id|default:'' }}">
                                         <i class="bi bi-pencil-fill"></i>
