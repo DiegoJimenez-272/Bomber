@@ -2795,7 +2795,14 @@ def caja_chica_edit_view(request, movimiento_id):
             form.save()
             messages.success(request, 'Movimiento actualizado exitosamente.')
         else:
-            messages.error(request, 'Error al actualizar el movimiento. Revisa el formulario.')
+            detalles_error = ' | '.join(
+                f"{form.fields[campo].label if campo in form.fields else 'Formulario'}: {', '.join(errores)}"
+                for campo, errores in form.errors.items()
+            )
+            messages.error(
+                request,
+                f'No se pudo actualizar el movimiento. {detalles_error or "Revisa los datos ingresados."}'
+            )
     return redirect('caja_chica')
 
 @login_required
