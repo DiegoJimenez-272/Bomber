@@ -43,6 +43,18 @@ import logging
 
 logger = logging.getLogger('usuarios')
 
+
+def redirect_to_previous_page(request, fallback):
+    """Return to the same local screen after a form action, or use its module fallback."""
+    previous_page = request.META.get('HTTP_REFERER', '')
+    if previous_page and url_has_allowed_host_and_scheme(
+        previous_page,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure(),
+    ):
+        return redirect(previous_page)
+    return redirect(fallback)
+
 def _enviar_codigo_registro(registro):
     nombre = escape(registro.nombre)
     html_message = f'''\
@@ -819,7 +831,7 @@ def proyectos_view(request):
             if request.headers.get('x-requested-with') == 'XMLHttpRequest':
                 return JsonResponse({'success': False, 'errors': {'__all__': ['No tienes permiso para crear proyectos.']}}, status=403)
             messages.error(request, 'No tienes permiso para crear proyectos.')
-            return redirect('proyectos')
+            return redirect_to_previous_page(request, reverse('proyectos'))
             
         proyecto_form = ProyectoForm(request.POST) 
         archivo_form = ArchivoProyectoForm(request.POST, request.FILES) # Este formulario no tiene validación crítica, pero lo mantenemos por consistencia
@@ -854,7 +866,7 @@ def proyectos_view(request):
                 })
             else: # Comportamiento normal
                 messages.success(request, f'Proyecto "{proyecto.nombre}" creado exitosamente.')
-                return redirect('proyectos')
+                return redirect_to_previous_page(request, reverse('proyectos'))
         else:
             # Si la solicitud es AJAX y hay errores, devolvemos los errores en JSON
             if request.headers.get('x-requested-with') == 'XMLHttpRequest':
@@ -883,7 +895,7 @@ def proyecto_edit_view(request, proyecto_id):
     # Permiso de edición
     if not request.user.is_superuser and not (request.user.rol and request.user.rol.editar_proyectos):
         messages.error(request, 'No tienes permiso para editar este proyecto.')
-        return redirect('proyectos')
+        return redirect_to_previous_page(request, reverse('proyectos'))
 
     if request.method == 'POST':
         form = ProyectoForm(request.POST, instance=proyecto)
@@ -898,20 +910,20 @@ def proyecto_edit_view(request, proyecto_id):
             messages.success(request, f'Proyecto "{proyecto_actualizado.nombre}" actualizado exitosamente.')
         else:
             messages.error(request, 'Error al actualizar el proyecto. Revisa el formulario.')
-    return redirect('proyectos')
+    return redirect_to_previous_page(request, reverse('proyectos'))
 
 @login_required
 def proyecto_delete_view(request, proyecto_id):
     proyecto = get_object_or_404(Proyecto, id=proyecto_id)
     if not request.user.is_superuser and not (request.user.rol and request.user.rol.editar_proyectos):
         messages.error(request, 'No tienes permiso para eliminar este proyecto.')
-        return redirect('proyectos')
+        return redirect_to_previous_page(request, reverse('proyectos'))
 
     if request.method == 'POST':
         proyecto_nombre = proyecto.nombre
         proyecto.delete() # Los archivos se eliminan en cascada gracias a la señal
         messages.success(request, f'Proyecto "{proyecto_nombre}" y todos sus archivos han sido eliminados.')
-    return redirect('proyectos')
+    return redirect_to_previous_page(request, reverse('proyectos'))
 
 @login_required
 def documentos_view(request):
@@ -922,7 +934,7 @@ def documentos_view(request):
     if request.method == 'POST':
         if not request.user.is_superuser and not (request.user.rol and request.user.rol.editar_documentacion):
             messages.error(request, 'No tienes permiso para modificar documentos.')
-            return redirect('documentos')
+            return redirect_to_previous_page(request, reverse('documentos'))
             
         accion = request.POST.get('action')
         if accion == 'crear_texto':
@@ -936,7 +948,7 @@ def documentos_view(request):
 
             if not nombre or not contenido:
                 messages.error(request, 'El título y el contenido son obligatorios.')
-                return redirect('documentos')
+                return redirect_to_previous_page(request, reverse('documentos'))
 
             buffer = BytesIO()
             doc_pdf = SimpleDocTemplate(buffer, pagesize=letter)
@@ -985,7 +997,7 @@ def documentos_view(request):
             documento.save()
             
             messages.success(request, f'Documento "{nombre}" redactado y guardado como PDF exitosamente.')
-            return redirect('documentos')
+            return redirect_to_previous_page(request, reverse('documentos'))
         elif accion == 'crear_carpeta':
             carpeta_form = CarpetaForm(request.POST, user=request.user)
             if carpeta_form.is_valid():
@@ -996,7 +1008,7 @@ def documentos_view(request):
                 carpeta.save()
                 carpeta_form.save_m2m()
                 messages.success(request, f'Carpeta "{carpeta.nombre}" creada exitosamente.')
-                return redirect('documentos')
+                return redirect_to_previous_page(request, reverse('documentos'))
             else:
                 messages.error(request, f'Error al crear la carpeta: {carpeta_form.errors.as_text()}')
         else:
@@ -1011,7 +1023,7 @@ def documentos_view(request):
                 documento.save()
                 form.save_m2m()
                 messages.success(request, f'Documento "{documento.nombre}" subido exitosamente.')
-                return redirect('documentos')
+                return redirect_to_previous_page(request, reverse('documentos'))
             else:
                 messages.error(request, f'Error al subir el documento: {form.errors.as_text()}')
     else:
@@ -1157,18 +1169,18 @@ def documento_delete_view(request, doc_id):
     else:
         if not request.user.is_superuser and not (request.user.rol and request.user.rol.editar_documentacion):
             messages.error(request, 'No tienes permiso para eliminar este documento.')
-            return redirect('documentos')
+            return redirect_to_previous_page(request, reverse('documentos'))
 
     if not pertenencia_compania(request.user, documento.compania):
         messages.error(request, 'No tienes acceso a documentos de esta compañía.')
-        return redirect('inspectores' if is_inspector else 'documentos')
+        return redirect_to_previous_page(request, reverse('inspectores' if is_inspector else 'documentos'))
 
     if request.method == 'POST':
         doc_name = documento.nombre
         documento.delete()
         messages.success(request, f'Documento "{doc_name}" eliminado exitosamente.')
     
-    return redirect('inspectores' if is_inspector else 'documentos')
+    return redirect_to_previous_page(request, reverse('inspectores' if is_inspector else 'documentos'))
 
 @login_required
 def carpeta_delete_view(request, carpeta_id):
@@ -1185,17 +1197,17 @@ def carpeta_delete_view(request, carpeta_id):
     else:
         if not request.user.is_superuser and not (request.user.rol and request.user.rol.editar_documentacion):
             messages.error(request, 'No tienes permiso para eliminar carpetas.')
-            return redirect('documentos')
+            return redirect_to_previous_page(request, reverse('documentos'))
 
     if not pertenencia_compania(request.user, carpeta.compania):
         messages.error(request, 'No tienes acceso a carpetas de esta compañía.')
-        return redirect('inspectores' if is_inspector else 'documentos')
+        return redirect_to_previous_page(request, reverse('inspectores' if is_inspector else 'documentos'))
 
     if request.method == 'POST':
         nombre = carpeta.nombre
         carpeta.delete()
         messages.success(request, f'Carpeta "{nombre}" y todo su contenido eliminados exitosamente.')
-    return redirect('inspectores' if is_inspector else 'documentos')
+    return redirect_to_previous_page(request, reverse('inspectores' if is_inspector else 'documentos'))
 
 @login_required
 def inventario_view(request):
@@ -1207,7 +1219,7 @@ def inventario_view(request):
     if request.method == 'POST':
         if not puede_editar_inventario(request.user):
             messages.error(request, 'No tienes permiso para agregar ítems.')
-            return redirect('inventario')
+            return redirect_to_previous_page(request, reverse('inventario'))
             
         form = InventarioForm(request.POST, user=request.user)
         if form.is_valid():
@@ -1236,8 +1248,11 @@ def inventario_view(request):
 
                 messages.success(request, f'{cantidad} ítem(s) de "{item.get_nombre_display()}" agregados exitosamente.')
                 if puede_gestionar_inventario_global(request.user):
-                    return redirect(f"{reverse('inventario')}?compania_activa={compania_objetivo.id}")
-                return redirect('inventario')
+                    return redirect_to_previous_page(
+                        request,
+                        f"{reverse('inventario')}?compania_activa={compania_objetivo.id}",
+                    )
+                return redirect_to_previous_page(request, reverse('inventario'))
         else:
             messages.error(request, 'Error al agregar el ítem. Por favor, revisa el formulario.')
 
@@ -1371,10 +1386,10 @@ def inventario_edit_view(request, item_id):
     item = get_object_or_404(Inventario, id=item_id)
     if not puede_editar_inventario(request.user):
         messages.error(request, 'No tienes permiso para editar este ítem.')
-        return redirect('inventario')
+        return redirect_to_previous_page(request, reverse('inventario'))
     if not puede_acceder_inventario_compania(request.user, item.compania):
         messages.error(request, 'No tienes acceso al inventario de esta compañía.')
-        return redirect('inventario')
+        return redirect_to_previous_page(request, reverse('inventario'))
 
     if request.method == 'POST':
         # Usamos un formulario sin el campo 'cantidad' para la edición
@@ -1384,7 +1399,7 @@ def inventario_edit_view(request, item_id):
             messages.success(request, f'Ítem "{item.get_nombre_display()}" actualizado exitosamente.')
         else:
             messages.error(request, 'Error al actualizar el ítem. Por favor, revisa el formulario.')
-    return redirect('inventario')
+    return redirect_to_previous_page(request, reverse('inventario'))
 
 @login_required
 def inventario_delete_view(request, item_id):
@@ -1427,7 +1442,7 @@ def inventario_delete_view(request, item_id):
 def vehiculo_create_view(request):
     if not puede_editar_inventario(request.user):
         messages.error(request, 'No tienes permiso para realizar esta acción.')
-        return redirect('inventario')
+        return redirect_to_previous_page(request, reverse('inventario'))
 
     if request.method == 'POST':
         form = VehiculoForm(request.POST, user=request.user)
@@ -1439,17 +1454,17 @@ def vehiculo_create_view(request):
             messages.success(request, f'Carro "{vehiculo.nombre}" registrado exitosamente.')
         else:
             messages.error(request, 'Error al registrar el carro. Por favor, verifica los datos.')
-    return redirect('inventario')
+    return redirect_to_previous_page(request, reverse('inventario'))
 
 @login_required
 def vehiculo_edit_view(request, vehiculo_id):
     vehiculo = get_object_or_404(Vehiculo, id=vehiculo_id)
     if not puede_editar_inventario(request.user):
         messages.error(request, 'No tienes permiso para realizar esta acción.')
-        return redirect('inventario')
+        return redirect_to_previous_page(request, reverse('inventario'))
     if not puede_acceder_inventario_compania(request.user, vehiculo.compania):
         messages.error(request, 'No tienes acceso a carros de esta compañía.')
-        return redirect('inventario')
+        return redirect_to_previous_page(request, reverse('inventario'))
 
     if request.method == 'POST':
         form = VehiculoForm(request.POST, instance=vehiculo, user=request.user)
@@ -1461,7 +1476,7 @@ def vehiculo_edit_view(request, vehiculo_id):
             messages.success(request, f'Carro "{vehiculo.nombre}" actualizado exitosamente.')
         else:
             messages.error(request, 'Error al actualizar el carro. Por favor, verifica los datos.')
-    return redirect('inventario')
+    return redirect_to_previous_page(request, reverse('inventario'))
 
 
 @login_required
@@ -1601,10 +1616,10 @@ def vehiculo_delete_view(request, vehiculo_id):
     vehiculo = get_object_or_404(Vehiculo, id=vehiculo_id)
     if not puede_editar_inventario(request.user):
         messages.error(request, 'No tienes permiso para realizar esta acción.')
-        return redirect('inventario')
+        return redirect_to_previous_page(request, reverse('inventario'))
     if not puede_acceder_inventario_compania(request.user, vehiculo.compania):
         messages.error(request, 'No tienes acceso a carros de esta compañía.')
-        return redirect('inventario')
+        return redirect_to_previous_page(request, reverse('inventario'))
 
     if request.method == 'POST':
         vehiculo_nombre = vehiculo.nombre
@@ -1614,17 +1629,17 @@ def vehiculo_delete_view(request, vehiculo_id):
             item.save()
         vehiculo.delete()
         messages.success(request, f'Carro "{vehiculo_nombre}" eliminado exitosamente.')
-    return redirect('inventario')
+    return redirect_to_previous_page(request, reverse('inventario'))
 
 @login_required
 def inventario_unassign_view(request, item_id):
     item = get_object_or_404(Inventario, id=item_id)
     if not puede_editar_inventario(request.user):
         messages.error(request, 'No tienes permiso para modificar este ítem.')
-        return redirect('inventario')
+        return redirect_to_previous_page(request, reverse('inventario'))
     if not puede_acceder_inventario_compania(request.user, item.compania):
         messages.error(request, 'No tienes acceso al inventario de esta compañía.')
-        return redirect('inventario')
+        return redirect_to_previous_page(request, reverse('inventario'))
 
     if request.method == 'POST':
         usuario_anterior = item.asignado_a
@@ -1647,13 +1662,13 @@ def inventario_unassign_view(request, item_id):
         else:
             messages.warning(request, f'El ítem "{item_name}" ya se encontraba en bodega.')
             
-    return redirect('inventario')
+    return redirect_to_previous_page(request, reverse('inventario'))
 
 @login_required
 def inventario_assign_view(request):
     if not puede_editar_inventario(request.user):
         messages.error(request, 'No tienes permiso para realizar esta acción.')
-        return redirect('inventario')
+        return redirect_to_previous_page(request, reverse('inventario'))
 
     if request.method == 'POST':
         tipo_asignacion = request.POST.get('tipo_asignacion', 'usuario') # 'usuario' o 'vehiculo'
@@ -1662,7 +1677,7 @@ def inventario_assign_view(request):
 
         if not items_nombres or not cantidades:
             messages.error(request, 'Debes seleccionar al menos un ítem válido para asignar.')
-            return redirect('inventario')
+            return redirect_to_previous_page(request, reverse('inventario'))
 
         usuario = None
         vehiculo = None
@@ -1672,23 +1687,23 @@ def inventario_assign_view(request):
             user_id = request.POST.get('usuario_a_asignar')
             if not user_id:
                 messages.error(request, 'Debes seleccionar un usuario para asignar.')
-                return redirect('inventario')
+                return redirect_to_previous_page(request, reverse('inventario'))
             usuario = get_object_or_404(Usuario, id=user_id)
             if not usuario.compania:
                 messages.error(request, f'El usuario {usuario.get_full_name()} no tiene una compañía asignada.')
-                return redirect('inventario')
+                return redirect_to_previous_page(request, reverse('inventario'))
             compania_objetivo = usuario.compania
         else:
             vehiculo_id = request.POST.get('vehiculo_a_asignar')
             if not vehiculo_id:
                 messages.error(request, 'Debes seleccionar un carro de bomberos para asignar.')
-                return redirect('inventario')
+                return redirect_to_previous_page(request, reverse('inventario'))
             vehiculo = get_object_or_404(Vehiculo, id=vehiculo_id)
             compania_objetivo = vehiculo.compania
 
         if not puede_acceder_inventario_compania(request.user, compania_objetivo):
             messages.error(request, 'No tienes permiso para administrar inventario de esta compañía.')
-            return redirect('inventario')
+            return redirect_to_previous_page(request, reverse('inventario'))
 
         num_asignados_total = 0
         items_asignados_detalle = []
@@ -1752,25 +1767,25 @@ def inventario_assign_view(request):
         elif not errores:
             messages.error(request, 'No se pudo asignar ningún ítem.')
             
-    return redirect('inventario')
+    return redirect_to_previous_page(request, reverse('inventario'))
 
 @login_required
 def inventario_group_edit_view(request):
     if request.method != 'POST' or not puede_editar_inventario(request.user):
         messages.error(request, 'Acción no permitida.')
-        return redirect('inventario')
+        return redirect_to_previous_page(request, reverse('inventario'))
 
     compania_origen_id = request.POST.get('group_compania') or ''
     if compania_origen_id and not compania_origen_id.isdigit():
         messages.error(request, 'La compañía del grupo no es válida.')
-        return redirect('inventario')
+        return redirect_to_previous_page(request, reverse('inventario'))
     compania_origen = Compania.objects.filter(pk=compania_origen_id).first() if compania_origen_id else None
     if compania_origen_id and compania_origen is None:
         messages.error(request, 'La compañía del grupo no existe.')
-        return redirect('inventario')
+        return redirect_to_previous_page(request, reverse('inventario'))
     if not puede_acceder_inventario_compania(request.user, compania_origen):
         messages.error(request, 'No tienes acceso al inventario de esta compañía.')
-        return redirect('inventario')
+        return redirect_to_previous_page(request, reverse('inventario'))
 
     form = InventarioGroupEditForm(request.POST, user=request.user)
     if form.is_valid():
@@ -1795,7 +1810,7 @@ def inventario_group_edit_view(request):
 
             if not items_existentes:
                 messages.warning(request, 'El grupo ya no existe o fue modificado por otro usuario.')
-                return redirect('inventario')
+                return redirect_to_previous_page(request, reverse('inventario'))
 
             update_data = {
                 'nombre': form.cleaned_data['nombre'],
@@ -1835,25 +1850,25 @@ def inventario_group_edit_view(request):
     else:
         messages.error(request, 'Error al actualizar el grupo de ítems. Revisa el formulario.')
     
-    return redirect('inventario')
+    return redirect_to_previous_page(request, reverse('inventario'))
 
 @login_required
 def inventario_group_delete_view(request):
     if request.method != 'POST' or not puede_editar_inventario(request.user):
         messages.error(request, 'Acción no permitida.')
-        return redirect('inventario')
+        return redirect_to_previous_page(request, reverse('inventario'))
 
     compania_origen_id = request.POST.get('group_compania') or ''
     if compania_origen_id and not compania_origen_id.isdigit():
         messages.error(request, 'La compañía del grupo no es válida.')
-        return redirect('inventario')
+        return redirect_to_previous_page(request, reverse('inventario'))
     compania_origen = Compania.objects.filter(pk=compania_origen_id).first() if compania_origen_id else None
     if compania_origen_id and compania_origen is None:
         messages.error(request, 'La compañía del grupo no existe.')
-        return redirect('inventario')
+        return redirect_to_previous_page(request, reverse('inventario'))
     if not puede_acceder_inventario_compania(request.user, compania_origen):
         messages.error(request, 'No tienes acceso al inventario de esta compañía.')
-        return redirect('inventario')
+        return redirect_to_previous_page(request, reverse('inventario'))
 
     Inventario.objects.filter(
         asignado_a__isnull=True, 
@@ -1865,19 +1880,19 @@ def inventario_group_delete_view(request):
         valor=request.POST.get('group_valor') or None
     ).delete()
     messages.success(request, f'El grupo de ítems "{request.POST.get("group_nombre")}" ha sido eliminado.')
-    return redirect('inventario')
+    return redirect_to_previous_page(request, reverse('inventario'))
 
 
 @login_required
 def inventario_global_delete_view(request):
     if request.method != 'POST' or not puede_gestionar_inventario_global(request.user):
         messages.error(request, 'No tienes permiso para eliminar ítems del inventario global.')
-        return redirect('inventario')
+        return redirect_to_previous_page(request, reverse('inventario'))
 
     nombre = request.POST.get('nombre', '').strip()
     if not nombre:
         messages.error(request, 'No se indicó el ítem que se desea eliminar.')
-        return redirect('inventario')
+        return redirect_to_previous_page(request, reverse('inventario'))
 
     items = Inventario.objects.filter(nombre=nombre)
     cantidad = items.count()
@@ -1886,7 +1901,7 @@ def inventario_global_delete_view(request):
         messages.success(request, f'Se eliminaron {cantidad} ítem(s) de "{nombre}" de todas las compañías.')
     else:
         messages.info(request, f'No se encontraron ítems de "{nombre}" para eliminar.')
-    return redirect('inventario')
+    return redirect_to_previous_page(request, reverse('inventario'))
 
 @login_required
 def scan_qr_page_view(request):
@@ -1949,7 +1964,7 @@ def salidas_terreno_view(request):
     if request.method == 'POST':
         if not request.user.is_superuser and not (request.user.rol and request.user.rol.editar_salidas_terreno):
             messages.error(request, 'No tienes permiso para registrar salidas.')
-            return redirect('salidas_terreno')
+            return redirect_to_previous_page(request, reverse('salidas_terreno'))
             
         form = SalidaTerrenoForm(request.POST, user=request.user)
         if form.is_valid():
@@ -1959,7 +1974,7 @@ def salidas_terreno_view(request):
             form.save_m2m()
             form.save_unit_attendance(salida)
             messages.success(request, f'Salida a terreno por "{salida.motivo}" registrada.')
-            return redirect('salidas_terreno')
+            return redirect_to_previous_page(request, reverse('salidas_terreno'))
         else:
             messages.error(request, 'Error al registrar la salida. Por favor, revisa el formulario.')
     else:
@@ -2032,30 +2047,30 @@ def salida_terreno_edit_view(request, salida_id):
     salida = get_object_or_404(SalidaTerreno, id=salida_id)
     if not request.user.is_superuser and not (request.user.rol and request.user.rol.editar_salidas_terreno):
         messages.error(request, 'No tienes permiso para editar esta salida.')
-        return redirect('salidas_terreno')
+        return redirect_to_previous_page(request, reverse('salidas_terreno'))
 
     if request.method == 'POST':
         form = SalidaTerrenoForm(request.POST, instance=salida, user=request.user)
         if form.is_valid():
             form.save()
             messages.success(request, f'Salida por "{salida.motivo}" actualizada exitosamente.')
-            return redirect('salidas_terreno')
+            return redirect_to_previous_page(request, reverse('salidas_terreno'))
         else:
             messages.error(request, 'Error al actualizar la salida. Revisa el formulario.')
-    return redirect('salidas_terreno')
+    return redirect_to_previous_page(request, reverse('salidas_terreno'))
 
 @login_required
 def salida_terreno_delete_view(request, salida_id):
     salida = get_object_or_404(SalidaTerreno, id=salida_id)
     if not request.user.is_superuser and not (request.user.rol and request.user.rol.editar_salidas_terreno):
         messages.error(request, 'No tienes permiso para eliminar esta salida.')
-        return redirect('salidas_terreno')
+        return redirect_to_previous_page(request, reverse('salidas_terreno'))
 
     if request.method == 'POST':
         salida_motivo = salida.motivo
         salida.delete()
         messages.success(request, f'Salida por "{salida_motivo}" eliminada exitosamente.')
-    return redirect('salidas_terreno')
+    return redirect_to_previous_page(request, reverse('salidas_terreno'))
 
 @login_required
 def emergencias_view(request):
@@ -2066,7 +2081,7 @@ def emergencias_view(request):
     if request.method == 'POST':
         if not request.user.is_superuser and not (request.user.rol and request.user.rol.editar_emergencias):
             messages.error(request, 'No tienes permiso para registrar emergencias.')
-            return redirect('emergencias')
+            return redirect_to_previous_page(request, reverse('emergencias'))
             
         form = EmergenciaForm(request.POST, request.FILES, user=request.user)
         if form.is_valid():
@@ -2077,7 +2092,7 @@ def emergencias_view(request):
             form.save_m2m()
             form.save_unit_attendance(emergencia)
             messages.success(request, f'Emergencia "{emergencia.get_tipo_display()}" registrada exitosamente.')
-            return redirect('emergencias')
+            return redirect_to_previous_page(request, reverse('emergencias'))
         else:
             messages.error(request, 'Error al registrar la emergencia. Por favor, revisa el formulario.')
     else:
@@ -2178,7 +2193,7 @@ def emergencia_edit_view(request, emergencia_id):
     emergencia = get_object_or_404(Emergencia, id=emergencia_id)
     if not request.user.is_superuser and not (request.user.rol and request.user.rol.editar_emergencias):
         messages.error(request, 'No tienes permiso para editar esta emergencia.')
-        return redirect('emergencias')
+        return redirect_to_previous_page(request, reverse('emergencias'))
 
     if request.method == 'POST':
         form = EmergenciaForm(request.POST, request.FILES, instance=emergencia, user=request.user)
@@ -2194,20 +2209,20 @@ def emergencia_edit_view(request, emergencia_id):
             messages.success(request, f'Emergencia "{emergencia.get_tipo_display()}" actualizada exitosamente.')
         else:
             messages.error(request, 'Error al actualizar la emergencia. Revisa el formulario.')
-    return redirect('emergencias')
+    return redirect_to_previous_page(request, reverse('emergencias'))
 
 @login_required
 def emergencia_delete_view(request, emergencia_id):
     emergencia = get_object_or_404(Emergencia, id=emergencia_id)
     if not request.user.is_superuser and not (request.user.rol and request.user.rol.editar_emergencias):
         messages.error(request, 'No tienes permiso para eliminar esta emergencia.')
-        return redirect('emergencias')
+        return redirect_to_previous_page(request, reverse('emergencias'))
 
     if request.method == 'POST':
         emergencia_tipo = emergencia.get_tipo_display()
         emergencia.delete()
         messages.success(request, f'Emergencia tipo "{emergencia_tipo}" eliminada exitosamente.')
-    return redirect('emergencias')
+    return redirect_to_previous_page(request, reverse('emergencias'))
 
 def enviar_email_capacitacion(capacitacion, usuarios, accion="invitado al"):
     emails = [u.email for u in usuarios if u.email]
@@ -2302,7 +2317,7 @@ def malla_curricular_view(request):
     if request.method == 'POST':
         if not puede_editar:
             messages.error(request, 'No tienes permiso para modificar la malla curricular.')
-            return redirect('malla_curricular')
+            return redirect_to_previous_page(request, reverse('malla_curricular'))
         ramo = get_object_or_404(CursoMalla, pk=request.POST.get('ramo_id'))
         usuarios_validos = Usuario.objects.all()
         ids_seleccionados = [
@@ -2311,7 +2326,7 @@ def malla_curricular_view(request):
         ]
         ramo.usuarios.set(usuarios_validos.filter(id__in=ids_seleccionados))
         messages.success(request, f'Se actualizaron los voluntarios de “{ramo.nombre}”.')
-        return redirect('malla_curricular')
+        return redirect_to_previous_page(request, reverse('malla_curricular'))
 
     usuarios = list(
         Usuario.objects.all().select_related('compania').order_by('nombre', 'apellido')
@@ -2373,7 +2388,7 @@ def capacitaciones_view(request):
     if request.method == 'POST':
         if not request.user.is_superuser and not (request.user.rol and request.user.rol.editar_capacitaciones):
             messages.error(request, 'No tienes permiso para registrar capacitaciones.')
-            return redirect('capacitaciones')
+            return redirect_to_previous_page(request, reverse('capacitaciones'))
             
         form = CapacitacionForm(request.POST, request.FILES)
         if form.is_valid():
@@ -2410,7 +2425,7 @@ def capacitaciones_view(request):
                 messages.success(request, f'{capacitacion.get_tipo_actividad_display()} "{capacitacion.nombre}" creada exitosamente.')
 
             tab = 'cursos' if capacitacion.tipo_actividad == 'Curso' else 'actividades'
-            return redirect(f'/capacitaciones/?tab={tab}')
+            return redirect_to_previous_page(request, f"{reverse('capacitaciones')}?tab={tab}")
         messages.error(request, 'No se pudo guardar la actividad. Revisa los campos marcados.')
     else:
         form = CapacitacionForm()
@@ -2525,7 +2540,7 @@ def capacitacion_edit_view(request, capacitacion_id):
     capacitacion = get_object_or_404(Capacitacion, id=capacitacion_id)
     if not request.user.is_superuser and not (request.user.rol and request.user.rol.editar_capacitaciones):
         messages.error(request, 'No tienes permiso para editar este curso.')
-        return redirect('capacitaciones')
+        return redirect_to_previous_page(request, reverse('capacitaciones'))
 
     if request.method == 'POST':
         if capacitacion.tipo_actividad == 'Reunión':
@@ -2563,7 +2578,7 @@ def capacitacion_edit_view(request, capacitacion_id):
                 tab = 'reuniones'
             else:
                 tab = 'actividades'
-            return redirect(f"{reverse('capacitaciones')}?tab={tab}")
+            return redirect_to_previous_page(request, f"{reverse('capacitaciones')}?tab={tab}")
     else:
         if capacitacion.tipo_actividad == 'Reunión':
             form = ReunionForm(instance=capacitacion)
@@ -2580,7 +2595,7 @@ def capacitacion_delete_view(request, capacitacion_id):
     capacitacion = get_object_or_404(Capacitacion, id=capacitacion_id)
     if not request.user.is_superuser and not (request.user.rol and request.user.rol.editar_capacitaciones):
         messages.error(request, 'No tienes permiso para eliminar este curso.')
-        return redirect('capacitaciones')
+        return redirect_to_previous_page(request, reverse('capacitaciones'))
 
     if request.method == 'POST':
         capacitacion_nombre = capacitacion.nombre
@@ -2588,8 +2603,8 @@ def capacitacion_delete_view(request, capacitacion_id):
         capacitacion.delete()
         messages.success(request, f'{tipo_actividad} "{capacitacion_nombre}" eliminada exitosamente.')
         tab = 'cursos' if tipo_actividad == 'Curso' else ('reuniones' if tipo_actividad == 'Reunión' else 'actividades')
-        return redirect(f"{reverse('capacitaciones')}?tab={tab}")
-    return redirect('capacitaciones')
+        return redirect_to_previous_page(request, f"{reverse('capacitaciones')}?tab={tab}")
+    return redirect_to_previous_page(request, reverse('capacitaciones'))
 
 
 @login_required
@@ -2601,7 +2616,7 @@ def mantenimiento_view(request):
     if request.method == 'POST':
         if not request.user.is_superuser and not (request.user.rol and request.user.rol.editar_mantenimientos):
             messages.error(request, 'No tienes permiso para registrar mantenimientos.')
-            return redirect('mantenimiento')
+            return redirect_to_previous_page(request, reverse('mantenimiento'))
             
         form = MantenimientoForm(request.POST)
         archivo_form = ArchivoMantenimientoForm(request.POST, request.FILES) # Para validación de archivos
@@ -2634,7 +2649,7 @@ def mantenimiento_view(request):
                 ArchivoMantenimiento.objects.create(mantenimiento=mantenimiento, archivo=f)
 
             messages.success(request, f'Mantenimiento para "{mantenimiento.vehiculo}" registrado exitosamente.')
-            return redirect('mantenimiento')
+            return redirect_to_previous_page(request, reverse('mantenimiento'))
         else:
             # Unir errores de ambos formularios para mostrarlos
             error_list = {**form.errors, **archivo_form.errors}
@@ -2695,7 +2710,7 @@ def mantenimiento_edit_view(request, mantenimiento_id):
     mantenimiento = get_object_or_404(Mantenimiento, id=mantenimiento_id)
     if not request.user.is_superuser and not (request.user.rol and request.user.rol.editar_mantenimientos):
         messages.error(request, 'No tienes permiso para editar este mantenimiento.')
-        return redirect('mantenimiento')
+        return redirect_to_previous_page(request, reverse('mantenimiento'))
 
     if request.method == 'POST':
         form = MantenimientoForm(request.POST, instance=mantenimiento)
@@ -2710,19 +2725,19 @@ def mantenimiento_edit_view(request, mantenimiento_id):
             messages.success(request, f'Mantenimiento para "{mantenimiento_actualizado.vehiculo}" actualizado exitosamente.')
         else:
             messages.error(request, 'Error al actualizar el mantenimiento. Revisa el formulario.')
-    return redirect('mantenimiento')
+    return redirect_to_previous_page(request, reverse('mantenimiento'))
 
 @login_required
 def mantenimiento_delete_view(request, mantenimiento_id):
     mantenimiento = get_object_or_404(Mantenimiento, id=mantenimiento_id)
     if not request.user.is_superuser and not (request.user.rol and request.user.rol.editar_mantenimientos):
         messages.error(request, 'No tienes permiso para eliminar este mantenimiento.')
-        return redirect('mantenimiento')
+        return redirect_to_previous_page(request, reverse('mantenimiento'))
     if request.method == 'POST':
         mantenimiento_vehiculo = mantenimiento.vehiculo
         mantenimiento.delete()
         messages.success(request, f'Mantenimiento para "{mantenimiento_vehiculo}" eliminado exitosamente.')
-    return redirect('mantenimiento')
+    return redirect_to_previous_page(request, reverse('mantenimiento'))
 
 @login_required
 def caja_chica_view(request):
@@ -2733,7 +2748,7 @@ def caja_chica_view(request):
     if request.method == 'POST':
         if not request.user.is_superuser and not (request.user.rol and request.user.rol.editar_caja_chica):
             messages.error(request, 'No tienes permiso para registrar movimientos.')
-            return redirect('caja_chica')
+            return redirect_to_previous_page(request, reverse('caja_chica'))
             
         form = CajaChicaForm(request.POST, request.FILES, user=request.user)
         if form.is_valid():
@@ -2743,7 +2758,7 @@ def caja_chica_view(request):
                 movimiento.compania = request.user.compania
             movimiento.save()
             messages.success(request, f'{movimiento.get_tipo_display()} de CLP ${movimiento.monto:,.0f} registrado exitosamente.')
-            return redirect('caja_chica')
+            return redirect_to_previous_page(request, reverse('caja_chica'))
         else:
             messages.error(request, 'Error al registrar el movimiento. Revisa el formulario.')
     else:
@@ -2832,7 +2847,7 @@ def caja_cuotas_view(request):
     if request.method == 'POST':
         if not permite_editar:
             messages.error(request, 'No tienes permiso para registrar cuotas.')
-            return redirect('caja_cuotas')
+            return redirect_to_previous_page(request, reverse('caja_cuotas'))
 
         try:
             voluntario_id = int(request.POST.get('voluntario_id', ''))
@@ -2849,7 +2864,7 @@ def caja_cuotas_view(request):
         )
         if not request.user.is_superuser and voluntario.compania_id != request.user.compania_id:
             messages.error(request, 'No tienes permiso para registrar cuotas de otra compañía.')
-            return redirect('caja_cuotas')
+            return redirect_to_previous_page(request, reverse('caja_cuotas'))
 
         cuota_existente = CuotaVoluntario.objects.select_related('movimiento').filter(
             voluntario=voluntario,
@@ -2962,10 +2977,10 @@ def caja_chica_edit_view(request, movimiento_id):
     movimiento = get_object_or_404(CajaChica, id=movimiento_id)
     if not request.user.is_superuser and not (request.user.rol and request.user.rol.editar_caja_chica):
         messages.error(request, 'No tienes permiso para editar este movimiento.')
-        return redirect('caja_chica')
+        return redirect_to_previous_page(request, reverse('caja_chica'))
     if not pertenencia_compania(request.user, movimiento.compania):
         messages.error(request, 'No tienes acceso a la caja de esta compañía.')
-        return redirect('caja_chica')
+        return redirect_to_previous_page(request, reverse('caja_chica'))
 
     if request.method == 'POST':
         form = CajaChicaForm(request.POST, request.FILES, instance=movimiento, user=request.user)
@@ -2981,22 +2996,22 @@ def caja_chica_edit_view(request, movimiento_id):
                 request,
                 f'No se pudo actualizar el movimiento. {detalles_error or "Revisa los datos ingresados."}'
             )
-    return redirect('caja_chica')
+    return redirect_to_previous_page(request, reverse('caja_chica'))
 
 @login_required
 def caja_chica_delete_view(request, movimiento_id):
     movimiento = get_object_or_404(CajaChica, id=movimiento_id)
     if not request.user.is_superuser and not (request.user.rol and request.user.rol.editar_caja_chica):
         messages.error(request, 'No tienes permiso para eliminar este movimiento.')
-        return redirect('caja_chica')
+        return redirect_to_previous_page(request, reverse('caja_chica'))
     if not pertenencia_compania(request.user, movimiento.compania):
         messages.error(request, 'No tienes acceso a la caja de esta compañía.')
-        return redirect('caja_chica')
+        return redirect_to_previous_page(request, reverse('caja_chica'))
     if request.method == 'POST':
         movimiento_desc = movimiento.descripcion
         movimiento.delete()
         messages.success(request, f'Movimiento "{movimiento_desc}" eliminado exitosamente.')
-    return redirect('caja_chica')
+    return redirect_to_previous_page(request, reverse('caja_chica'))
 
 @login_required
 def administracion_view(request):
@@ -3059,7 +3074,7 @@ def user_create_view(request):
             form.save()
             # El RUT se guarda desde el formulario
             messages.success(request, 'Usuario creado exitosamente.')
-            return redirect('administracion')
+            return redirect_to_previous_page(request, reverse('administracion'))
         else:
             messages.error(request, 'Error al crear el usuario. Por favor, revisa los errores en el formulario.')
             
@@ -3085,7 +3100,7 @@ def user_create_view(request):
                 'compania_form': compania_form,
             }
             return render(request, 'usuarios/administracion.html', context)
-    return redirect('administracion')
+    return redirect_to_previous_page(request, reverse('administracion'))
 
 @admin_required
 def user_edit_view(request, user_id):
@@ -3100,7 +3115,7 @@ def user_edit_view(request, user_id):
         if form.is_valid():
             form.save()
             messages.success(request, f'Usuario "{user_to_edit.get_full_name()}" actualizado exitosamente.')
-            return redirect('administracion')
+            return redirect_to_previous_page(request, reverse('administracion'))
         else:
             messages.error(request, 'Error al actualizar el usuario. Por favor, revisa el formulario.')
             
@@ -3129,7 +3144,7 @@ def user_edit_view(request, user_id):
             }
             return render(request, 'usuarios/administracion.html', context)
 
-    return redirect('administracion')
+    return redirect_to_previous_page(request, reverse('administracion'))
 
 @admin_required
 def user_approve_view(request, user_id):
@@ -3149,7 +3164,7 @@ def user_approve_view(request, user_id):
         ).update(leida=True)
 
         messages.success(request, f'Usuario "{user_to_approve.get_full_name()}" ha sido aprobado y ahora puede iniciar sesión.')
-    return redirect('administracion')
+    return redirect_to_previous_page(request, reverse('administracion'))
 
 @admin_required
 def user_delete_view(request, user_id):
@@ -3164,7 +3179,7 @@ def user_delete_view(request, user_id):
         ).update(leida=True)
         
         user_to_delete.delete()
-    return redirect('administracion')
+    return redirect_to_previous_page(request, reverse('administracion'))
 
 @admin_required
 def rol_create_view(request):
@@ -3179,7 +3194,7 @@ def rol_create_view(request):
             messages.success(request, 'Rol creado exitosamente.')
         else:
             messages.error(request, f'Error al crear el rol: {form.errors.as_text()}')
-    return redirect('administracion')
+    return redirect_to_previous_page(request, reverse('administracion'))
 
 @admin_required
 def rol_edit_view(request, rol_id):
@@ -3195,7 +3210,7 @@ def rol_edit_view(request, rol_id):
             messages.success(request, f'Rol "{rol.nombre}" actualizado exitosamente.')
         else:
             messages.error(request, f'Error al actualizar el rol: {form.errors.as_text()}')
-    return redirect('administracion')
+    return redirect_to_previous_page(request, reverse('administracion'))
 
 @admin_required
 def rol_delete_view(request, rol_id):
@@ -3203,7 +3218,7 @@ def rol_delete_view(request, rol_id):
         rol = get_object_or_404(Rol, id=rol_id)
         messages.success(request, f'Rol "{rol.nombre}" eliminado.')
         rol.delete()
-    return redirect('administracion')
+    return redirect_to_previous_page(request, reverse('administracion'))
 
 @login_required
 def aviso_create_view(request):
@@ -3298,7 +3313,7 @@ def aviso_create_view(request):
                 messages.success(request, 'Aviso enviado en el sistema. Los destinatarios seleccionados no tienen correo registrado.')
         else:
             messages.error(request, 'Error al enviar el aviso.')
-    return redirect('administracion')
+    return redirect_to_previous_page(request, reverse('administracion'))
 
 @login_required
 def aviso_leer_view(request, destinatario_id):
@@ -3344,7 +3359,7 @@ def compania_create_view(request):
                 messages.success(request, 'Compañía creada exitosamente (sin inventario base).')
         else:
             messages.error(request, f'Error al crear la compañía: {form.errors.as_text()}')
-    return redirect('administracion')
+    return redirect_to_previous_page(request, reverse('administracion'))
 
 @admin_required
 def compania_edit_view(request, compania_id):
@@ -3360,7 +3375,7 @@ def compania_edit_view(request, compania_id):
             messages.success(request, f'Compañía "{compania.nombre}" actualizada exitosamente.')
         else:
             messages.error(request, f'Error al actualizar la compañía: {form.errors.as_text()}')
-    return redirect('administracion')
+    return redirect_to_previous_page(request, reverse('administracion'))
 
 @admin_required
 def compania_delete_view(request, compania_id):
@@ -3368,7 +3383,7 @@ def compania_delete_view(request, compania_id):
         compania = get_object_or_404(Compania, id=compania_id)
         messages.success(request, f'Compañía "{compania.nombre}" eliminada.')
         compania.delete()
-    return redirect('administracion')
+    return redirect_to_previous_page(request, reverse('administracion'))
 
 @login_required
 def perfil_view(request):
@@ -3528,7 +3543,7 @@ def resolver_reporte_error_view(request, reporte_id):
         messages.error(request, 'Solo los usuarios identificados como desarrolladores pueden corregir un reporte.')
         return redirect('dashboard')
     if request.method != 'POST':
-        return redirect('reportes_errores')
+        return redirect_to_previous_page(request, reverse('reportes_errores'))
 
     reporte = get_object_or_404(ReporteError, pk=reporte_id)
     if reporte.estado == ReporteError.ESTADO_PENDIENTE:
@@ -3539,7 +3554,7 @@ def resolver_reporte_error_view(request, reporte_id):
         messages.success(request, f'El reporte #{reporte.id} quedó marcado como corregido.')
     else:
         messages.info(request, f'El reporte #{reporte.id} ya estaba corregido.')
-    return redirect('reportes_errores')
+    return redirect_to_previous_page(request, reverse('reportes_errores'))
 
 
 @login_required
@@ -3548,13 +3563,13 @@ def eliminar_reporte_error_view(request, reporte_id):
         messages.error(request, 'Solo los usuarios identificados como desarrolladores pueden eliminar reportes.')
         return redirect('dashboard')
     if request.method != 'POST':
-        return redirect('reportes_errores')
+        return redirect_to_previous_page(request, reverse('reportes_errores'))
 
     reporte = get_object_or_404(ReporteError, pk=reporte_id)
     reporte_id = reporte.id
     reporte.delete()
     messages.success(request, f'El reporte #{reporte_id} fue eliminado.')
-    return redirect('reportes_errores')
+    return redirect_to_previous_page(request, reverse('reportes_errores'))
 
 
 @login_required
@@ -3595,7 +3610,7 @@ def aviso_delete_view(request, aviso_id):
         aviso = get_object_or_404(Aviso, id=aviso_id)
         messages.success(request, f'Aviso "{aviso.titulo}" eliminado exitosamente.')
         aviso.delete()
-    return redirect('administracion')
+    return redirect_to_previous_page(request, reverse('administracion'))
 
 @login_required
 def marcar_notificacion_leida(request, notif_id):
@@ -3770,7 +3785,7 @@ def inspectores_view(request):
     if request.method == 'POST':
         if not (request.user.is_superuser or (hasattr(request.user, 'rol') and request.user.rol and request.user.rol.editar_inspectores)):
             messages.error(request, 'No tienes permiso para modificar documentos de inspectores.')
-            return redirect('inspectores')
+            return redirect_to_previous_page(request, reverse('inspectores'))
             
         accion = request.POST.get('action')
         if accion == 'crear_texto':
@@ -3783,7 +3798,7 @@ def inspectores_view(request):
 
             if not nombre or not contenido:
                 messages.error(request, 'El título y el contenido son obligatorios.')
-                return redirect('inspectores')
+                return redirect_to_previous_page(request, reverse('inspectores'))
 
             from io import BytesIO
             from reportlab.lib.pagesizes import letter
@@ -3832,7 +3847,7 @@ def inspectores_view(request):
             documento.save()
             
             messages.success(request, f'Documento "{nombre}" redactado y guardado como PDF exitosamente.')
-            return redirect('inspectores')
+            return redirect_to_previous_page(request, reverse('inspectores'))
         elif accion == 'crear_carpeta':
             carpeta_form = InspectorCarpetaForm(request.POST, user=request.user)
             if carpeta_form.is_valid():
@@ -3842,7 +3857,7 @@ def inspectores_view(request):
                 carpeta.save()
                 carpeta_form.save_m2m()
                 messages.success(request, f'Carpeta "{carpeta.nombre}" creada exitosamente.')
-                return redirect('inspectores')
+                return redirect_to_previous_page(request, reverse('inspectores'))
             else:
                 messages.error(request, f'Error al crear la carpeta: {carpeta_form.errors.as_text()}')
         else:
@@ -3854,7 +3869,7 @@ def inspectores_view(request):
                 documento.save()
                 form.save_m2m()
                 messages.success(request, f'Documento "{documento.nombre}" subido exitosamente.')
-                return redirect('inspectores')
+                return redirect_to_previous_page(request, reverse('inspectores'))
             else:
                 messages.error(request, f'Error al subir el documento: {form.errors.as_text()}')
     else:
