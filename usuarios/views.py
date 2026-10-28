@@ -2904,6 +2904,7 @@ def caja_cuotas_view(request):
         cuotas_por_voluntario.setdefault(cuota.voluntario_id, {})[cuota.mes] = cuota
 
     filas = []
+    total_final = Decimal('0.00')
     for voluntario in voluntarios:
         cuotas_mes = [cuotas_por_voluntario.get(voluntario.id, {}).get(mes) for mes in range(1, 13)]
         total = sum(
@@ -2911,11 +2912,13 @@ def caja_cuotas_view(request):
             Decimal('0.00'),
         )
         filas.append({'voluntario': voluntario, 'cuotas': cuotas_mes, 'total': total})
+        total_final += total
 
     return render(request, 'usuarios/caja_cuotas.html', {
         'anio': anio,
         'meses': meses,
         'filas': filas,
+        'total_final': total_final,
         'companias': companias,
         'compania_filtro': compania_filtro,
         'permite_editar': permite_editar,

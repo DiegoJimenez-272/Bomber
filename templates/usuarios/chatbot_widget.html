@@ -1,5 +1,5 @@
 <div class="erpbot" data-endpoint="{% url 'chatbot_api' %}">
-    <button class="erpbot-toggle" type="button" aria-label="Abrir asistente" aria-expanded="false" aria-controls="erpbot-panel">
+    <button class="erpbot-toggle" type="button" title="Arrastra para mover el asistente" aria-label="Abrir asistente. Arrastra este botón para moverlo" aria-expanded="false" aria-controls="erpbot-panel">
         <i class="bi bi-chat-dots-fill" aria-hidden="true"></i>
     </button>
     <section class="erpbot-panel" id="erpbot-panel" aria-label="Asistente del sistema" hidden>
@@ -21,10 +21,13 @@
 
 <style>
     .erpbot { position: fixed; right: 1.25rem; bottom: 1.25rem; z-index: 1040; font-family: inherit; }
-    .erpbot-toggle { width: 3.5rem; height: 3.5rem; border: 0; border-radius: 50%; color: #fff; background: #dc3545; box-shadow: 0 4px 16px #0003; font-size: 1.35rem; }
+    .erpbot-toggle { width: 3.5rem; height: 3.5rem; border: 0; border-radius: 50%; color: #fff; background: #dc3545; box-shadow: 0 4px 16px #0003; font-size: 1.35rem; touch-action: none; cursor: grab; }
+    .erpbot-toggle:active { cursor: grabbing; }
     .erpbot-toggle:hover { background: #bb2d3b; }
     .erpbot-panel { position: absolute; right: 0; bottom: 4.25rem; display: flex; flex-direction: column; width: min(24rem, calc(100vw - 2rem)); height: min(34rem, calc(100vh - 7rem)); overflow: hidden; background: var(--bs-body-bg, #fff); color: var(--bs-body-color, #212529); border: 1px solid var(--bs-border-color, #dee2e6); border-radius: 1rem; box-shadow: 0 10px 34px #0003; }
     .erpbot-panel[hidden] { display: none; }
+    .erpbot .erpbot-panel.erpbot-panel-left { right: auto; left: 0; }
+    .erpbot .erpbot-panel.erpbot-panel-above { bottom: auto; top: 4.25rem; }
     .erpbot-header { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: .9rem 1rem; color: white; background: #dc3545; }
     .erpbot-header small { display: block; opacity: .88; font-size: .72rem; margin-top: .15rem; }
     .erpbot-close { border: 0; background: transparent; color: white; font-size: 1.6rem; line-height: 1; }
@@ -37,7 +40,7 @@
     .erpbot-form input { min-width: 0; flex: 1; padding: .6rem .75rem; border: 1px solid var(--bs-border-color, #ced4da); border-radius: .6rem; background: var(--bs-body-bg, #fff); color: var(--bs-body-color, #212529); }
     .erpbot-form button { width: 2.6rem; border: 0; border-radius: .6rem; color: #fff; background: #dc3545; }
     .erpbot-form button:disabled { opacity: .6; }
-    @media (max-width: 480px) { .erpbot { right: .75rem; bottom: .75rem; } .erpbot-panel { right: -.15rem; bottom: 4rem; width: calc(100vw - 1.5rem); height: min(32rem, calc(100dvh - 5.5rem)); } }
+    @media (max-width: 480px) { .erpbot { right: .75rem; bottom: .75rem; } .erpbot-panel { right: -.15rem; bottom: 4rem; width: calc(100vw - 1.5rem); height: min(32rem, calc(100dvh - 5.5rem)); } .erpbot .erpbot-panel.erpbot-panel-left { left: 0; right: auto; } .erpbot .erpbot-panel.erpbot-panel-above { top: 4rem; bottom: auto; } }
 </style>
 
 <script>
@@ -50,6 +53,59 @@ document.addEventListener('DOMContentLoaded', function () {
     const form = root.querySelector('.erpbot-form');
     const input = root.querySelector('#erpbot-input');
     const messages = root.querySelector('.erpbot-messages');
+    const positionKey = 'erpbot-floating-position';
+    let dragStart = null;
+    let moved = false;
+
+    function placePanel() {
+        const rect = root.getBoundingClientRect();
+        panel.classList.toggle('erpbot-panel-left', rect.left + rect.width / 2 < window.innerWidth / 2);
+        panel.classList.toggle('erpbot-panel-above', rect.top + rect.height / 2 > window.innerHeight / 2);
+    }
+
+    function restorePosition() {
+        try {
+            const saved = JSON.parse(localStorage.getItem(positionKey) || 'null');
+            if (!saved || !Number.isFinite(saved.left) || !Number.isFinite(saved.top)) return;
+            root.style.left = `${Math.max(0, Math.min(saved.left, window.innerWidth - 56))}px`;
+            root.style.top = `${Math.max(0, Math.min(saved.top, window.innerHeight - 56))}px`;
+            root.style.right = 'auto';
+            root.style.bottom = 'auto';
+            placePanel();
+        } catch (_) {}
+    }
+
+    function beginDrag(event) {
+        if (event.button !== undefined && event.button !== 0) return;
+        const rect = root.getBoundingClientRect();
+        dragStart = { x: event.clientX, y: event.clientY, left: rect.left, top: rect.top, pointerId: event.pointerId };
+        moved = false;
+        toggle.setPointerCapture(event.pointerId);
+    }
+
+    function drag(event) {
+        if (!dragStart || event.pointerId !== dragStart.pointerId) return;
+        const dx = event.clientX - dragStart.x;
+        const dy = event.clientY - dragStart.y;
+        if (!moved && Math.hypot(dx, dy) < 6) return;
+        moved = true;
+        const left = Math.max(0, Math.min(dragStart.left + dx, window.innerWidth - 56));
+        const top = Math.max(0, Math.min(dragStart.top + dy, window.innerHeight - 56));
+        root.style.left = `${left}px`;
+        root.style.top = `${top}px`;
+        root.style.right = 'auto';
+        root.style.bottom = 'auto';
+        placePanel();
+    }
+
+    function endDrag(event) {
+        if (!dragStart || event.pointerId !== dragStart.pointerId) return;
+        if (moved) {
+            try { localStorage.setItem(positionKey, JSON.stringify({ left: root.offsetLeft, top: root.offsetTop })); } catch (_) {}
+            toggle.dataset.moved = 'true';
+        }
+        dragStart = null;
+    }
 
     function setOpen(open) {
         panel.hidden = !open;
@@ -78,6 +134,25 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     toggle.addEventListener('click', () => setOpen(panel.hidden));
+    toggle.addEventListener('pointerdown', beginDrag);
+    toggle.addEventListener('pointermove', drag);
+    toggle.addEventListener('pointerup', endDrag);
+    toggle.addEventListener('pointercancel', endDrag);
+    toggle.addEventListener('click', function (event) {
+        if (toggle.dataset.moved === 'true') {
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            delete toggle.dataset.moved;
+        }
+    }, true);
+    window.addEventListener('resize', function () {
+        if (root.style.left) {
+            root.style.left = `${Math.max(0, Math.min(root.offsetLeft, window.innerWidth - 56))}px`;
+            root.style.top = `${Math.max(0, Math.min(root.offsetTop, window.innerHeight - 56))}px`;
+        }
+        placePanel();
+    });
+    restorePosition();
     close.addEventListener('click', () => setOpen(false));
     form.addEventListener('submit', async function (event) {
         event.preventDefault();

@@ -118,6 +118,12 @@
                         </tr>
                         {% endfor %}
                     </tbody>
+                    <tfoot>
+                        <tr class="table-danger fw-bold">
+                            <td colspan="{% if request.user.is_superuser %}15{% else %}14{% endif %}" class="text-end">Monto final recaudado</td>
+                            <td class="text-end">${{ total_final|floatformat:0|intcomma }}</td>
+                        </tr>
+                    </tfoot>
                 </table>
             </div>
         </div>
