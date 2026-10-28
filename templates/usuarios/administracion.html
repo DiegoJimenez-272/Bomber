@@ -279,6 +279,7 @@
                                     <th>Rol</th>
                                     <th>Compañía</th>
                                     <th>Estado</th>
+                                    <th>Última conexión</th>
                                     <th>Admin</th>
                                     <th>Acciones</th>
                                 </tr>
@@ -296,6 +297,13 @@
                                             <span class="badge bg-success">Activo</span>
                                         {% else %}
                                             <span class="badge bg-secondary">Inactivo</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if user.last_login %}
+                                            {{ user.last_login|date:'d/m/Y H:i' }}
+                                        {% else %}
+                                            <span class="text-muted">Nunca</span>
                                         {% endif %}
                                     </td>
                                     <td>
@@ -332,7 +340,7 @@
                                 </tr>
                                 {% empty %}
                                 <!-- Este TR se mostrará si no hay usuarios, o si el filtro no encuentra resultados -->
-                                <tr id="no-users-found-row" style="display: none;"><td colspan="8" class="text-center text-muted py-4">No se encontraron usuarios con los filtros aplicados.</td></tr>
+                                <tr id="no-users-found-row" style="display: none;"><td colspan="9" class="text-center text-muted py-4">No se encontraron usuarios con los filtros aplicados.</td></tr>
                                 {% endfor %}
                             </tbody>
                         </table>

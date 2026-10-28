@@ -2845,7 +2845,7 @@ def administracion_view(request):
     pending_users = Usuario.objects.filter(is_active=False).order_by('-date_joined')
 
     # Separamos los usuarios en activos y pendientes de aprobación
-    active_users = base_users.filter(is_active=True).order_by('nombre')
+    active_users = base_users.filter(is_active=True).select_related('rol', 'compania').order_by('nombre')
 
     context = {
         'active_users': active_users,
