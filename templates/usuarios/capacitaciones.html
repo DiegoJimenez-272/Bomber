@@ -1348,6 +1348,18 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (field) field.hidden = isMeeting;
             });
 
+            // Estos campos son obligatorios para cursos, pero no forman parte
+            // de una reunión. Al ocultarlos también se desactivan para que el
+            // navegador no bloquee el envío por validación de campos ocultos.
+            ['malla', 'lugar', 'instructor'].forEach(function(fieldName) {
+                const field = createModal.querySelector('[data-create-activity-field="' + fieldName + '"]');
+                if (field) {
+                    field.querySelectorAll('input, select, textarea').forEach(function(control) {
+                        control.disabled = isMeeting;
+                    });
+                }
+            });
+
             if (isMeeting && invitationCheckbox) {
                 invitationCheckbox.checked = false;
                 if (audienceContainer) audienceContainer.style.display = 'none';
