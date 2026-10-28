@@ -2843,6 +2843,9 @@ def caja_cuotas_view(request):
         descripcion = f"Cuota {meses[mes - 1]} {anio} - {voluntario.get_full_name()}"
         datos = request.POST.copy()
         datos['tipo'] = 'Ingreso'
+        # Las cuotas de voluntarios se ingresan siempre a Caja propia.
+        # No confiar en el valor enviado por el navegador.
+        datos['tipo_cuenta'] = 'caja_propia'
         datos['descripcion'] = descripcion
         # La caja asociada siempre corresponde a la compañía del voluntario.
         datos['compania'] = str(voluntario.compania_id or '')
@@ -2922,7 +2925,6 @@ def caja_cuotas_view(request):
         'companias': companias,
         'compania_filtro': compania_filtro,
         'permite_editar': permite_editar,
-        'tipo_cuenta_choices': CajaChica.TIPO_CUENTA_CHOICES,
         'fecha_actual': timezone.localtime().strftime('%Y-%m-%dT%H:%M'),
     })
 

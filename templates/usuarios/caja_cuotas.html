@@ -56,7 +56,7 @@
     </div>
 
     <div class="alert alert-info py-2">
-        Cada cuota registrada se incorpora como un ingreso en la Caja de la compañía del voluntario.
+        Cada cuota registrada se incorpora como un ingreso en la Caja propia de la compañía del voluntario.
     </div>
 
     <div class="card shadow-sm border-0">
@@ -95,7 +95,6 @@
                                             data-mes="{{ mes_num }}"
                                             {% if cuota %}
                                             data-monto="{{ cuota.movimiento.monto|floatformat:'2u' }}"
-                                            data-tipo-cuenta="{{ cuota.movimiento.tipo_cuenta }}"
                                             data-fecha="{{ cuota.movimiento.fecha|date:'Y-m-d' }}T{{ cuota.movimiento.fecha|date:'H:i' }}"
                                             {% endif %}>
                                         {% if cuota %}${{ cuota.movimiento.monto|floatformat:0|intcomma }}{% else %}+{% endif %}
@@ -153,13 +152,8 @@
                         <input type="datetime-local" name="fecha" id="cuotaFecha" class="form-control" value="{{ fecha_actual }}" required>
                     </div>
                     <div class="mb-3">
-                        <label for="cuotaCuenta" class="form-label">Tipo de cuenta</label>
-                        <select name="tipo_cuenta" id="cuotaCuenta" class="form-select" required>
-                            <option value="">Seleccionar cuenta</option>
-                            {% for valor, etiqueta in tipo_cuenta_choices %}
-                            <option value="{{ valor }}">{{ etiqueta }}</option>
-                            {% endfor %}
-                        </select>
+                        <label class="form-label">Tipo de cuenta</label>
+                        <input type="text" class="form-control" value="Caja propia" readonly aria-readonly="true">
                     </div>
                     <div class="mb-3">
                         <label for="cuotaMonto" class="form-label">Monto de la cuota</label>
@@ -209,7 +203,6 @@ document.addEventListener('DOMContentLoaded', function () {
         document.getElementById('cuotaVoluntarioLabel').textContent = `${button.dataset.voluntario} · ${monthNames[mes - 1]} {{ anio }}`;
         document.getElementById('cuotaModalLabel').textContent = yaRegistrada ? 'Actualizar cuota' : 'Registrar cuota';
         document.getElementById('cuotaMonto').value = button.dataset.monto || '';
-        document.getElementById('cuotaCuenta').value = button.dataset.tipoCuenta || '';
         document.getElementById('cuotaFecha').value = button.dataset.fecha || '{{ fecha_actual }}';
         document.getElementById('cuotaDocumento').value = '';
     });
