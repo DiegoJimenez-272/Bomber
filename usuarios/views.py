@@ -13,6 +13,7 @@ from django.utils import timezone
 from django.db.models.functions import TruncDay
 from datetime import datetime, timedelta
 from decimal import Decimal
+from urllib.parse import urlencode
 import json, re
 import random
 import secrets
@@ -1387,25 +1388,40 @@ def inventario_edit_view(request, item_id):
 
 @login_required
 def inventario_delete_view(request, item_id):
-    if request.method != 'POST':
-        return redirect('inventario')
-
     item = Inventario.objects.filter(id=item_id).first()
+
+    def volver_al_inventario():
+        parametros = {}
+        if request.user.is_authenticated and puede_gestionar_inventario_global(request.user):
+            compania_id = request.POST.get('compania_activa', '')
+            if not compania_id.isdigit() or not Compania.objects.filter(pk=compania_id).exists():
+                compania_id = str(item.compania_id) if item and item.compania_id else ''
+            if compania_id:
+                parametros['compania_activa'] = compania_id
+        busqueda = request.POST.get('q', '').strip()
+        if busqueda:
+            parametros['q'] = busqueda
+        url = reverse('inventario')
+        return redirect(f'{url}?{urlencode(parametros)}' if parametros else url)
+
+    if request.method != 'POST':
+        return volver_al_inventario()
+
     if item is None:
         messages.warning(request, 'El ítem ya no existe o fue eliminado anteriormente.')
-        return redirect('inventario')
+        return volver_al_inventario()
 
     if not puede_editar_inventario(request.user):
         messages.error(request, 'No tienes permiso para eliminar este ítem.')
-        return redirect('inventario')
+        return volver_al_inventario()
     if not puede_acceder_inventario_compania(request.user, item.compania):
         messages.error(request, 'No tienes acceso al inventario de esta compañía.')
-        return redirect('inventario')
+        return volver_al_inventario()
 
     item_name = item.get_nombre_display()
     item.delete()
     messages.success(request, f'Ítem "{item_name}" eliminado exitosamente.')
-    return redirect('inventario')
+    return volver_al_inventario()
 
 @login_required
 def vehiculo_create_view(request):

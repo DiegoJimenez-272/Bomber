@@ -1251,6 +1251,8 @@
             <div class="modal-footer">
                 <form id="deleteInventarioForm" method="post">
                     {% csrf_token %}
+                    <input type="hidden" name="compania_activa" value="{{ compania_activa_id|default:'' }}">
+                    <input type="hidden" name="q" value="{{ request.GET.q|default:'' }}">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
                     <button type="submit" class="btn btn-danger">Sí, eliminar</button>
                 </form>
