@@ -75,6 +75,7 @@ urlpatterns = [
 
     # Caja chica
     path('caja-chica/', views.caja_chica_view, name='caja_chica'),
+    path('caja-chica/cuotas/', views.caja_cuotas_view, name='caja_cuotas'),
     path('caja-chica/<int:movimiento_id>/edit/', views.caja_chica_edit_view, name='caja_chica_edit'),
     path('caja-chica/<int:movimiento_id>/delete/', views.caja_chica_delete_view, name='caja_chica_delete'),
 

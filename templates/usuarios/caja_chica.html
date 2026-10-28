@@ -14,6 +14,15 @@
     {% endif %}
 </header>
 
+<ul class="nav nav-tabs mb-4" role="tablist">
+    <li class="nav-item" role="presentation">
+        <a class="nav-link active" href="{% url 'caja_chica' %}{% if request.GET.compania %}?compania={{ request.GET.compania }}{% endif %}" aria-current="page">Movimientos</a>
+    </li>
+    <li class="nav-item" role="presentation">
+        <a class="nav-link" href="{% url 'caja_cuotas' %}?anio={% now 'Y' %}{% if filtro_compania %}&amp;compania={{ filtro_compania }}{% endif %}">Cuotas de voluntarios</a>
+    </li>
+</ul>
+
 <!-- Contenido de Caja -->
 <main>
     {% if messages %}

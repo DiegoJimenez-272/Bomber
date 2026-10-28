@@ -670,6 +670,42 @@ class CajaChica(models.Model):
         verbose_name = "Movimiento de Caja Chica"
         verbose_name_plural = "Movimientos de Caja Chica"
 
+
+class CuotaVoluntario(models.Model):
+    voluntario = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='cuotas_voluntario',
+    )
+    compania = models.ForeignKey(
+        Compania,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='cuotas_voluntarios',
+    )
+    anio = models.PositiveSmallIntegerField()
+    mes = models.PositiveSmallIntegerField()
+    movimiento = models.OneToOneField(
+        CajaChica,
+        on_delete=models.CASCADE,
+        related_name='cuota_voluntario',
+    )
+    creado_en = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['voluntario__nombre', 'voluntario__apellido', 'mes']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['voluntario', 'anio', 'mes'],
+                name='unique_cuota_voluntario_mes',
+            ),
+            models.CheckConstraint(
+                condition=models.Q(mes__gte=1, mes__lte=12),
+                name='cuota_voluntario_mes_1_12',
+            ),
+        ]
+
 class Aviso(models.Model):
     titulo = models.CharField(max_length=200)
     mensaje = models.TextField()

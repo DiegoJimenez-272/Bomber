@@ -12,6 +12,7 @@ from django.db.models import Sum, Case, When, DecimalField, F, Q, Count, Prefetc
 from django.utils import timezone
 from django.db.models.functions import TruncDay
 from datetime import datetime, timedelta
+from decimal import Decimal
 import json, re
 import random
 import secrets
@@ -29,7 +30,7 @@ from reportlab.lib.pagesizes import letter
 import openpyxl
 from reportlab.lib.units import inch
 from .forms import RegistroForm, LoginForm, ProyectoForm, ArchivoProyectoForm, DocumentoForm, CarpetaForm, SalidaTerrenoForm, EmergenciaForm, PerfilForm, PasswordChangeForm, CapacitacionForm, ReunionForm, MantenimientoForm, ArchivoMantenimientoForm, InventarioForm, CajaChicaForm, AdminUserCreationForm, AdminUserChangeForm, RolForm, CompaniaForm, InventarioEditForm, InventarioGroupEditForm, AvisoForm, ReporteErrorForm, PasswordResetRequestForm, PasswordResetVerifyForm, PasswordResetNewPasswordForm, VehiculoForm, VehiculoHojaVidaForm, VehiculoDocumentacionForm, RondaVehiculoForm
-from .models import Rol, Compania, Proyecto, ArchivoProyecto, Documento, Carpeta, SalidaTerreno, SalidaTerrenoUnidad, Emergencia, EmergenciaUnidad, Usuario, Capacitacion, CursoMalla, Mantenimiento, ArchivoMantenimiento, Inventario, CajaChica, Notificacion, Aviso, AvisoDestinatario, ReporteError, PasswordResetCode, RegistroPendiente, Vehiculo, RondaVehiculo
+from .models import Rol, Compania, Proyecto, ArchivoProyecto, Documento, Carpeta, SalidaTerreno, SalidaTerrenoUnidad, Emergencia, EmergenciaUnidad, Usuario, Capacitacion, CursoMalla, Mantenimiento, ArchivoMantenimiento, Inventario, CajaChica, CuotaVoluntario, Notificacion, Aviso, AvisoDestinatario, ReporteError, PasswordResetCode, RegistroPendiente, Vehiculo, RondaVehiculo
 from .decorators import admin_required, permiso_requerido, pertenencia_compania
 from .inventory_permissions import (
     puede_acceder_inventario_compania,
@@ -2778,6 +2779,149 @@ def caja_chica_view(request):
 
     context = {'form': form, 'movimientos': movimientos, 'saldo_actual': saldo_actual, 'saldo_caja_propia': saldo_caja_propia, 'saldo_cuenta_bancaria': saldo_cuenta_bancaria, 'companias': companias, 'filtro_compania': filtro_compania, 'nombre_caja': nombre_caja}
     return render(request, 'usuarios/caja_chica.html', context)
+
+
+@login_required
+def caja_cuotas_view(request):
+    rol = getattr(request.user, 'rol', None)
+    if not request.user.is_superuser and not (rol and rol.ver_caja_chica):
+        messages.error(request, 'No tienes permiso para acceder a Caja.')
+        return redirect('dashboard')
+
+    permite_editar = request.user.is_superuser or bool(rol and rol.editar_caja_chica)
+    compania_filtro = request.POST.get('compania') or request.GET.get('compania', 'todas')
+    if request.user.is_superuser:
+        filtro_valido = compania_filtro in ('todas', 'general') or (
+            str(compania_filtro).isdigit()
+            and Compania.objects.filter(pk=compania_filtro).exists()
+        )
+        if not filtro_valido:
+            compania_filtro = 'todas'
+    else:
+        compania_filtro = str(request.user.compania_id) if request.user.compania_id else 'ninguna'
+    anio_raw = request.POST.get('anio') or request.GET.get('anio', str(timezone.localdate().year))
+    try:
+        anio = int(anio_raw)
+        if not 2000 <= anio <= 2100:
+            raise ValueError
+    except (TypeError, ValueError):
+        anio = timezone.localdate().year
+        messages.warning(request, 'El año indicado no es válido; se muestra el año actual.')
+
+    meses = [
+        'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
+        'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic',
+    ]
+
+    if request.method == 'POST':
+        if not permite_editar:
+            messages.error(request, 'No tienes permiso para registrar cuotas.')
+            return redirect('caja_cuotas')
+
+        try:
+            voluntario_id = int(request.POST.get('voluntario_id', ''))
+            mes = int(request.POST.get('mes', ''))
+            if not 1 <= mes <= 12:
+                raise ValueError
+        except (TypeError, ValueError):
+            messages.error(request, 'Selecciona un voluntario y un mes válidos.')
+            return redirect(f"{reverse('caja_cuotas')}?anio={anio}&compania={compania_filtro}")
+
+        voluntario = get_object_or_404(
+            Usuario.objects.miembros_activos().select_related('compania'),
+            pk=voluntario_id,
+        )
+        if not request.user.is_superuser and voluntario.compania_id != request.user.compania_id:
+            messages.error(request, 'No tienes permiso para registrar cuotas de otra compañía.')
+            return redirect('caja_cuotas')
+
+        cuota_existente = CuotaVoluntario.objects.select_related('movimiento').filter(
+            voluntario=voluntario,
+            anio=anio,
+            mes=mes,
+        ).first()
+        descripcion = f"Cuota {meses[mes - 1]} {anio} - {voluntario.get_full_name()}"
+        datos = request.POST.copy()
+        datos['tipo'] = 'Ingreso'
+        datos['descripcion'] = descripcion
+        # La caja asociada siempre corresponde a la compañía del voluntario.
+        datos['compania'] = str(voluntario.compania_id or '')
+        form = CajaChicaForm(
+            datos,
+            request.FILES,
+            instance=cuota_existente.movimiento if cuota_existente else None,
+            user=request.user,
+        )
+
+        if form.is_valid():
+            with transaction.atomic():
+                movimiento = form.save(commit=False)
+                movimiento.tipo = 'Ingreso'
+                movimiento.descripcion = descripcion
+                movimiento.responsable = request.user
+                movimiento.compania = voluntario.compania
+                movimiento.save()
+                CuotaVoluntario.objects.update_or_create(
+                    voluntario=voluntario,
+                    anio=anio,
+                    mes=mes,
+                    defaults={
+                        'compania': voluntario.compania,
+                        'movimiento': movimiento,
+                    },
+                )
+            messages.success(
+                request,
+                f"Cuota de {meses[mes - 1]} {anio} registrada para {voluntario.get_full_name()}.",
+            )
+        else:
+            detalles_error = ' | '.join(
+                f"{form.fields[campo].label if campo in form.fields else 'Formulario'}: {', '.join(errores)}"
+                for campo, errores in form.errors.items()
+            )
+            messages.error(request, f'No se pudo registrar la cuota. {detalles_error or "Revisa los datos."}')
+        return redirect(f"{reverse('caja_cuotas')}?anio={anio}&compania={compania_filtro}")
+
+    companias = Compania.objects.order_by('nombre') if request.user.is_superuser else Compania.objects.none()
+    voluntarios = Usuario.objects.miembros_activos().select_related('compania').order_by('clave_radial', 'nombre', 'apellido')
+    if request.user.is_superuser:
+        if compania_filtro == 'general':
+            voluntarios = voluntarios.none()
+        elif compania_filtro != 'todas' and str(compania_filtro).isdigit():
+            voluntarios = voluntarios.filter(compania_id=compania_filtro)
+    elif request.user.compania_id:
+        compania_filtro = str(request.user.compania_id)
+        voluntarios = voluntarios.filter(compania_id=request.user.compania_id)
+    else:
+        voluntarios = voluntarios.none()
+
+    cuotas = CuotaVoluntario.objects.filter(
+        anio=anio,
+        voluntario__in=voluntarios,
+    ).select_related('movimiento')
+    cuotas_por_voluntario = {}
+    for cuota in cuotas:
+        cuotas_por_voluntario.setdefault(cuota.voluntario_id, {})[cuota.mes] = cuota
+
+    filas = []
+    for voluntario in voluntarios:
+        cuotas_mes = [cuotas_por_voluntario.get(voluntario.id, {}).get(mes) for mes in range(1, 13)]
+        total = sum(
+            (cuota.movimiento.monto for cuota in cuotas_mes if cuota and cuota.movimiento_id),
+            Decimal('0.00'),
+        )
+        filas.append({'voluntario': voluntario, 'cuotas': cuotas_mes, 'total': total})
+
+    return render(request, 'usuarios/caja_cuotas.html', {
+        'anio': anio,
+        'meses': meses,
+        'filas': filas,
+        'companias': companias,
+        'compania_filtro': compania_filtro,
+        'permite_editar': permite_editar,
+        'tipo_cuenta_choices': CajaChica.TIPO_CUENTA_CHOICES,
+        'fecha_actual': timezone.localtime().strftime('%Y-%m-%dT%H:%M'),
+    })
 
 @login_required
 def caja_chica_edit_view(request, movimiento_id):

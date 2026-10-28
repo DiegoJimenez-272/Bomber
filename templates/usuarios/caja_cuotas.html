@@ -1,0 +1,207 @@
+{% extends 'base_con_condicion.html' %}
+{% load humanize %}
+
+{% block title %}Cuotas de Voluntarios - Caja{% endblock %}
+
+{% block content %}
+<header class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 pb-3 mb-3 border-bottom">
+    <div>
+        <h1 class="h2 mb-1">Control de Caja</h1>
+        <p class="text-muted mb-0">Cuotas mensuales por voluntario y compañía.</p>
+    </div>
+</header>
+
+<ul class="nav nav-tabs mb-4" role="tablist">
+    <li class="nav-item" role="presentation">
+        <a class="nav-link" href="{% url 'caja_chica' %}{% if compania_filtro %}?compania={{ compania_filtro }}{% endif %}">Movimientos</a>
+    </li>
+    <li class="nav-item" role="presentation">
+        <a class="nav-link active" href="{% url 'caja_cuotas' %}?anio={{ anio }}{% if compania_filtro %}&amp;compania={{ compania_filtro }}{% endif %}" aria-current="page">Cuotas de voluntarios</a>
+    </li>
+</ul>
+
+<main>
+    {% if messages %}
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+        </div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3 align-items-end">
+                <div class="col-sm-4 col-lg-2">
+                    <label for="cuotasAnio" class="form-label">Año</label>
+                    <input id="cuotasAnio" name="anio" type="number" min="2000" max="2100" class="form-control" value="{{ anio }}">
+                </div>
+                {% if request.user.is_superuser %}
+                <div class="col-sm-8 col-lg-4">
+                    <label for="cuotasCompania" class="form-label">Compañía</label>
+                    <select id="cuotasCompania" name="compania" class="form-select">
+                        <option value="todas" {% if compania_filtro == 'todas' %}selected{% endif %}>Todas las compañías</option>
+                        {% for compania in companias %}
+                        <option value="{{ compania.id }}" {% if compania_filtro == compania.id|stringformat:'s' %}selected{% endif %}>{{ compania.nombre }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% endif %}
+                <div class="col-sm-4 col-lg-2">
+                    <button type="submit" class="btn btn-outline-danger w-100"><i class="bi bi-funnel me-1"></i>Filtrar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="alert alert-info py-2">
+        Cada cuota registrada se incorpora como un ingreso en la Caja de la compañía del voluntario.
+    </div>
+
+    <div class="card shadow-sm border-0">
+        <div class="card-header bg-danger text-white d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <h2 class="h5 mb-0">Cuotas del año {{ anio }}</h2>
+            <span class="small">Selecciona el mes de un voluntario para registrar o actualizar su cuota.</span>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-sm table-bordered table-hover align-middle mb-0 cuotas-table">
+                    <thead class="table-light text-center">
+                        <tr>
+                            <th scope="col">C.R.</th>
+                            <th scope="col" class="text-start">Voluntario</th>
+                            {% if request.user.is_superuser %}<th scope="col">Compañía</th>{% endif %}
+                            {% for mes in meses %}<th scope="col">{{ mes }}</th>{% endfor %}
+                            <th scope="col">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for fila in filas %}
+                        <tr>
+                            <td class="text-center">{{ fila.voluntario.clave_radial|default:'—' }}</td>
+                            <td class="text-nowrap">{{ fila.voluntario.get_full_name }}</td>
+                            {% if request.user.is_superuser %}<td class="text-nowrap">{{ fila.voluntario.compania.nombre }}</td>{% endif %}
+                            {% for cuota in fila.cuotas %}
+                                {% with mes_num=forloop.counter %}
+                                <td class="text-center p-1">
+                                    {% if permite_editar %}
+                                    <button type="button"
+                                            class="btn btn-sm {% if cuota %}btn-outline-secondary{% else %}btn-outline-danger{% endif %} w-100 cuota-edit-btn"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#cuotaModal"
+                                            data-voluntario-id="{{ fila.voluntario.id }}"
+                                            data-voluntario="{{ fila.voluntario.get_full_name }}"
+                                            data-mes="{{ mes_num }}"
+                                            {% if cuota %}
+                                            data-monto="{{ cuota.movimiento.monto|floatformat:'2u' }}"
+                                            data-tipo-cuenta="{{ cuota.movimiento.tipo_cuenta }}"
+                                            data-fecha="{{ cuota.movimiento.fecha|date:'Y-m-d' }}T{{ cuota.movimiento.fecha|date:'H:i' }}"
+                                            {% endif %}>
+                                        {% if cuota %}${{ cuota.movimiento.monto|floatformat:0|intcomma }}{% else %}+{% endif %}
+                                    </button>
+                                    {% elif cuota %}
+                                        ${{ cuota.movimiento.monto|floatformat:0|intcomma }}
+                                    {% else %}
+                                        <span class="text-muted">—</span>
+                                    {% endif %}
+                                </td>
+                                {% endwith %}
+                            {% endfor %}
+                            <td class="text-end fw-bold bg-success-subtle">${{ fila.total|floatformat:0|intcomma }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="{% if request.user.is_superuser %}16{% else %}15{% endif %}" class="text-center text-muted py-5">
+                                No hay voluntarios activos en la compañía seleccionada.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</main>
+
+{% if permite_editar %}
+<div class="modal fade" id="cuotaModal" tabindex="-1" aria-labelledby="cuotaModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h2 class="modal-title fs-5" id="cuotaModalLabel">Registrar cuota</h2>
+                    <div class="small text-muted" id="cuotaVoluntarioLabel"></div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <form method="post" action="{% url 'caja_cuotas' %}" enctype="multipart/form-data">
+                {% csrf_token %}
+                <input type="hidden" name="voluntario_id" id="cuotaVoluntarioId">
+                <input type="hidden" name="anio" value="{{ anio }}">
+                <input type="hidden" name="mes" id="cuotaMes">
+                <input type="hidden" name="compania" value="{{ compania_filtro }}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="cuotaFecha" class="form-label">Fecha y hora del pago</label>
+                        <input type="datetime-local" name="fecha" id="cuotaFecha" class="form-control" value="{{ fecha_actual }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="cuotaCuenta" class="form-label">Tipo de cuenta</label>
+                        <select name="tipo_cuenta" id="cuotaCuenta" class="form-select" required>
+                            <option value="">Seleccionar cuenta</option>
+                            {% for valor, etiqueta in tipo_cuenta_choices %}
+                            <option value="{{ valor }}">{{ etiqueta }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="cuotaMonto" class="form-label">Monto de la cuota</label>
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            <input type="number" name="monto" id="cuotaMonto" class="form-control" step="0.01" min="0.01" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="cuotaDocumento" class="form-label">Comprobante (opcional)</label>
+                        <input type="file" name="documento_adjunto" id="cuotaDocumento" class="form-control" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.png,.jpg,.jpeg,.txt,.csv,.zip,.rar">
+                        <div class="form-text">Máximo 10 MB. Si actualizas una cuota y no eliges otro archivo, se conserva el comprobante existente.</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-danger"><i class="bi bi-check-lg me-1"></i>Guardar cuota</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<style>
+    .cuotas-table { min-width: 1180px; }
+    .cuotas-table thead th { white-space: nowrap; }
+    .cuota-edit-btn { min-width: 54px; }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const modal = document.getElementById('cuotaModal');
+    if (!modal) return;
+    const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+    modal.addEventListener('show.bs.modal', function (event) {
+        const button = event.relatedTarget;
+        const mes = Number(button.dataset.mes);
+        const yaRegistrada = Boolean(button.dataset.monto);
+        document.getElementById('cuotaVoluntarioId').value = button.dataset.voluntarioId;
+        document.getElementById('cuotaMes').value = mes;
+        document.getElementById('cuotaVoluntarioLabel').textContent = `${button.dataset.voluntario} · ${monthNames[mes - 1]} {{ anio }}`;
+        document.getElementById('cuotaModalLabel').textContent = yaRegistrada ? 'Actualizar cuota' : 'Registrar cuota';
+        document.getElementById('cuotaMonto').value = button.dataset.monto || '';
+        document.getElementById('cuotaCuenta').value = button.dataset.tipoCuenta || '';
+        document.getElementById('cuotaFecha').value = button.dataset.fecha || '{{ fecha_actual }}';
+        document.getElementById('cuotaDocumento').value = '';
+    });
+});
+</script>
+{% endblock %}
