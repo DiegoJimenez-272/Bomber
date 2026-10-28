@@ -278,9 +278,19 @@ class ProyectoForm(forms.ModelForm):
                     self.fields[field_name].widget.attrs['class'] = f'{existing_classes} is-invalid'.strip()
 
 class CajaChicaForm(forms.ModelForm):
+    fecha = forms.DateTimeField(
+        label='Fecha y hora',
+        initial=lambda: timezone.localtime().replace(second=0, microsecond=0),
+        input_formats=['%Y-%m-%dT%H:%M'],
+        widget=forms.DateTimeInput(
+            attrs={'class': 'form-control', 'type': 'datetime-local'},
+            format='%Y-%m-%dT%H:%M',
+        ),
+    )
+
     class Meta:
         model = CajaChica
-        fields = ['tipo', 'tipo_cuenta', 'monto', 'descripcion', 'documento_adjunto', 'compania']
+        fields = ['fecha', 'tipo', 'tipo_cuenta', 'monto', 'descripcion', 'documento_adjunto', 'compania']
         widgets = {
             'tipo': forms.Select(attrs={'class': 'form-select'}),
             'tipo_cuenta': forms.Select(attrs={'class': 'form-select'}),
@@ -293,7 +303,7 @@ class CajaChicaForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         self.user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
-        self.fields['documento_adjunto'].required = not bool(self.instance.pk)
+        self.fields['documento_adjunto'].required = False
         self.fields['tipo_cuenta'].required = True
         
         if self.user and not self.user.is_superuser:

@@ -163,6 +163,7 @@
                                             data-mov-id="{{ mov.id }}"
                                             data-mov-tipo="{{ mov.tipo }}"
                                             data-mov-tipo-cuenta="{{ mov.tipo_cuenta }}"
+                                            data-mov-fecha="{{ mov.fecha|date:'Y-m-d' }}T{{ mov.fecha|date:'H:i' }}"
                                             data-mov-monto="{{ mov.monto|floatformat:0|intcomma }}"
                                             data-mov-descripcion="{{ mov.descripcion }}"
                                             data-mov-compania="{{ mov.compania.id|default:'' }}">
@@ -205,6 +206,11 @@
                     {% endif %}
 
                     <div class="mb-3">
+                        <label for="{{ form.fecha.id_for_label }}" class="form-label">Fecha y hora</label>
+                        {{ form.fecha }}
+                        {% for error in form.fecha.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                    </div>
+                    <div class="mb-3">
                         <label for="{{ form.tipo.id_for_label }}" class="form-label">Tipo de Movimiento</label>
                         {{ form.tipo }}
                         {% for error in form.tipo.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
@@ -237,9 +243,9 @@
                         {% for error in form.descripcion.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
                     </div>
                     <div class="mb-3">
-                        <label for="{{ form.documento_adjunto.id_for_label }}" class="form-label">Adjuntar Documento</label>
+                        <label for="{{ form.documento_adjunto.id_for_label }}" class="form-label">Adjuntar Documento (Opcional)</label>
                         {{ form.documento_adjunto }}
-                        <div class="form-text">Obligatorio: adjunta una boleta, factura o comprobante.</div>
+                        <div class="form-text">Puedes adjuntar una boleta, factura o comprobante si lo tienes.</div>
                         {% for error in form.documento_adjunto.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
                     </div>
                 </div>
@@ -263,6 +269,10 @@
             <form id="editMovimientoForm" method="post" enctype="multipart/form-data">
                 {% csrf_token %}
                 <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="edit_fecha" class="form-label">Fecha y hora</label>
+                        <input type="datetime-local" id="edit_fecha" name="fecha" class="form-control" required>
+                    </div>
                     <div class="mb-3">
                         <label for="edit_tipo" class="form-label">Tipo de Movimiento</label>
                         <select id="edit_tipo" name="tipo" class="form-select">
@@ -360,6 +370,7 @@ document.addEventListener('DOMContentLoaded', function () {
         form.action = `/caja-chica/${button.dataset.movId}/edit/`;
         form.querySelector('#edit_tipo').value = button.dataset.movTipo;
         form.querySelector('#edit_tipo_cuenta').value = button.dataset.movTipoCuenta || '';
+        form.querySelector('#edit_fecha').value = button.dataset.movFecha;
         form.querySelector('#edit_monto').value = button.dataset.movMonto;
         form.querySelector('#edit_descripcion').value = button.dataset.movDescripcion;
         

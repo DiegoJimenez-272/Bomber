@@ -650,7 +650,7 @@ class CajaChica(models.Model):
         ('cuenta_bancaria', 'Cuenta bancaria'),
     ]
 
-    fecha = models.DateTimeField(auto_now_add=True)
+    fecha = models.DateTimeField(default=timezone.now)
     tipo = models.CharField(max_length=10, choices=TIPO_MOVIMIENTO_CHOICES)
     tipo_cuenta = models.CharField(
         max_length=20,
