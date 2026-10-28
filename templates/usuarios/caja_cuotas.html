@@ -11,7 +11,7 @@
     </div>
 </header>
 
-<ul class="nav nav-tabs mb-4" role="tablist">
+<ul class="nav nav-tabs mb-4 caja-tabs" role="tablist">
     <li class="nav-item" role="presentation">
         <a class="nav-link" href="{% url 'caja_chica' %}{% if compania_filtro %}?compania={{ compania_filtro }}{% endif %}">Movimientos</a>
     </li>
@@ -179,6 +179,11 @@
 {% endif %}
 
 <style>
+    .caja-tabs .nav-link { color: #dc3545; }
+    .caja-tabs .nav-link:hover,
+    .caja-tabs .nav-link:focus { color: #b02a37; border-color: #f1aeb5 #f1aeb5 #dee2e6; }
+    .caja-tabs .nav-link.active { color: #b02a37; border-color: #dee2e6 #dee2e6 #fff; }
+    .caja-tabs .nav-link:focus-visible { outline: 2px solid #dc3545; outline-offset: 2px; box-shadow: none; }
     .cuotas-table { min-width: 1180px; }
     .cuotas-table thead th { white-space: nowrap; }
     .cuota-edit-btn { min-width: 54px; }
