@@ -169,6 +169,7 @@
                     </div>
                 </div>
                 <div class="modal-footer">
+                    <button type="submit" name="accion" value="eliminar" id="eliminarCuotaBtn" class="btn btn-outline-danger d-none" formnovalidate onclick="return confirm('¿Eliminar esta cuota y el movimiento de ingreso asociado?');"><i class="bi bi-trash me-1"></i>Quitar cuota</button>
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
                     <button type="submit" class="btn btn-danger"><i class="bi bi-check-lg me-1"></i>Guardar cuota</button>
                 </div>
@@ -198,6 +199,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const button = event.relatedTarget;
         const mes = Number(button.dataset.mes);
         const yaRegistrada = Boolean(button.dataset.monto);
+        document.getElementById('eliminarCuotaBtn').classList.toggle('d-none', !yaRegistrada);
         document.getElementById('cuotaVoluntarioId').value = button.dataset.voluntarioId;
         document.getElementById('cuotaMes').value = mes;
         document.getElementById('cuotaVoluntarioLabel').textContent = `${button.dataset.voluntario} · ${monthNames[mes - 1]} {{ anio }}`;

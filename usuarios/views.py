@@ -2840,6 +2840,19 @@ def caja_cuotas_view(request):
             anio=anio,
             mes=mes,
         ).first()
+        if request.POST.get('accion') == 'eliminar':
+            if not cuota_existente:
+                messages.error(request, 'No existe una cuota registrada para eliminar.')
+            else:
+                with transaction.atomic():
+                    # El movimiento tiene la cuota asociada por OneToOne y la elimina en cascada.
+                    cuota_existente.movimiento.delete()
+                messages.success(
+                    request,
+                    f"Cuota de {meses[mes - 1]} {anio} eliminada para {voluntario.get_full_name()}.",
+                )
+            return redirect(f"{reverse('caja_cuotas')}?anio={anio}&compania={compania_filtro}")
+
         descripcion = f"Cuota {meses[mes - 1]} {anio} - {voluntario.get_full_name()}"
         datos = request.POST.copy()
         datos['tipo'] = 'Ingreso'
