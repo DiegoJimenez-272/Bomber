@@ -24,10 +24,8 @@
     .erpbot-toggle { width: 3.5rem; height: 3.5rem; border: 0; border-radius: 50%; color: #fff; background: #dc3545; box-shadow: 0 4px 16px #0003; font-size: 1.35rem; touch-action: none; cursor: grab; }
     .erpbot-toggle:active { cursor: grabbing; }
     .erpbot-toggle:hover { background: #bb2d3b; }
-    .erpbot-panel { position: absolute; right: 0; bottom: 4.25rem; display: flex; flex-direction: column; width: min(24rem, calc(100vw - 2rem)); height: min(34rem, calc(100vh - 7rem)); overflow: hidden; background: var(--bs-body-bg, #fff); color: var(--bs-body-color, #212529); border: 1px solid var(--bs-border-color, #dee2e6); border-radius: 1rem; box-shadow: 0 10px 34px #0003; }
+    .erpbot-panel { position: fixed; left: 1rem; top: 1rem; display: flex; flex-direction: column; width: min(24rem, calc(100vw - 1.5rem)); height: min(34rem, calc(100dvh - 1.5rem)); overflow: hidden; background: var(--bs-body-bg, #fff); color: var(--bs-body-color, #212529); border: 1px solid var(--bs-border-color, #dee2e6); border-radius: 1rem; box-shadow: 0 10px 34px #0003; }
     .erpbot-panel[hidden] { display: none; }
-    .erpbot .erpbot-panel.erpbot-panel-left { right: auto; left: 0; }
-    .erpbot .erpbot-panel.erpbot-panel-above { bottom: auto; top: 4.25rem; }
     .erpbot-header { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: .9rem 1rem; color: white; background: #dc3545; }
     .erpbot-header small { display: block; opacity: .88; font-size: .72rem; margin-top: .15rem; }
     .erpbot-close { border: 0; background: transparent; color: white; font-size: 1.6rem; line-height: 1; }
@@ -40,7 +38,7 @@
     .erpbot-form input { min-width: 0; flex: 1; padding: .6rem .75rem; border: 1px solid var(--bs-border-color, #ced4da); border-radius: .6rem; background: var(--bs-body-bg, #fff); color: var(--bs-body-color, #212529); }
     .erpbot-form button { width: 2.6rem; border: 0; border-radius: .6rem; color: #fff; background: #dc3545; }
     .erpbot-form button:disabled { opacity: .6; }
-    @media (max-width: 480px) { .erpbot { right: .75rem; bottom: .75rem; } .erpbot-panel { right: -.15rem; bottom: 4rem; width: calc(100vw - 1.5rem); height: min(32rem, calc(100dvh - 5.5rem)); } .erpbot .erpbot-panel.erpbot-panel-left { left: 0; right: auto; } .erpbot .erpbot-panel.erpbot-panel-above { top: 4rem; bottom: auto; } }
+    @media (max-width: 480px) { .erpbot { right: .75rem; bottom: .75rem; } }
 </style>
 
 <script>
@@ -58,9 +56,21 @@ document.addEventListener('DOMContentLoaded', function () {
     let moved = false;
 
     function placePanel() {
-        const rect = root.getBoundingClientRect();
-        panel.classList.toggle('erpbot-panel-left', rect.left + rect.width / 2 < window.innerWidth / 2);
-        panel.classList.toggle('erpbot-panel-above', rect.top + rect.height / 2 > window.innerHeight / 2);
+        if (panel.hidden) return;
+        const anchor = toggle.getBoundingClientRect();
+        const panelRect = panel.getBoundingClientRect();
+        const margin = 12;
+        const gap = 12;
+        const viewportWidth = document.documentElement.clientWidth || window.innerWidth;
+        const viewportHeight = window.innerHeight;
+        const maxLeft = Math.max(margin, viewportWidth - panelRect.width - margin);
+        const left = Math.max(margin, Math.min(anchor.right - panelRect.width, maxLeft));
+        let top = anchor.top - panelRect.height - gap;
+        if (top < margin) top = anchor.bottom + gap;
+        const maxTop = Math.max(margin, viewportHeight - panelRect.height - margin);
+        top = Math.max(margin, Math.min(top, maxTop));
+        panel.style.left = `${left}px`;
+        panel.style.top = `${top}px`;
     }
 
     function restorePosition() {
@@ -71,7 +81,6 @@ document.addEventListener('DOMContentLoaded', function () {
             root.style.top = `${Math.max(0, Math.min(saved.top, window.innerHeight - 56))}px`;
             root.style.right = 'auto';
             root.style.bottom = 'auto';
-            placePanel();
         } catch (_) {}
     }
 
@@ -111,7 +120,10 @@ document.addEventListener('DOMContentLoaded', function () {
         panel.hidden = !open;
         toggle.setAttribute('aria-expanded', String(open));
         toggle.setAttribute('aria-label', open ? 'Cerrar asistente' : 'Abrir asistente');
-        if (open) input.focus();
+        if (open) {
+            placePanel();
+            input.focus();
+        }
     }
     function addMessage(text, kind, action) {
         const bubble = document.createElement('div');
