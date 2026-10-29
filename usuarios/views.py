@@ -2627,7 +2627,13 @@ def mantenimiento_view(request):
             
             # --- LÓGICA DE CAJA: Descuento manual ---
             caja_descuento = form.cleaned_data.get('caja_descuento')
-            if es_nuevo and mantenimiento.costo > 0 and caja_descuento and caja_descuento != 'sin_costo':
+            if (
+                es_nuevo
+                and mantenimiento.costo > 0
+                and caja_descuento
+                and caja_descuento != 'sin_costo'
+                and form.cleaned_data.get('tipo_cuenta') != 'no_aplica'
+            ):
                 compania_caja = None if caja_descuento == 'general' else Compania.objects.filter(id=int(caja_descuento)).first()
                 mantenimiento.compania_caja = compania_caja
                 mantenimiento.save()

@@ -768,7 +768,7 @@ class MantenimientoForm(forms.ModelForm):
     tipo_cuenta = forms.ChoiceField(
         label="Tipo de cuenta",
         required=False,
-        choices=[('', 'Seleccionar tipo de cuenta...')] + CajaChica.TIPO_CUENTA_CHOICES,
+        choices=[('', 'Seleccionar tipo de cuenta...')] + CajaChica.TIPO_CUENTA_CHOICES + [('no_aplica', 'No aplica')],
         widget=forms.Select(attrs={'class': 'form-select'})
     )
 
@@ -818,11 +818,11 @@ class MantenimientoForm(forms.ModelForm):
         caja_descuento = cleaned_data.get('caja_descuento')
 
         if not self.instance.pk and costo and costo > 0:
-            if not caja_descuento:
+            tipo_cuenta = cleaned_data.get('tipo_cuenta')
+            if not caja_descuento and tipo_cuenta != 'no_aplica':
                 self.add_error('caja_descuento', 'Debe seleccionar una Cuenta de Origen para descontar los fondos.')
                 self.add_error('costo', 'Falta seleccionar la Cuenta de Origen (verifique que el campo exista en el formulario HTML).')
-            elif caja_descuento != 'sin_costo':
-                tipo_cuenta = cleaned_data.get('tipo_cuenta')
+            elif caja_descuento != 'sin_costo' and tipo_cuenta != 'no_aplica':
                 if not tipo_cuenta:
                     self.add_error('tipo_cuenta', 'Selecciona Caja propia o Cuenta bancaria.')
                 if tipo_cuenta:

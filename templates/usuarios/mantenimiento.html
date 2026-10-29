@@ -257,7 +257,7 @@
                         <div class="col-md-6">
                             <label for="{{ form.tipo_cuenta.id_for_label }}" class="form-label">Tipo de cuenta</label>
                             {{ form.tipo_cuenta }}
-                            <div class="form-text mantenimiento-account-help">Selecciona la cuenta de donde se descontará el pago.</div>
+                            <div class="form-text mantenimiento-account-help">Selecciona la cuenta de descuento o “No aplica” si no se registrará un egreso en Caja.</div>
                             {% for error in form.tipo_cuenta.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
                         </div>
                         <div class="col-12">
