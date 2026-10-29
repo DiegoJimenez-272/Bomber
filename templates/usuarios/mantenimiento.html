@@ -257,7 +257,7 @@
                         <div class="col-md-6">
                             <label for="{{ form.tipo_cuenta.id_for_label }}" class="form-label">Tipo de cuenta</label>
                             {{ form.tipo_cuenta }}
-                            <div class="form-text">Selecciona la cuenta de donde se descontará el pago.</div>
+                            <div class="form-text mantenimiento-account-help">Selecciona la cuenta de donde se descontará el pago.</div>
                             {% for error in form.tipo_cuenta.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
                         </div>
                         <div class="col-12">
@@ -400,6 +400,10 @@
 
 {{ block.super }}
 <style>
+    body.dark-mode #createMantenimientoModal .mantenimiento-account-help {
+        color: #adb5bd !important;
+    }
+
     /* Estilo para el área de arrastrar y soltar archivos */
     #createMantenimientoModal .border-dashed {
         border-style: dashed !important;
