@@ -66,8 +66,8 @@
             {% endif %}
         </div>
         <div class="col-md-6 text-start text-md-end">
-            <div class="card shadow-sm d-block d-md-inline-block text-center px-4 py-2 border-0 bg-light">
-                <h6 class="card-title force-black-text mb-1 text-uppercase small">Saldo Actual: {{ nombre_caja }}</h6>
+            <div class="card shadow-sm d-block d-md-inline-block text-center px-4 py-2 border-0 bg-light caja-saldo-card">
+                <h6 class="card-title mb-1 text-uppercase small">Saldo Actual: {{ nombre_caja }}</h6>
                 <p class="card-text fs-3 fw-bold mb-0 {% if saldo_actual < 0 %}text-danger{% else %}text-success{% endif %}">
                     ${{ saldo_actual|floatformat:0|intcomma }}
                 </p>
