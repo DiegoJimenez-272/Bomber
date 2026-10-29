@@ -581,10 +581,8 @@ class EmergenciaForm(forms.ModelForm):
         user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
         unidades = Vehiculo.objects.select_related('compania').order_by('compania__nombre', 'nombre')
-        if user and not user.is_superuser and user.compania_id:
-            unidades = unidades.filter(compania_id=user.compania_id)
         self.fields['unidades'].queryset = unidades
-        self.fields['unidades'].label_from_instance = lambda unidad: unidad.nombre
+        self.fields['unidades'].label_from_instance = lambda unidad: f"{unidad.nombre} — {unidad.compania.nombre}"
         self.fields['oficial_a_cargo'].queryset = Usuario.objects.miembros_activos().order_by('nombre')
         self.fields['oficial_a_cargo'].empty_label = "Seleccionar oficial a cargo"
         self.fields['direccion'].required = False
