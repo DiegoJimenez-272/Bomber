@@ -164,8 +164,8 @@
                     </div>
                     <div class="mb-3">
                         <label for="cuotaDocumento" class="form-label">Comprobante (opcional)</label>
-                        <input type="file" name="documento_adjunto" id="cuotaDocumento" class="form-control" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.png,.jpg,.jpeg,.txt,.csv,.zip,.rar">
-                        <div class="form-text">Máximo 10 MB. Si actualizas una cuota y no eliges otro archivo, se conserva el comprobante existente.</div>
+                        <input type="file" name="documento_adjunto" id="cuotaDocumento" class="form-control cuota-file-input" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.png,.jpg,.jpeg,.txt,.csv,.zip,.rar">
+                        <div class="form-text cuota-file-help">Máximo 10 MB. Si actualizas una cuota y no eliges otro archivo, se conserva el comprobante existente.</div>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -190,6 +190,9 @@
     .cuota-edit-btn { min-width: 54px; }
     body.dark-mode .cuotas-table tbody td.bg-success-subtle { background-color: #164e3b !important; color: #d1e7dd !important; }
     body.dark-mode .cuotas-table tfoot tr.table-danger td { background-color: #842029 !important; color: #fff !important; border-color: #b02a37; }
+    body.dark-mode .cuota-file-help { color: #adb5bd !important; }
+    body.dark-mode .cuota-file-input::file-selector-button { background-color: #343a40; color: #f8f9fa; border-color: #6c757d; }
+    body.dark-mode .cuota-file-input:hover::file-selector-button { background-color: #495057; color: #fff; }
 </style>
 
 <script>
