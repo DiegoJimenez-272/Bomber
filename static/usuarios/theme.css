@@ -177,6 +177,9 @@ body.dark-mode .input-group-text {
 body.dark-mode .form-control::placeholder {
     color: #adb5bd;
 }
+body.dark-mode .form-text {
+    color: var(--text-muted-light, #adb5bd) !important;
+}
 body.dark-mode .form-label {
     /* 
      * Solución definitiva para el color de las etiquetas en formularios.
