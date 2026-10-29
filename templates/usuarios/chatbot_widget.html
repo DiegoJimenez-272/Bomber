@@ -36,6 +36,10 @@
     .erpbot-action { display: inline-block; margin-top: .6rem; color: #dc3545; font-weight: 600; }
     .erpbot-form { display: flex; gap: .5rem; padding: .75rem; border-top: 1px solid var(--bs-border-color, #dee2e6); }
     .erpbot-form input { min-width: 0; flex: 1; padding: .6rem .75rem; border: 1px solid var(--bs-border-color, #ced4da); border-radius: .6rem; background: var(--bs-body-bg, #fff); color: var(--bs-body-color, #212529); }
+    body.dark-mode .erpbot-panel { background: var(--card-bg, #343a40); color: var(--text-color, #e9ecef); border-color: var(--card-border, #495057); }
+    body.dark-mode .erpbot-form { border-color: var(--card-border, #495057); }
+    body.dark-mode .erpbot-form input { background: var(--form-control-bg, #495057); color: var(--text-color, #e9ecef); caret-color: var(--text-color, #e9ecef); border-color: var(--form-control-border, #6c757d); }
+    body.dark-mode .erpbot-form input::placeholder { color: #adb5bd; opacity: 1; }
     .erpbot-form button { width: 2.6rem; border: 0; border-radius: .6rem; color: #fff; background: #dc3545; }
     .erpbot-form button:disabled { opacity: .6; }
     @media (max-width: 480px) { .erpbot { right: .75rem; bottom: .75rem; } }
