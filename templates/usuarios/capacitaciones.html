@@ -117,13 +117,7 @@
                         <div class="card-body">
                             <div class="d-flex align-items-start mb-3">
                                 <div class="d-flex align-items-center justify-content-center bg-danger rounded-circle me-3" style="width: 60px; height: 60px; flex: 0 0 60px;">
-                                    {% with nombre_curso=cap.nombre|lower %}
-                                    {% if 'ejercicio' in nombre_curso %}
-                                    <i class="bi bi-fire fs-2 text-white" aria-hidden="true"></i>
-                                    {% else %}
                                     <i class="bi bi-mortarboard-fill fs-2 text-white" aria-hidden="true"></i>
-                                    {% endif %}
-                                    {% endwith %}
                                 </div>
                                 <div>
                                     <h5 class="card-title mb-1">{{ cap.nombre }}</h5>
