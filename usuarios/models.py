@@ -345,7 +345,8 @@ class Capacitacion(models.Model):
     TIPO_ACTIVIDAD_CHOICES = [
         ('Curso', 'Curso'),
         ('Reunión', 'Reunión'),
-        ('Taller', 'Taller'),
+        ('Ejercicio de compañía', 'Ejercicio de compañía'),
+        ('Campaña económica', 'Campaña económica'),
         ('Charla', 'Charla'),
         ('Visita', 'Visita'),
         ('Otro', 'Otro'),

@@ -2511,7 +2511,8 @@ def capacitaciones_view(request):
     lista_abono = usuarios_abono.annotate(
         total_cursos=Count('capacitaciones_asistidas', filter=base_filter & Q(capacitaciones_asistidas__tipo_actividad='Curso'), distinct=True),
         total_reuniones=Count('capacitaciones_asistidas', filter=base_filter & Q(capacitaciones_asistidas__tipo_actividad='Reunión'), distinct=True),
-        total_talleres=Count('capacitaciones_asistidas', filter=base_filter & Q(capacitaciones_asistidas__tipo_actividad='Taller'), distinct=True),
+        total_ejercicios_compania=Count('capacitaciones_asistidas', filter=base_filter & Q(capacitaciones_asistidas__tipo_actividad='Ejercicio de compañía'), distinct=True),
+        total_campanas_economicas=Count('capacitaciones_asistidas', filter=base_filter & Q(capacitaciones_asistidas__tipo_actividad='Campaña económica'), distinct=True),
         total_charlas=Count('capacitaciones_asistidas', filter=base_filter & Q(capacitaciones_asistidas__tipo_actividad='Charla'), distinct=True),
         total_visitas=Count('capacitaciones_asistidas', filter=base_filter & Q(capacitaciones_asistidas__tipo_actividad='Visita'), distinct=True),
         total_otros=Count('capacitaciones_asistidas', filter=base_filter & Q(capacitaciones_asistidas__tipo_actividad='Otro'), distinct=True),
