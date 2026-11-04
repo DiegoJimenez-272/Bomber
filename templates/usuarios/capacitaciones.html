@@ -261,13 +261,15 @@
                     <div class="card h-100 shadow-sm border-danger border-opacity-25">
                         <div class="card-body">
                             <div class="d-flex align-items-start mb-3">
-                                <div class="d-flex align-items-center justify-content-center bg-danger bg-opacity-10 rounded-circle me-3" style="width: 48px; height: 48px;">
+                                <div class="d-flex align-items-center justify-content-center bg-danger bg-opacity-10 rounded-circle me-3" style="width: 52px; height: 52px; flex: 0 0 52px;">
+                                    {% with nombre_actividad=cap.nombre|lower %}
                                     {% if cap.tipo_actividad == 'Reunión' %}<i class="bi bi-people-fill fs-4 text-danger"></i>
-                                    {% elif cap.tipo_actividad == 'Ejercicio de compañía' %}<i class="bi bi-tools fs-4 text-danger"></i>
+                                    {% elif cap.tipo_actividad == 'Ejercicio de compañía' or 'ejercicio' in nombre_actividad %}<i class="bi bi-fire fs-3 text-danger"></i>
                                     {% elif cap.tipo_actividad == 'Campaña económica' %}<i class="bi bi-cash-coin fs-4 text-danger"></i>
                                     {% elif cap.tipo_actividad == 'Charla' %}<i class="bi bi-chat-dots-fill fs-4 text-danger"></i>
                                     {% elif cap.tipo_actividad == 'Visita' %}<i class="bi bi-binoculars-fill fs-4 text-danger"></i>
                                     {% else %}<i class="bi bi-star-fill fs-4 text-danger"></i>{% endif %}
+                                    {% endwith %}
                                 </div>
                                 <div>
                                     <h5 class="card-title mb-1">{{ cap.nombre }}</h5>
