@@ -8,6 +8,13 @@ def renombrar_taller_a_ejercicio(apps, schema_editor):
     )
 
 
+def restaurar_ejercicio_a_taller(apps, schema_editor):
+    Capacitacion = apps.get_model('usuarios', 'Capacitacion')
+    Capacitacion.objects.filter(tipo_actividad='Ejercicio de compañía').update(
+        tipo_actividad='Taller'
+    )
+
+
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -17,7 +24,7 @@ class Migration(migrations.Migration):
     operations = [
         migrations.RunPython(
             renombrar_taller_a_ejercicio,
-            migrations.RunPython.noop,
+            restaurar_ejercicio_a_taller,
         ),
         migrations.AlterField(
             model_name='capacitacion',
