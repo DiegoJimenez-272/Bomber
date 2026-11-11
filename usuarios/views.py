@@ -408,6 +408,19 @@ def dashboard_view(request):
             'desc': 'Revisa y actualiza los reportes de errores del sistema.',
         })
 
+    rol = getattr(request.user, 'rol', None)
+    if request.user.is_superuser or bool(rol and (
+        rol.ver_resumen_general or rol.ver_emergencias or
+        rol.ver_salidas_terreno or rol.ver_mantenimientos or rol.ver_inventario
+    )):
+        filtered_modules.append({
+            'id': 'estadisticas_operativas',
+            'url_name': 'estadisticas_operativas',
+            'icon': 'bi-activity',
+            'title': 'Estadísticas Operativas',
+            'desc': 'Analiza emergencias, unidades, asistencia y rondas.',
+        })
+
     # Obtener los avisos para el usuario actual
     avisos_usuario = AvisoDestinatario.objects.filter(
         usuario=request.user
@@ -563,6 +576,247 @@ def dashboard_summary_view(request):
         'nombre_caja': nombre_caja,
     }
     return render(request, 'usuarios/dashboard_summary.html', context)
+
+
+@login_required
+def estadisticas_operativas_view(request):
+    """Estadísticas operativas con alcance global para superusuarios y por compañía para roles operativos."""
+    rol = getattr(request.user, 'rol', None)
+    puede_ver_resumen = request.user.is_superuser or bool(rol and rol.ver_resumen_general)
+    puede_ver_emergencias = puede_ver_resumen or bool(rol and rol.ver_emergencias)
+    puede_ver_salidas = puede_ver_resumen or bool(rol and rol.ver_salidas_terreno)
+    puede_ver_rondas = puede_ver_resumen or bool(rol and (rol.ver_mantenimientos or rol.ver_inventario))
+    puede_ver_mantenimientos = puede_ver_resumen or bool(rol and rol.ver_mantenimientos)
+    puede_ver_inventario = puede_ver_resumen or bool(rol and rol.ver_inventario)
+    puede_ver_combustible = puede_ver_resumen or request.user.is_superuser or bool(rol and rol.ver_caja_chica)
+    puede_ver = request.user.is_superuser or bool(rol and (
+        rol.ver_resumen_general or rol.ver_emergencias or
+        rol.ver_salidas_terreno or rol.ver_mantenimientos or rol.ver_inventario
+    ))
+    if not puede_ver:
+        messages.error(request, 'No tienes permiso para acceder a las Estadísticas Operativas.')
+        return redirect('dashboard')
+
+    ahora = timezone.localtime()
+    try:
+        anio = int(request.GET.get('anio', ahora.year))
+        if anio < 2000 or anio > ahora.year + 1:
+            raise ValueError
+    except (TypeError, ValueError):
+        anio = ahora.year
+
+    companias = Compania.objects.order_by('nombre') if request.user.is_superuser else Compania.objects.none()
+    compania_id = None
+    if request.user.is_superuser:
+        valor_compania = request.GET.get('compania', 'todas')
+        compania_id = int(valor_compania) if valor_compania.isdigit() else None
+        if compania_id and not companias.filter(pk=compania_id).exists():
+            compania_id = None
+    else:
+        compania_id = request.user.compania_id
+
+    inicio = timezone.make_aware(datetime(anio, 1, 1, 0, 0, 0))
+    fin = timezone.make_aware(datetime(anio + 1, 1, 1, 0, 0, 0))
+    emergencias = Emergencia.objects.filter(fecha_hora_alarma__gte=inicio, fecha_hora_alarma__lt=fin) if puede_ver_emergencias else Emergencia.objects.none()
+    salidas = SalidaTerreno.objects.filter(fecha_hora_salida__gte=inicio, fecha_hora_salida__lt=fin) if puede_ver_salidas else SalidaTerreno.objects.none()
+    rondas = RondaVehiculo.objects.filter(fecha__gte=inicio, fecha__lt=fin) if puede_ver_rondas else RondaVehiculo.objects.none()
+    mantenimientos = Mantenimiento.objects.filter(fecha__gte=inicio.date(), fecha__lt=fin.date()) if puede_ver_mantenimientos else Mantenimiento.objects.none()
+    if compania_id:
+        emergencias = emergencias.filter(
+            Q(unidades_asistencia__unidad__compania_id=compania_id) |
+            Q(unidades_asistencia__asistentes__compania_id=compania_id) |
+            Q(asistentes__compania_id=compania_id) |
+            Q(oficial_a_cargo__compania_id=compania_id)
+        ).distinct()
+        salidas = salidas.filter(
+            Q(unidades__compania_id=compania_id) |
+            Q(asistencias_unidades__asistentes__compania_id=compania_id) |
+            Q(personal_a_cargo__compania_id=compania_id)
+        ).distinct()
+        rondas = rondas.filter(vehiculo__compania_id=compania_id)
+        mantenimientos = mantenimientos.filter(
+            Q(compania_caja_id=compania_id) | Q(responsable__compania_id=compania_id)
+        ).distinct()
+    elif not request.user.is_superuser:
+        # Sin compañía asignada no se deben exponer datos operativos globales.
+        emergencias = Emergencia.objects.none()
+        salidas = SalidaTerreno.objects.none()
+        rondas = RondaVehiculo.objects.none()
+        mantenimientos = Mantenimiento.objects.none()
+
+    cantidad_emergencias = emergencias.count()
+    despachos = EmergenciaUnidad.objects.filter(emergencia__in=emergencias)
+    if compania_id:
+        despachos = despachos.filter(unidad__compania_id=compania_id)
+    cantidad_despachos = despachos.count()
+    tipos_emergencia = dict(Emergencia.TIPO_EMERGENCIA_CHOICES)
+    emergencias_por_tipo = [
+        {'label': tipos_emergencia.get(fila['tipo'], fila['tipo'] or 'Sin tipo'), 'value': fila['total']}
+        for fila in emergencias.values('tipo').annotate(total=Count('id')).order_by('-total')
+    ]
+
+    meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
+    emergencias_por_mes = [0] * 12
+    for fecha in emergencias.values_list('fecha_hora_alarma', flat=True).iterator():
+        if fecha:
+            emergencias_por_mes[timezone.localtime(fecha).month - 1] += 1
+
+    despachos_por_carro = list(
+        despachos.values('unidad__nombre', 'unidad__compania__nombre')
+        .annotate(total=Count('emergencia_id', distinct=True))
+        .order_by('-total', 'unidad__nombre')[:12]
+    )
+    salidas_detalle = SalidaTerrenoUnidad.objects.filter(salida__in=salidas)
+    if compania_id:
+        salidas_detalle = salidas_detalle.filter(unidad__compania_id=compania_id)
+    salidas_por_carro = list(
+        salidas_detalle
+        .values('unidad__nombre', 'unidad__compania__nombre')
+        .annotate(total=Count('salida_id', distinct=True))
+        .order_by('-total', 'unidad__nombre')[:12]
+    )
+    km_terreno = 0
+    for km_salida, km_regreso in salidas.filter(kilometraje_regreso__isnull=False).values_list('kilometraje_salida', 'kilometraje_regreso'):
+        if km_regreso is not None and km_regreso >= km_salida:
+            km_terreno += km_regreso - km_salida
+
+    rondas_por_carro = list(
+        rondas.values('vehiculo__nombre', 'vehiculo__compania__nombre')
+        .annotate(total=Count('id'), hallazgos=Count('id', filter=~Q(tipo_hallazgo='Sin novedad')))
+        .order_by('-total')[:12]
+    )
+    hallazgos_por_tipo = list(
+        rondas.exclude(tipo_hallazgo='Sin novedad')
+        .values('tipo_hallazgo').annotate(total=Count('id'))
+        .order_by('-total')
+    )
+    mantenciones_por_vehiculo = list(
+        mantenimientos.values('vehiculo').annotate(total=Count('id'), costo=Sum('costo'))
+        .order_by('-costo')[:12]
+    )
+
+    # La asistencia por carro y la lista general pueden contener a la misma persona.
+    # Se unen por emergencia/persona para no contarla dos veces en los KPI.
+    por_carro = set()
+    por_cuartel = set()
+    por_compania = {}
+    asistencias_por_voluntario = {}
+    asistencias_en_carro = despachos.filter(asistentes__isnull=False)
+    asistencias_generales = emergencias.filter(asistentes__isnull=False)
+    if compania_id:
+        asistencias_en_carro = asistencias_en_carro.filter(asistentes__compania_id=compania_id)
+        asistencias_generales = asistencias_generales.filter(asistentes__compania_id=compania_id)
+    for emergencia_id, usuario_id in asistencias_en_carro.values_list(
+        'emergencia_id', 'asistentes__id'
+    ).iterator():
+        clave = (emergencia_id, usuario_id)
+        por_carro.add(clave)
+    for emergencia_id, usuario_id in asistencias_generales.values_list(
+        'id', 'asistentes__id'
+    ).iterator():
+        por_cuartel.add((emergencia_id, usuario_id))
+
+    asistencia_por_modalidad = [
+        {'label': 'Carro', 'value': len(por_carro - por_cuartel)},
+        {'label': 'Cuartel', 'value': len(por_cuartel - por_carro)},
+        {'label': 'Carro y cuartel', 'value': len(por_carro & por_cuartel)},
+    ]
+    ids_voluntarios = {usuario_id for _, usuario_id in por_carro | por_cuartel}
+    voluntarios = Usuario.objects.select_related('compania').in_bulk(ids_voluntarios)
+    for _, usuario_id in por_carro | por_cuartel:
+        usuario = voluntarios.get(usuario_id)
+        if not usuario:
+            continue
+        asistencias_por_voluntario[usuario_id] = asistencias_por_voluntario.get(usuario_id, 0) + 1
+    for _, usuario_id in por_carro | por_cuartel:
+        usuario = voluntarios.get(usuario_id)
+        nombre_compania = usuario.compania.nombre if usuario and usuario.compania_id else 'Sin compañía'
+        por_compania[nombre_compania] = por_compania.get(nombre_compania, 0) + 1
+    company_bars = [
+        {'label': nombre, 'value': total}
+        for nombre, total in sorted(por_compania.items(), key=lambda item: (-item[1], item[0]))[:12]
+    ]
+    top_voluntarios = [
+        {'label': f"{voluntarios[pk].get_full_name()} ({voluntarios[pk].clave_radial or 'Sin clave'})", 'value': total}
+        for pk, total in sorted(asistencias_por_voluntario.items(), key=lambda item: (-item[1], item[0]))[:15]
+        if pk in voluntarios
+    ]
+
+    combustible_qs = CajaChica.objects.filter(
+        Q(descripcion__icontains='combustible') |
+        Q(descripcion__icontains='bencina') |
+        Q(descripcion__icontains='diésel') |
+        Q(descripcion__icontains='diesel') |
+        Q(descripcion__icontains='gasolina'),
+        fecha__gte=inicio,
+        fecha__lt=fin,
+        tipo='Egreso',
+    )
+    if not puede_ver_combustible:
+        combustible_qs = CajaChica.objects.none()
+    if compania_id:
+        combustible_qs = combustible_qs.filter(compania_id=compania_id)
+    gasto_combustible = combustible_qs.aggregate(total=Sum('monto'))['total'] or Decimal('0')
+
+    def agregar_porcentaje(items):
+        maximo = max((item['value'] for item in items), default=0)
+        return [
+            {**item, 'porcentaje': round(item['value'] * 100 / maximo, 1) if maximo else 0}
+            for item in items
+        ]
+
+    def normalizar_barras(items, etiqueta, valor):
+        base = [
+            {'label': f"{item.get(etiqueta) or 'Sin dato'}" + (f" · {item['unidad__compania__nombre']}" if item.get('unidad__compania__nombre') else ''), 'value': item.get(valor) or 0}
+            for item in items
+        ]
+        return agregar_porcentaje(base)
+
+    anios = range(max(2000, ahora.year - 9), ahora.year + 2)
+    if compania_id:
+        nombre_compania_metricas = Compania.objects.filter(pk=compania_id).values_list('nombre', flat=True).first() or 'Compañía'
+    else:
+        nombre_compania_metricas = 'Todas las compañías' if request.user.is_superuser else 'Sin compañía'
+    contexto = {
+        'anio': anio,
+        'anios': anios,
+        'companias': companias,
+        'compania_id': compania_id,
+        'es_admin_metricas': request.user.is_superuser,
+        'puede_ver_emergencias': puede_ver_emergencias,
+        'puede_ver_salidas': puede_ver_salidas,
+        'puede_ver_rondas': puede_ver_rondas,
+        'puede_ver_inventario': puede_ver_inventario,
+        'puede_ver_mantenimientos': puede_ver_mantenimientos,
+        'puede_ver_combustible': puede_ver_combustible,
+        'nombre_compania_metricas': nombre_compania_metricas,
+        'cantidad_emergencias': cantidad_emergencias,
+        'cantidad_despachos': cantidad_despachos,
+        'voluntarios_distintos': len(asistencias_por_voluntario),
+        'total_salidas': salidas.count(),
+        'km_terreno': km_terreno,
+        'gasto_combustible': gasto_combustible,
+        'meses': meses,
+        'emergencias_por_mes': agregar_porcentaje([{'label': label, 'value': value} for label, value in zip(meses, emergencias_por_mes)]),
+        'emergencias_por_tipo': agregar_porcentaje(emergencias_por_tipo),
+        'despachos_por_carro': normalizar_barras(despachos_por_carro, 'unidad__nombre', 'total'),
+        'salidas_por_carro': normalizar_barras(salidas_por_carro, 'unidad__nombre', 'total'),
+        'rondas_por_carro': agregar_porcentaje([
+            {'label': f"{item['vehiculo__nombre']} · {item['vehiculo__compania__nombre']}", 'value': item['total'], 'hallazgos': item['hallazgos']}
+            for item in rondas_por_carro
+        ]),
+        'hallazgos_por_tipo': agregar_porcentaje([
+            {'label': item['tipo_hallazgo'], 'value': item['total']} for item in hallazgos_por_tipo
+        ]),
+        'asistencia_por_compania': agregar_porcentaje([{'label': item['label'], 'value': item['value']} for item in company_bars]),
+        'asistencia_por_modalidad': agregar_porcentaje(asistencia_por_modalidad),
+        'top_voluntarios': agregar_porcentaje(top_voluntarios),
+        'mantenciones_por_vehiculo': agregar_porcentaje([
+            {'label': item['vehiculo'], 'value': float(item['costo'] or 0)} for item in mantenciones_por_vehiculo
+        ]),
+        'hay_datos_combustible': combustible_qs.exists(),
+    }
+    return render(request, 'usuarios/estadisticas_operativas.html', contexto)
 
 @login_required
 def generar_reporte_anual_pdf(request):
