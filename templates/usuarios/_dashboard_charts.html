@@ -1,0 +1,172 @@
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const chartText = () => document.body.classList.contains('dark-mode') ? '#f1f3f5' : '#495057';
+    const chartGrid = () => document.body.classList.contains('dark-mode') ? 'rgba(255,255,255,.12)' : 'rgba(33,37,41,.09)';
+    const chartSurface = () => document.body.classList.contains('dark-mode') ? '#2b3035' : '#ffffff';
+    const clp = new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 });
+    const compactClp = new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', notation: 'compact', maximumFractionDigits: 1 });
+    const charts = window.dashboardChartInstances = window.dashboardChartInstances || [];
+
+    const emergencyTotalPlugin = {
+        id: 'emergencyCenterTotal',
+        afterDraw(chart) {
+            if (chart.config.type !== 'doughnut' || !chart.chartArea) return;
+            const total = (chart.data.datasets[0]?.data || []).reduce((sum, value) => sum + (Number(value) || 0), 0);
+            const { left, right, top, bottom } = chart.chartArea;
+            const x = (left + right) / 2;
+            const y = (top + bottom) / 2;
+            const ctx = chart.ctx;
+            ctx.save();
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillStyle = chartText();
+            ctx.font = '600 12px Poppins, sans-serif';
+            ctx.fillText('EMERGENCIAS', x, y - 12);
+            ctx.font = '700 22px Poppins, sans-serif';
+            ctx.fillText(new Intl.NumberFormat('es-CL').format(total), x, y + 12);
+            ctx.restore();
+        }
+    };
+
+    const emergenciesCtx = document.getElementById('emergenciesChart');
+    if (emergenciesCtx && typeof Chart !== 'undefined') {
+        const labels = {{ emergencia_labels|safe }};
+        const values = {{ emergencia_data|safe }};
+        charts.push(new Chart(emergenciesCtx, {
+            type: 'doughnut',
+            data: {
+                labels,
+                datasets: [{
+                    label: 'Emergencias',
+                    data: values,
+                    backgroundColor: ['#b51f32', '#dc3545', '#ef5361', '#f27c86', '#9e2635', '#d96570', '#7d2630'],
+                    borderColor: chartSurface,
+                    borderWidth: 3,
+                    hoverOffset: 7,
+                    spacing: 2,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '68%',
+                layout: { padding: 6 },
+                plugins: {
+                    legend: {
+                        position: window.innerWidth < 768 ? 'bottom' : 'right',
+                        labels: { color: chartText(), usePointStyle: true, pointStyle: 'circle', boxWidth: 9, boxHeight: 9, padding: 14 },
+                    },
+                    tooltip: {
+                        backgroundColor: document.body.classList.contains('dark-mode') ? '#17191c' : '#212529',
+                        titleColor: '#fff', bodyColor: '#fff', padding: 11, cornerRadius: 8,
+                        callbacks: {
+                            label(context) {
+                                const total = context.dataset.data.reduce((sum, value) => sum + (Number(value) || 0), 0);
+                                const count = Number(context.raw) || 0;
+                                const share = total ? ` · ${(count * 100 / total).toFixed(1)}%` : '';
+                                return ` ${context.label}: ${count}${share}`;
+                            }
+                        }
+                    }
+                }
+            },
+            plugins: [emergencyTotalPlugin],
+        }));
+    }
+
+    const cashCtx = document.getElementById('cajaChicaChart');
+    if (cashCtx && typeof Chart !== 'undefined') {
+        const cashChart = new Chart(cashCtx, {
+            type: 'line',
+            data: {
+                labels: {{ caja_chica_labels|safe }},
+                datasets: [
+                    {
+                        label: 'Ingresos',
+                        data: {{ caja_chica_ingresos|safe }},
+                        borderColor: '#198754',
+                        backgroundColor: 'rgba(25,135,84,.10)',
+                        fill: false,
+                        tension: .28,
+                        borderWidth: 2.5,
+                        pointRadius: 1.5,
+                        pointHoverRadius: 5,
+                        pointBackgroundColor: '#198754',
+                    },
+                    {
+                        label: 'Egresos',
+                        data: {{ caja_chica_egresos|safe }},
+                        borderColor: '#dc3545',
+                        backgroundColor: 'rgba(220,53,69,.09)',
+                        fill: false,
+                        tension: .28,
+                        borderWidth: 2.5,
+                        pointRadius: 1.5,
+                        pointHoverRadius: 5,
+                        pointBackgroundColor: '#dc3545',
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                elements: { line: { capBezierPoints: true } },
+                scales: {
+                    x: {
+                        grid: { display: false },
+                        ticks: { color: chartText(), maxTicksLimit: 7, maxRotation: 0, autoSkip: true },
+                        border: { display: false },
+                    },
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: chartGrid(), drawTicks: false },
+                        ticks: {
+                            color: chartText(),
+                            padding: 8,
+                            maxTicksLimit: 6,
+                            callback(value) { return compactClp.format(value); },
+                        },
+                        border: { display: false },
+                    }
+                },
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        align: 'start',
+                        labels: { color: chartText(), usePointStyle: true, pointStyle: 'circle', boxWidth: 8, boxHeight: 8, padding: 16 },
+                    },
+                    tooltip: {
+                        backgroundColor: document.body.classList.contains('dark-mode') ? '#17191c' : '#212529',
+                        titleColor: '#fff', bodyColor: '#fff', padding: 11, cornerRadius: 8,
+                        callbacks: { label(context) { return ` ${context.dataset.label}: ${clp.format(context.parsed.y || 0)}`; } }
+                    }
+                }
+            }
+        });
+        window.dashboardCashChart = cashChart;
+        charts.push(cashChart);
+    }
+
+    const actualizarTemaGraficos = () => {
+        charts.forEach(chart => {
+            const texto = chartText();
+            const rejilla = chartGrid();
+            const superficie = chartSurface();
+            if (chart.options.plugins?.legend?.labels) chart.options.plugins.legend.labels.color = texto;
+            if (chart.options.plugins?.tooltip) {
+                chart.options.plugins.tooltip.backgroundColor = document.body.classList.contains('dark-mode') ? '#17191c' : '#212529';
+            }
+            Object.values(chart.options.scales || {}).forEach(scale => {
+                if (scale.ticks) scale.ticks.color = texto;
+                if (scale.grid) scale.grid.color = rejilla;
+            });
+            chart.data.datasets.forEach(dataset => {
+                if (chart.config.type === 'doughnut') dataset.borderColor = superficie;
+            });
+            chart.update('none');
+        });
+    };
+    new MutationObserver(actualizarTemaGraficos).observe(document.body, { attributes: true, attributeFilter: ['class'] });
+});
+</script>

@@ -26,7 +26,9 @@
         padding: 0 !important;
     }
     .summary-kpi-icon .bi { font-size: 1.8rem; line-height: 1; }
+    .dashboard-chart-wrap { position: relative; width: 100%; height: 310px; min-width: 0; }
     @media (max-width: 767.98px) {
+        .dashboard-chart-wrap { height: 270px; }
         .summary-kpi-card .card-body { padding: .65rem !important; }
         .summary-kpi-icon {
             width: 42px;
@@ -116,8 +118,8 @@
                         <i class="bi bi-wallet2 fs-2"></i>
                     </div>
                     <div>
-                        <h6 class="mb-1 summary-kpi-label">Saldo: {{ nombre_caja }}</h6>
-                        <h3 class="fw-bold mb-0 summary-kpi-value {% if saldo_caja_chica < 0 %}text-danger{% else %}text-success{% endif %}">$<span class="money-amount" data-amount="{{ saldo_caja_chica|floatformat:0|intcomma|default:'0' }}">{{ saldo_caja_chica|floatformat:0|intcomma|default:"0" }}</span></h3>
+                        <h6 class="mb-1 summary-kpi-label" id="kpi-saldo-nombre">Saldo: {{ nombre_caja }}</h6>
+                        <h3 id="kpi-saldo-container" class="fw-bold mb-0 summary-kpi-value {% if saldo_caja_chica < 0 %}text-danger{% else %}text-success{% endif %}">$<span id="kpi-saldo-monto" class="money-amount" data-amount="{{ saldo_caja_chica|floatformat:0|intcomma|default:'0' }}">{{ saldo_caja_chica|floatformat:0|intcomma|default:"0" }}</span></h3>
                     </div>
                 </div>
             </div>
@@ -129,10 +131,11 @@
         <div class="col-lg-5">
             <div class="card shadow-sm h-100">
                 <div class="card-header">
-                    <h5 class="card-title mb-0">Emergencias por Tipo</h5>
+                    <h5 class="card-title mb-1">Emergencias por tipo</h5>
+                    <small class="text-muted">Participación de cada clave en el período disponible.</small>
                 </div>
-                <div class="card-body d-flex justify-content-center align-items-center">
-                    <canvas id="emergenciesChart" style="max-height: 300px;"></canvas>
+                <div class="card-body">
+                    <div class="dashboard-chart-wrap"><canvas id="emergenciesChart" aria-label="Gráfico de emergencias por tipo" role="img"></canvas></div>
                 </div>
             </div>
         </div>
@@ -140,10 +143,13 @@
             <div class="card shadow-sm h-100">
                 <div class="card-header">
                     <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2">
-                        <h5 class="card-title mb-0">Flujo de Caja: {{ nombre_caja }}</h5>
+                        <div>
+                            <h5 class="card-title mb-1" id="chart-flujo-titulo">Flujo de Caja: {{ nombre_caja }}</h5>
+                            <small class="text-muted">Ingresos y egresos diarios en CLP, últimos 30 días.</small>
+                        </div>
                         {% if request.user.is_superuser %}
                         <form method="get" class="d-flex align-items-center gap-2">
-                            <select name="compania_caja" id="compania_caja" class="form-select form-select-sm" onchange="this.form.submit()">
+                            <select name="compania_caja" id="compania_caja" class="form-select form-select-sm">
                                 <option value="todas" {% if filtro_compania_caja == 'todas' %}selected{% endif %}>Todas las Cajas</option>
                                 <option value="general" {% if filtro_compania_caja == 'general' %}selected{% endif %}>Caja General</option>
                                 {% if companias_para_filtro %}
@@ -157,7 +163,7 @@
                     </div>
                 </div>
                 <div class="card-body">
-                    <canvas id="cajaChicaChart" style="max-height: 300px;"></canvas>
+                    <div class="dashboard-chart-wrap"><canvas id="cajaChicaChart" aria-label="Gráfico del flujo diario de caja" role="img"></canvas></div>
                 </div>
             </div>
         </div>
@@ -168,20 +174,22 @@
         <div class="col-lg-6">
             <div class="card shadow-sm h-100">
                 <div class="card-header">
-                    <h5 class="card-title mb-0">Proyectos por Tipo</h5>
+                    <h5 class="card-title mb-1">Proyectos por tipo</h5>
+                    <small class="text-muted">Cantidad de proyectos agrupados por categoría.</small>
                 </div>
-                <div class="card-body d-flex justify-content-center align-items-center">
-                    <canvas id="proyectosChart" style="max-height: 300px;"></canvas>
+                <div class="card-body">
+                    <div class="dashboard-chart-wrap"><canvas id="proyectosChart" aria-label="Gráfico de proyectos por tipo" role="img"></canvas></div>
                 </div>
             </div>
         </div>
         <div class="col-lg-6">
             <div class="card shadow-sm h-100">
                 <div class="card-header">
-                    <h5 class="card-title mb-0">Estado del Inventario</h5>
+                    <h5 class="card-title mb-1">Estado del inventario</h5>
+                    <small class="text-muted">Cantidad de equipos registrados por estado.</small>
                 </div>
-                <div class="card-body d-flex justify-content-center align-items-center">
-                    <canvas id="inventarioChart" style="max-height: 300px;"></canvas>
+                <div class="card-body">
+                    <div class="dashboard-chart-wrap"><canvas id="inventarioChart" aria-label="Gráfico de inventario por estado" role="img"></canvas></div>
                 </div>
             </div>
         </div>
@@ -345,103 +353,75 @@
 
 {% block scripts %}
 {{ block.super }}
+{% include 'usuarios/_dashboard_charts.html' %}
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    // Gráfico de Emergencias
-    const emergenciesCtx = document.getElementById('emergenciesChart');
-    if (emergenciesCtx) {
-        new Chart(emergenciesCtx, {
-            type: 'doughnut',
-            data: {
-                labels: {{ emergencia_labels|safe }},
-                datasets: [{
-                    label: 'Nº de Emergencias',
-                    data: {{ emergencia_data|safe }},
-                    backgroundColor: ['#dc3545', '#fd7e14', '#ffc107', '#0d6efd', '#6f42c1', '#20c997', '#6c757d'],
-                    hoverOffset: 4
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: window.innerWidth < 768 ? 'bottom' : 'right',
-                    }
-                }
-            }
-        });
-    }
-
-    // Gráfico de Caja
-    let chartFlujoCaja;
-    const cajaChicaCtx = document.getElementById('cajaChicaChart');
-    if (cajaChicaCtx) {
-        chartFlujoCaja = new Chart(cajaChicaCtx, {
-            type: 'line',
-            data: {
-                labels: {{ caja_chica_labels|safe }},
-                datasets: [
-                    {
-                        label: 'Ingresos',
-                        data: {{ caja_chica_ingresos|safe }},
-                        borderColor: '#198754',
-                        backgroundColor: 'rgba(25, 135, 84, 0.1)',
-                        fill: true,
-                        tension: 0.3
-                    },
-                    {
-                        label: 'Egresos',
-                        data: {{ caja_chica_egresos|safe }},
-                        borderColor: '#dc3545',
-                        backgroundColor: 'rgba(220, 53, 69, 0.1)',
-                        fill: true,
-                        tension: 0.3
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    y: {
-                        beginAtZero: true
-                    }
-                }
-            }
-        });
-    }
+    const dashboardBarValueLabels = {
+        id: 'dashboardBarValueLabels',
+        afterDatasetsDraw(chart) {
+            if (chart.config.type !== 'bar' || chart.options.indexAxis !== 'y') return;
+            const ctx = chart.ctx;
+            const meta = chart.getDatasetMeta(0);
+            const dark = document.body.classList.contains('dark-mode');
+            ctx.save();
+            ctx.font = '600 11px Poppins, sans-serif';
+            ctx.textBaseline = 'middle';
+            meta.data.forEach((bar, index) => {
+                const value = chart.data.datasets[0].data[index];
+                const point = bar.tooltipPosition();
+                const inside = point.x > chart.width - 42;
+                ctx.fillStyle = inside ? '#ffffff' : (dark ? '#f1f3f5' : '#343a40');
+                ctx.textAlign = inside ? 'right' : 'left';
+                ctx.fillText(new Intl.NumberFormat('es-CL').format(value), inside ? point.x - 6 : point.x + 6, point.y);
+            });
+            ctx.restore();
+        }
+    };
 
     // Gráfico de Proyectos
     const proyectosCtx = document.getElementById('proyectosChart');
     const proyectoData = {{ proyecto_data|safe }};
+    const projectLabels = {{ proyecto_labels|safe }};
     if (proyectosCtx && proyectoData.length > 0) {
-        new Chart(proyectosCtx, {
+        const chart = new Chart(proyectosCtx, {
             type: 'bar',
             data: {
-                labels: {{ proyecto_labels|safe }},
+                labels: projectLabels,
                 datasets: [{
-                    label: 'Cantidad',
+                    label: 'Proyectos',
                     data: proyectoData,
-                    backgroundColor: 'rgba(13, 110, 253, 0.7)',
-                    borderColor: 'rgba(13, 110, 253, 1)',
-                    borderWidth: 1
+                    backgroundColor: ['#b51f32', '#dc3545', '#e95663', '#f28b95', '#8f2934'],
+                    borderRadius: 6,
+                    borderSkipped: false,
+                    maxBarThickness: 30,
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                indexAxis: 'y',
+                layout: { padding: { right: 28 } },
                 scales: {
-                    y: {
+                    x: {
                         beginAtZero: true,
-                        ticks: { precision: 0 }
-                    }
+                        ticks: { precision: 0, color: document.body.classList.contains('dark-mode') ? '#f1f3f5' : '#495057' },
+                        grid: { color: document.body.classList.contains('dark-mode') ? 'rgba(255,255,255,.12)' : 'rgba(33,37,41,.09)' },
+                        border: { display: false },
+                    },
+                    y: {
+                        ticks: { color: document.body.classList.contains('dark-mode') ? '#f1f3f5' : '#495057', font: { size: 11 } },
+                        grid: { display: false },
+                        border: { display: false },
+                    },
                 },
                 plugins: {
-                    legend: { display: false }
+                    legend: { display: false },
+                    tooltip: { callbacks: { label(context) { return ` ${context.parsed.x} proyecto(s)`; } } },
                 }
-            }
+            },
+            plugins: [dashboardBarValueLabels],
         });
+        window.dashboardChartInstances.push(chart);
     } else if (proyectosCtx) {
         proyectosCtx.parentElement.innerHTML = '<div class="text-muted text-center"><i class="bi bi-bar-chart fs-1"></i><p class="mt-2">No hay proyectos registrados.</p></div>';
     }
@@ -450,27 +430,55 @@ document.addEventListener('DOMContentLoaded', function () {
     const inventarioCtx = document.getElementById('inventarioChart');
     const inventarioData = {{ inventario_data|safe }};
     if (inventarioCtx && inventarioData.length > 0) {
-        new Chart(inventarioCtx, {
-            type: 'polarArea',
+        const inventoryLabels = {{ inventario_labels|safe }};
+        const inventoryColors = inventoryLabels.map(label => {
+            const estado = String(label).toLowerCase();
+            if (estado.includes('bueno')) return '#198754';
+            if (estado.includes('regular')) return '#e0a800';
+            if (estado.includes('reparación') || estado.includes('reparacion')) return '#dc3545';
+            if (estado.includes('malo')) return '#b51f32';
+            if (estado.includes('baja')) return '#6c757d';
+            return '#c44552';
+        });
+        const chart = new Chart(inventarioCtx, {
+            type: 'bar',
             data: {
-                labels: {{ inventario_labels|safe }},
+                labels: inventoryLabels,
                 datasets: [{
-                    label: 'Ítems',
+                    label: 'Equipos',
                     data: inventarioData,
-                    backgroundColor: ['#198754', '#0dcaf0', '#ffc107', '#fd7e14', '#dc3545'],
-                    hoverOffset: 4
+                    backgroundColor: inventoryColors,
+                    borderRadius: 6,
+                    borderSkipped: false,
+                    maxBarThickness: 30,
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                indexAxis: 'y',
+                layout: { padding: { right: 28 } },
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        ticks: { precision: 0, color: document.body.classList.contains('dark-mode') ? '#f1f3f5' : '#495057' },
+                        grid: { color: document.body.classList.contains('dark-mode') ? 'rgba(255,255,255,.12)' : 'rgba(33,37,41,.09)' },
+                        border: { display: false },
+                    },
+                    y: {
+                        ticks: { color: document.body.classList.contains('dark-mode') ? '#f1f3f5' : '#495057', font: { size: 11 } },
+                        grid: { display: false },
+                        border: { display: false },
+                    },
+                },
                 plugins: {
-                    legend: {
-                        position: window.innerWidth < 768 ? 'bottom' : 'right',
-                    }
+                    legend: { display: false },
+                    tooltip: { callbacks: { label(context) { return ` ${context.parsed.x} equipo(s)`; } } },
                 }
-            }
+            },
+            plugins: [dashboardBarValueLabels],
         });
+        window.dashboardChartInstances.push(chart);
     } else if (inventarioCtx) {
         inventarioCtx.parentElement.innerHTML = '<div class="text-muted text-center"><i class="bi bi-box-seam fs-1"></i><p class="mt-2">No hay ítems en el inventario.</p></div>';
     }
@@ -490,36 +498,40 @@ document.addEventListener('DOMContentLoaded', function () {
             .then(response => response.json())
             .then(data => {
                 // Actualizar Textos
-                document.getElementById('kpi-saldo-nombre').textContent = 'Saldo: ' + data.nombre_caja;
-                document.getElementById('chart-flujo-titulo').textContent = 'Flujo de Caja: ' + data.nombre_caja;
+                const nombreSaldo = document.getElementById('kpi-saldo-nombre');
+                const tituloFlujo = document.getElementById('chart-flujo-titulo');
+                if (nombreSaldo) nombreSaldo.textContent = 'Saldo: ' + data.nombre_caja;
+                if (tituloFlujo) tituloFlujo.textContent = 'Flujo de Caja: ' + data.nombre_caja;
                 
                 // Formatear Monto
-                let formatter = new Intl.NumberFormat('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+                const formatter = new Intl.NumberFormat('es-CL', { maximumFractionDigits: 0 });
                 const saldoFormat = formatter.format(data.saldo_caja_chica);
                 
                 const montoSpan = document.getElementById('kpi-saldo-monto');
-                montoSpan.setAttribute('data-amount', saldoFormat);
+                if (montoSpan) montoSpan.setAttribute('data-amount', saldoFormat);
                 
                 // Respetar si el usuario le dio clic al botón de ocultar dinero previamente
-                if (typeof isMoneyHidden !== 'undefined' && isMoneyHidden) {
-                    montoSpan.textContent = '****';
-                } else {
-                    montoSpan.textContent = saldoFormat;
+                if (montoSpan) {
+                    montoSpan.textContent = (typeof isMoneyHidden !== 'undefined' && isMoneyHidden) ? '****' : saldoFormat;
                 }
 
                 // Actualizar Color Saldo
                 const containerMonto = document.getElementById('kpi-saldo-container');
-                containerMonto.classList.remove('text-success', 'text-danger');
-                containerMonto.classList.add(data.saldo_caja_chica < 0 ? 'text-danger' : 'text-success');
+                if (containerMonto) {
+                    containerMonto.classList.remove('text-success', 'text-danger');
+                    containerMonto.classList.add(data.saldo_caja_chica < 0 ? 'text-danger' : 'text-success');
+                }
 
                 // Actualizar el Gráfico sin recargar la página
-                if (chartFlujoCaja) {
-                    chartFlujoCaja.data.labels = data.caja_chica_labels;
-                    chartFlujoCaja.data.datasets[0].data = data.caja_chica_ingresos;
-                    chartFlujoCaja.data.datasets[1].data = data.caja_chica_egresos;
-                    chartFlujoCaja.update();
+                if (window.dashboardCashChart) {
+                    window.dashboardCashChart.data.labels = data.caja_chica_labels;
+                    window.dashboardCashChart.data.datasets[0].data = data.caja_chica_ingresos;
+                    window.dashboardCashChart.data.datasets[1].data = data.caja_chica_egresos;
+                    window.dashboardCashChart.update();
                 }
-            });
+                window.history.replaceState({}, '', url);
+            })
+            .catch(error => console.error('No se pudo actualizar el resumen de caja:', error));
         });
     }
 
