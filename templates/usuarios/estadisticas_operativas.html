@@ -7,23 +7,37 @@
 <style>
     .ops-stats { --ops-red: #dc3545; --ops-red-dark: #b02a37; }
     .ops-stats .page-heading { border-bottom: 1px solid var(--bs-border-color); }
-    .ops-stats .stat-card, .ops-stats .chart-card { border: 1px solid var(--bs-border-color); border-radius: .8rem; }
+    .ops-stats .stat-card, .ops-stats .chart-card { border: 1px solid var(--bs-border-color); border-radius: .8rem; background: var(--bs-card-bg); }
+    .ops-stats .chart-card { box-shadow: 0 .2rem .8rem rgba(25, 35, 45, .045); }
+    .ops-stats .chart-card .card-body { padding: 1.2rem; }
+    .ops-stats .chart-title { display: flex; align-items: center; gap: .55rem; }
+    .ops-stats .chart-title-icon { width: 30px; height: 30px; display: inline-grid; place-items: center; border-radius: 50%; color: var(--ops-red); background: rgba(220,53,69,.11); }
     .ops-stats .stat-icon { width: 46px; height: 46px; flex: 0 0 46px; display: grid; place-items: center; border-radius: 50%; background: rgba(220,53,69,.12); color: var(--ops-red); font-size: 1.2rem; }
     .ops-stats .stat-label { color: var(--bs-secondary-color); font-size: .82rem; }
     .ops-stats .stat-value { font-size: clamp(1.2rem, 2vw, 1.75rem); line-height: 1.15; font-weight: 700; overflow-wrap: anywhere; }
     .ops-stats .section-title { border-bottom: 1px solid var(--bs-border-color); padding-bottom: .55rem; margin: 1.5rem 0 1rem; font-size: 1.05rem; font-weight: 700; }
-    .ops-stats .bar-row { display: grid; grid-template-columns: minmax(105px, 1.2fr) minmax(50px, 2fr) auto; align-items: center; gap: .6rem; margin: .72rem 0; font-size: .87rem; }
-    .ops-stats .bar-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--bs-secondary-color); }
-    .ops-stats .bar-track { height: 13px; border-radius: 99px; overflow: hidden; background: rgba(108,117,125,.14); }
-    .ops-stats .bar-fill { height: 100%; min-width: 3px; border-radius: inherit; background: linear-gradient(90deg, var(--ops-red), var(--ops-red-dark)); }
-    .ops-stats .bar-value { font-weight: 600; white-space: nowrap; }
-    .ops-stats .month-row { grid-template-columns: 38px minmax(50px, 1fr) 28px; }
+    .ops-stats .bar-row { display: grid; grid-template-columns: minmax(105px, 1.15fr) minmax(50px, 2fr) auto; align-items: center; gap: .7rem; margin: .68rem 0; font-size: .86rem; }
+    .ops-stats .bar-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--bs-body-color); }
+    .ops-stats .bar-track { height: 10px; border-radius: 99px; overflow: hidden; background: rgba(108,117,125,.16); box-shadow: inset 0 0 0 1px rgba(108,117,125,.08); }
+    .ops-stats .bar-fill { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #ef5361, #b51f32); transition: width .25s ease; }
+    .ops-stats .bar-value { min-width: 2rem; padding: .12rem .38rem; border-radius: .45rem; text-align: center; font-size: .78rem; font-weight: 700; white-space: nowrap; color: var(--ops-red-dark); background: rgba(220,53,69,.09); }
+    .ops-stats .month-chart { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); align-items: end; gap: .45rem; padding-top: .8rem; }
+    .ops-stats .month-column { display: flex; min-width: 0; height: 160px; flex-direction: column; align-items: center; justify-content: flex-end; gap: .45rem; }
+    .ops-stats .month-count { font-size: .75rem; line-height: 1; font-weight: 700; color: var(--bs-body-color); }
+    .ops-stats .month-track { width: min(100%, 28px); height: 118px; display: flex; align-items: flex-end; overflow: hidden; border-radius: .5rem; background: rgba(108,117,125,.12); }
+    .ops-stats .month-fill { width: 100%; min-height: 4px; border-radius: .45rem .45rem .25rem .25rem; background: linear-gradient(180deg, #ef5361, #b51f32); }
+    .ops-stats .month-label { color: var(--bs-secondary-color); font-size: .7rem; }
     .ops-stats .data-gap { border-left: 4px solid var(--ops-red); }
     .ops-stats .gap-item + .gap-item { border-top: 1px solid var(--bs-border-color); }
     @media(max-width: 575.98px) {
         .ops-stats .bar-row { grid-template-columns: minmax(80px, 1.1fr) minmax(35px, 1.5fr) auto; gap: .4rem; font-size: .78rem; }
         .ops-stats .stat-card .card-body { padding: .8rem; }
         .ops-stats .stat-icon { width: 38px; height: 38px; flex-basis: 38px; }
+        .ops-stats .chart-card .card-body { padding: .9rem; }
+        .ops-stats .month-chart { grid-template-columns: repeat(6, minmax(0, 1fr)); row-gap: .8rem; }
+        .ops-stats .month-column { height: 132px; }
+        .ops-stats .month-track { height: 92px; }
+        .ops-stats .month-label { font-size: .68rem; }
     }
 </style>
 
@@ -72,27 +86,27 @@
     {% if puede_ver_emergencias %}
     <h2 class="section-title">Emergencias y despacho</h2>
     <div class="row g-3 mb-4">
-        <div class="col-12 col-xl-6"><section class="card chart-card h-100"><div class="card-body"><h3 class="h6 fw-bold">Emergencias por mes</h3><p class="small text-muted">Conteo según fecha y hora de alarma.</p>
-            {% for item in emergencias_por_mes %}<div class="bar-row month-row"><span class="bar-label">{{ item.label }}</span><div class="bar-track"><div class="bar-fill" style="width:{{ item.porcentaje }}%"></div></div><span class="bar-value">{{ item.value }}</span></div>{% endfor %}
+        <div class="col-12 col-xl-6"><section class="card chart-card"><div class="card-body"><h3 class="h6 fw-bold chart-title"><span class="chart-title-icon"><i class="bi bi-calendar3"></i></span>Emergencias por mes</h3><p class="small text-muted">Conteo según fecha y hora de alarma.</p>
+            <div class="month-chart">{% for item in emergencias_por_mes %}<div class="month-column" title="{{ item.label }}: {{ item.value }} emergencias"><span class="month-count">{{ item.value }}</span><div class="month-track">{% if item.value %}<div class="month-fill" style="height:{{ item.porcentaje|default:0 }}% !important"></div>{% endif %}</div><span class="month-label">{{ item.label }}</span></div>{% endfor %}</div>
         </div></section></div>
-        <div class="col-12 col-xl-6"><section class="card chart-card h-100"><div class="card-body"><h3 class="h6 fw-bold">Emergencias por tipo</h3><p class="small text-muted">Cada emergencia se cuenta una vez.</p>
-            {% for item in emergencias_por_tipo %}<div class="bar-row"><span class="bar-label" title="{{ item.label }}">{{ item.label }}</span><div class="bar-track"><div class="bar-fill" style="width:{{ item.porcentaje }}%"></div></div><span class="bar-value">{{ item.value }}</span></div>{% empty %}<p class="text-muted small mb-0">Sin emergencias en este periodo.</p>{% endfor %}
+        <div class="col-12 col-xl-6"><section class="card chart-card"><div class="card-body"><h3 class="h6 fw-bold chart-title"><span class="chart-title-icon"><i class="bi bi-tags-fill"></i></span>Emergencias por tipo</h3><p class="small text-muted">Cada emergencia se cuenta una vez.</p>
+            {% for item in emergencias_por_tipo %}<div class="bar-row"><span class="bar-label" title="{{ item.label }}">{{ item.label }}</span><div class="bar-track">{% if item.value %}<div class="bar-fill" style="width:{{ item.porcentaje|default:0 }}% !important"></div>{% endif %}</div><span class="bar-value">{{ item.value }}</span></div>{% empty %}<p class="text-muted small mb-0">Sin emergencias en este periodo.</p>{% endfor %}
         </div></section></div>
         <div class="col-12"><section class="card chart-card"><div class="card-body"><h3 class="h6 fw-bold">Despachos de emergencia por carro</h3><p class="small text-muted">Número de emergencias en que se registró cada unidad.</p>
-            <div class="row g-4">{% for item in despachos_por_carro %}<div class="col-12 col-md-6"><div class="bar-row"><span class="bar-label" title="{{ item.label }}">{{ item.label }}</span><div class="bar-track"><div class="bar-fill" style="width:{{ item.porcentaje }}%"></div></div><span class="bar-value">{{ item.value }}</span></div></div>{% empty %}<p class="text-muted small mb-0">No hay despachos por carro registrados en este periodo.</p>{% endfor %}</div>
+            <div class="row g-4">{% for item in despachos_por_carro %}<div class="col-12 col-md-6"><div class="bar-row"><span class="bar-label" title="{{ item.label }}">{{ item.label }}</span><div class="bar-track">{% if item.value %}<div class="bar-fill" style="width:{{ item.porcentaje|default:0 }}% !important"></div>{% endif %}</div><span class="bar-value">{{ item.value }}</span></div></div>{% empty %}<p class="text-muted small mb-0">No hay despachos por carro registrados en este periodo.</p>{% endfor %}</div>
         </div></section></div>
     </div>
 
     <h2 class="section-title">Personal y asistencia</h2>
     <div class="row g-3 mb-4">
         <div class="col-12 col-xl-4"><section class="card chart-card h-100"><div class="card-body"><h3 class="h6 fw-bold">Participaciones por compañía</h3><p class="small text-muted">Asistencias únicas por emergencia, agrupadas por compañía del voluntario.</p>
-            {% for item in asistencia_por_compania %}<div class="bar-row"><span class="bar-label" title="{{ item.label }}">{{ item.label }}</span><div class="bar-track"><div class="bar-fill" style="width:{{ item.porcentaje }}%"></div></div><span class="bar-value">{{ item.value }}</span></div>{% empty %}<p class="text-muted small mb-0">No hay asistencia registrada.</p>{% endfor %}
+            {% for item in asistencia_por_compania %}<div class="bar-row"><span class="bar-label" title="{{ item.label }}">{{ item.label }}</span><div class="bar-track">{% if item.value %}<div class="bar-fill" style="width:{{ item.porcentaje|default:0 }}% !important"></div>{% endif %}</div><span class="bar-value">{{ item.value }}</span></div>{% empty %}<p class="text-muted small mb-0">No hay asistencia registrada.</p>{% endfor %}
         </div></section></div>
         <div class="col-12 col-xl-4"><section class="card chart-card h-100"><div class="card-body"><h3 class="h6 fw-bold">Cómo asistieron</h3><p class="small text-muted">Según asistencia asociada a un carro o a la lista general de la emergencia.</p>
-            {% for item in asistencia_por_modalidad %}<div class="bar-row"><span class="bar-label">{{ item.label }}</span><div class="bar-track"><div class="bar-fill" style="width:{{ item.porcentaje }}%"></div></div><span class="bar-value">{{ item.value }}</span></div>{% endfor %}
+            {% for item in asistencia_por_modalidad %}<div class="bar-row"><span class="bar-label">{{ item.label }}</span><div class="bar-track">{% if item.value %}<div class="bar-fill" style="width:{{ item.porcentaje|default:0 }}% !important"></div>{% endif %}</div><span class="bar-value">{{ item.value }}</span></div>{% endfor %}
         </div></section></div>
         <div class="col-12 col-xl-4"><section class="card chart-card h-100"><div class="card-body"><h3 class="h6 fw-bold">Voluntarios con más asistencias</h3><p class="small text-muted">Los 15 primeros en el periodo.</p>
-            {% for item in top_voluntarios %}<div class="bar-row"><span class="bar-label" title="{{ item.label }}">{{ item.label }}</span><div class="bar-track"><div class="bar-fill" style="width:{{ item.porcentaje }}%"></div></div><span class="bar-value">{{ item.value }}</span></div>{% empty %}<p class="text-muted small mb-0">No hay asistencia registrada.</p>{% endfor %}
+            {% for item in top_voluntarios %}<div class="bar-row"><span class="bar-label" title="{{ item.label }}">{{ item.label }}</span><div class="bar-track">{% if item.value %}<div class="bar-fill" style="width:{{ item.porcentaje|default:0 }}% !important"></div>{% endif %}</div><span class="bar-value">{{ item.value }}</span></div>{% empty %}<p class="text-muted small mb-0">No hay asistencia registrada.</p>{% endfor %}
         </div></section></div>
     </div>
     {% endif %}
@@ -102,20 +116,20 @@
     <div class="row g-3 mb-4">
         {% if puede_ver_salidas %}
         <div class="col-12 col-xl-6"><section class="card chart-card h-100"><div class="card-body"><h3 class="h6 fw-bold">Salidas a terreno por carro</h3><p class="small text-muted">Cuenta cada salida asociada a la unidad; los {{ km_terreno|intcomma }} km corresponden al total de salidas, no se reparten entre carros.</p>
-            {% for item in salidas_por_carro %}<div class="bar-row"><span class="bar-label" title="{{ item.label }}">{{ item.label }}</span><div class="bar-track"><div class="bar-fill" style="width:{{ item.porcentaje }}%"></div></div><span class="bar-value">{{ item.value }}</span></div>{% empty %}<p class="text-muted small mb-0">No hay salidas por carro registradas.</p>{% endfor %}
+            {% for item in salidas_por_carro %}<div class="bar-row"><span class="bar-label" title="{{ item.label }}">{{ item.label }}</span><div class="bar-track">{% if item.value %}<div class="bar-fill" style="width:{{ item.porcentaje|default:0 }}% !important"></div>{% endif %}</div><span class="bar-value">{{ item.value }}</span></div>{% empty %}<p class="text-muted small mb-0">No hay salidas por carro registradas.</p>{% endfor %}
         </div></section></div>
         {% endif %}
         {% if puede_ver_rondas %}
         <div class="col-12 col-xl-6"><section class="card chart-card h-100"><div class="card-body"><h3 class="h6 fw-bold">Rondas por carro</h3><p class="small text-muted">El valor secundario indica cuántas rondas reportaron falla, observación u otro hallazgo.</p>
-            {% for item in rondas_por_carro %}<div class="bar-row"><span class="bar-label" title="{{ item.label }}">{{ item.label }}</span><div class="bar-track"><div class="bar-fill" style="width:{{ item.porcentaje }}%"></div></div><span class="bar-value">{{ item.value }} · {{ item.hallazgos }} hallazgos</span></div>{% empty %}<p class="text-muted small mb-0">No hay rondas registradas.</p>{% endfor %}
+            {% for item in rondas_por_carro %}<div class="bar-row"><span class="bar-label" title="{{ item.label }}">{{ item.label }}</span><div class="bar-track">{% if item.value %}<div class="bar-fill" style="width:{{ item.porcentaje|default:0 }}% !important"></div>{% endif %}</div><span class="bar-value">{{ item.value }} · {{ item.hallazgos }} hallazgos</span></div>{% empty %}<p class="text-muted small mb-0">No hay rondas registradas.</p>{% endfor %}
         </div></section></div>
         <div class="col-12 col-xl-6"><section class="card chart-card h-100"><div class="card-body"><h3 class="h6 fw-bold">Hallazgos de rondas</h3><p class="small text-muted">Tipos estructurados disponibles actualmente.</p>
-            {% for item in hallazgos_por_tipo %}<div class="bar-row"><span class="bar-label">{{ item.label }}</span><div class="bar-track"><div class="bar-fill" style="width:{{ item.porcentaje }}%"></div></div><span class="bar-value">{{ item.value }}</span></div>{% empty %}<p class="text-muted small mb-0">No hay fallas ni observaciones en el periodo.</p>{% endfor %}
+            {% for item in hallazgos_por_tipo %}<div class="bar-row"><span class="bar-label">{{ item.label }}</span><div class="bar-track">{% if item.value %}<div class="bar-fill" style="width:{{ item.porcentaje|default:0 }}% !important"></div>{% endif %}</div><span class="bar-value">{{ item.value }}</span></div>{% empty %}<p class="text-muted small mb-0">No hay fallas ni observaciones en el periodo.</p>{% endfor %}
         </div></section></div>
         {% endif %}
         {% if puede_ver_mantenimientos %}
         <div class="col-12 col-xl-6"><section class="card chart-card h-100"><div class="card-body"><h3 class="h6 fw-bold">Mantenimientos por vehículo</h3><p class="small text-muted">Costos registrados, agrupados por el nombre del vehículo informado.</p>
-            {% for item in mantenciones_por_vehiculo %}<div class="bar-row"><span class="bar-label" title="{{ item.label }}">{{ item.label }}</span><div class="bar-track"><div class="bar-fill" style="width:{{ item.porcentaje }}%"></div></div><span class="bar-value">${{ item.value|floatformat:0|intcomma }}</span></div>{% empty %}<p class="text-muted small mb-0">No hay mantenimientos registrados.</p>{% endfor %}
+            {% for item in mantenciones_por_vehiculo %}<div class="bar-row"><span class="bar-label" title="{{ item.label }}">{{ item.label }}</span><div class="bar-track">{% if item.value %}<div class="bar-fill" style="width:{{ item.porcentaje|default:0 }}% !important"></div>{% endif %}</div><span class="bar-value">${{ item.value|floatformat:0|intcomma }}</span></div>{% empty %}<p class="text-muted small mb-0">No hay mantenimientos registrados.</p>{% endfor %}
         </div></section></div>
         {% endif %}
     </div>
