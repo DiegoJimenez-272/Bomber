@@ -678,6 +678,15 @@
                         </div>
                         <div class="row g-0 py-2 border-bottom align-items-center permission-row">
                             <div class="col-6 px-3">
+                                <i class="bi bi-activity text-secondary me-2"></i> <strong>Estadísticas Operativas</strong>
+                            </div>
+                            <div class="col-3 d-flex justify-content-center">
+                                <div class="form-check form-switch mb-0 fs-5 view-toggle" title="Permite acceder al panel de métricas operativas">{{ rol_form.ver_estadisticas_operativas }}</div>
+                            </div>
+                            <div class="col-3 d-flex justify-content-center"></div>
+                        </div>
+                        <div class="row g-0 py-2 border-bottom align-items-center permission-row">
+                            <div class="col-6 px-3">
                                 <i class="bi bi-file-earmark-text-fill text-secondary me-2"></i> <strong>Documentación</strong>
                             </div>
                             <div class="col-3 d-flex justify-content-center">
@@ -857,6 +866,15 @@
                             </div>
                             <div class="col-3 d-flex justify-content-center">
                                 <div class="form-check form-switch mb-0 fs-5 view-toggle"><input type="checkbox" class="form-check-input mt-0" name="ver_resumen_general" {% if rol.ver_resumen_general %}checked{% endif %}></div>
+                            </div>
+                            <div class="col-3 d-flex justify-content-center"></div>
+                        </div>
+                        <div class="row g-0 py-2 border-bottom align-items-center permission-row">
+                            <div class="col-6 px-3">
+                                <i class="bi bi-activity text-secondary me-2"></i> <strong>Estadísticas Operativas</strong>
+                            </div>
+                            <div class="col-3 d-flex justify-content-center">
+                                <div class="form-check form-switch mb-0 fs-5 view-toggle"><input type="checkbox" class="form-check-input mt-0" name="ver_estadisticas_operativas" {% if rol.ver_estadisticas_operativas %}checked{% endif %}></div>
                             </div>
                             <div class="col-3 d-flex justify-content-center"></div>
                         </div>

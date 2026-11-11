@@ -17,6 +17,7 @@ class Rol(models.Model):
     
     # --- Permisos de Acceso a Módulos ---
     ver_resumen_general = models.BooleanField(default=False, verbose_name="Resumen General")
+    ver_estadisticas_operativas = models.BooleanField(default=False, verbose_name="Estadísticas Operativas")
     ver_documentacion = models.BooleanField(default=False, verbose_name="Documentación")
     ver_escanear_qr = models.BooleanField(default=False, verbose_name="Escanear QR")
     ver_inventario = models.BooleanField(default=False, verbose_name="Inventario")

@@ -276,7 +276,7 @@
                 <li class="nav-item"><a href="{% url 'dashboard_summary' %}" class="nav-link {% if request.resolver_match.url_name == 'dashboard_summary' %}active{% endif %}"><i class="bi bi-bar-chart-line-fill"></i>Resumen General</a></li>
                 {% endif %}
 
-                {% if request.user.is_superuser or request.user.rol.ver_resumen_general or request.user.rol.ver_emergencias or request.user.rol.ver_salidas_terreno or request.user.rol.ver_mantenimientos or request.user.rol.ver_inventario %}
+                {% if request.user.is_superuser or request.user.rol.ver_estadisticas_operativas %}
                 <li class="nav-item"><a href="{% url 'estadisticas_operativas' %}" class="nav-link {% if request.resolver_match.url_name == 'estadisticas_operativas' %}active{% endif %}"><i class="bi bi-activity"></i>Estadísticas Operativas</a></li>
                 {% endif %}
                 

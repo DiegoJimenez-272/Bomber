@@ -16,6 +16,7 @@ from .models import CajaChica, Emergencia, GuiaChatbot, Inventario, ComandoChatb
 MODULOS = {
     'dashboard': (None, 'dashboard'),
     'resumen': ('ver_resumen_general', 'dashboard_summary'),
+    'estadisticas': ('ver_estadisticas_operativas', 'estadisticas_operativas'),
     'inventario': ('ver_inventario', 'inventario'),
     'emergencias': ('ver_emergencias', 'emergencias'),
     'salidas': ('ver_salidas_terreno', 'salidas_terreno'),
@@ -32,6 +33,7 @@ MODULOS = {
 MODULO_LABELS = {
     'dashboard': 'Inicio',
     'resumen': 'Resumen General',
+    'estadisticas': 'Estadísticas Operativas',
     'inventario': 'Inventario',
     'emergencias': 'Emergencias',
     'salidas': 'Salidas a Terreno',
@@ -59,6 +61,7 @@ TOPIC_FALLBACKS = [
     ('mantenimiento', 'mantenimiento, mantencion, mantenciones, revision vehicular, reparacion', 'En Mantenimiento puedes consultar los registros de mantenimiento de vehículos.'),
     ('proyectos', 'proyecto, proyectos, presupuesto, presupuestos', 'En Proyectos puedes consultar el seguimiento y la información de los proyectos.'),
     ('resumen', 'resumen general, resumen, indicadores, kpi, estadisticas, estadistica', 'El Resumen General presenta indicadores y actividad del sistema.'),
+    ('estadisticas', 'estadisticas operativas, metricas operativas, metricas, datos operativos', 'Estadísticas Operativas muestra métricas de emergencias, despachos, asistencia, salidas, rondas e inventario según los permisos de tu rol.'),
     ('inspectores', 'inspector, inspectores, inspeccion, inspecciones', 'El módulo Inspectores reúne documentos y archivos disponibles para inspectores.'),
     ('qr', 'qr, codigo qr, escanear qr, escaner', 'Escanear QR permite identificar un ítem de inventario mediante su código.'),
     ('administracion', 'administracion, usuarios, roles, companias, permisos', 'Administración permite gestionar usuarios, roles y compañías; está disponible solo para superusuarios.'),

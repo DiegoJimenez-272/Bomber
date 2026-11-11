@@ -197,7 +197,7 @@ class RolForm(forms.ModelForm):
         model = Rol
         fields = [
             'nombre', 'descripcion',
-            'ver_resumen_general', 'ver_documentacion', 'ver_escanear_qr', 'ver_inventario',
+            'ver_resumen_general', 'ver_estadisticas_operativas', 'ver_documentacion', 'ver_escanear_qr', 'ver_inventario',
             'ver_salidas_terreno', 'ver_emergencias', 'ver_capacitaciones', 'ver_malla_curricular', 'ver_mantenimientos', 'ver_proyectos', 'ver_caja_chica',
             'ver_avisos', 'ver_inspectores', 'editar_documentacion', 'editar_inventario', 'gestionar_inventario_todas_companias', 'editar_salidas_terreno',
             'editar_emergencias', 'editar_capacitaciones', 'editar_malla_curricular', 'editar_mantenimientos', 'editar_proyectos', 'editar_caja_chica', 'editar_avisos', 'editar_inspectores'
@@ -211,7 +211,7 @@ class RolForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         # Asegurar la clase form-check-input para que se rendericen como Switches
         permisos_fields = [
-            'ver_resumen_general', 'ver_documentacion', 'ver_escanear_qr', 'ver_inventario',
+            'ver_resumen_general', 'ver_estadisticas_operativas', 'ver_documentacion', 'ver_escanear_qr', 'ver_inventario',
             'ver_salidas_terreno', 'ver_emergencias', 'ver_capacitaciones', 'ver_malla_curricular', 'ver_mantenimientos', 'ver_proyectos', 'ver_caja_chica',
             'ver_avisos', 'ver_inspectores', 'editar_documentacion', 'editar_inventario', 'gestionar_inventario_todas_companias', 'editar_salidas_terreno',
             'editar_emergencias', 'editar_capacitaciones', 'editar_malla_curricular', 'editar_mantenimientos', 'editar_proyectos', 'editar_caja_chica', 'editar_avisos', 'editar_inspectores'

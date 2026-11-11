@@ -409,10 +409,7 @@ def dashboard_view(request):
         })
 
     rol = getattr(request.user, 'rol', None)
-    if request.user.is_superuser or bool(rol and (
-        rol.ver_resumen_general or rol.ver_emergencias or
-        rol.ver_salidas_terreno or rol.ver_mantenimientos or rol.ver_inventario
-    )):
+    if request.user.is_superuser or bool(rol and rol.ver_estadisticas_operativas):
         filtered_modules.append({
             'id': 'estadisticas_operativas',
             'url_name': 'estadisticas_operativas',
@@ -589,10 +586,7 @@ def estadisticas_operativas_view(request):
     puede_ver_mantenimientos = puede_ver_resumen or bool(rol and rol.ver_mantenimientos)
     puede_ver_inventario = puede_ver_resumen or bool(rol and rol.ver_inventario)
     puede_ver_combustible = puede_ver_resumen or request.user.is_superuser or bool(rol and rol.ver_caja_chica)
-    puede_ver = request.user.is_superuser or bool(rol and (
-        rol.ver_resumen_general or rol.ver_emergencias or
-        rol.ver_salidas_terreno or rol.ver_mantenimientos or rol.ver_inventario
-    ))
+    puede_ver = request.user.is_superuser or bool(rol and rol.ver_estadisticas_operativas)
     if not puede_ver:
         messages.error(request, 'No tienes permiso para acceder a las Estadísticas Operativas.')
         return redirect('dashboard')
