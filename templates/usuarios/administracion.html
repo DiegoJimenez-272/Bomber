@@ -266,6 +266,11 @@
                             <option value="{{ compania.nombre }}">{{ compania.nombre }}</option>
                             {% endfor %}
                         </select>
+                        <select id="connectionFilter" class="form-select" style="max-width: 200px;" aria-label="Filtrar por conexión a la plataforma">
+                            <option value="">Filtrar por conexión</option>
+                            <option value="connected">Con conexión</option>
+                            <option value="never">Nunca se ha conectado</option>
+                        </select>
                     </div>
                 </div>
                 <div class="card-body">
@@ -286,7 +291,7 @@
                             </thead>
                             <tbody id="activeUsersTableBody">
                                 {% for user in active_users %}
-                                <tr>
+                                <tr data-has-connection="{{ user.last_login|yesno:'true,false' }}">
                                     <td>{{ user.get_full_name }}</td>
                                     <td>{{ user.email }}</td>
                                      <td>{{ user.clave_radial|default:"-" }}</td>
@@ -1334,6 +1339,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const searchInput = document.getElementById('userSearchInput');
     const roleFilter = document.getElementById('roleFilter');
     const companyFilter = document.getElementById('companyFilter');
+    const connectionFilter = document.getElementById('connectionFilter');
     const tableBody = document.getElementById('activeUsersTableBody');
     const rows = tableBody.getElementsByTagName('tr');
     const noResultsRow = document.getElementById('no-users-found-row');
@@ -1342,6 +1348,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const searchText = searchInput.value.toLowerCase();
         const selectedRole = roleFilter.value;
         const selectedCompany = companyFilter.value;
+        const selectedConnection = connectionFilter.value;
         let visibleRows = 0;
 
         for (let i = 0; i < rows.length; i++) {
@@ -1357,8 +1364,12 @@ document.addEventListener('DOMContentLoaded', function () {
             const matchesSearch = nameCell.includes(searchText) || emailCell.includes(searchText) || claveRadialCell.includes(searchText);
             const matchesRole = selectedRole === "" || roleCell === selectedRole;
             const matchesCompany = selectedCompany === "" || companyCell === selectedCompany;
+            const hasConnection = row.dataset.hasConnection === 'true';
+            const matchesConnection = selectedConnection === "" ||
+                (selectedConnection === "connected" && hasConnection) ||
+                (selectedConnection === "never" && !hasConnection);
 
-            if (matchesSearch && matchesRole && matchesCompany) {
+            if (matchesSearch && matchesRole && matchesCompany && matchesConnection) {
                 row.style.display = "";
                 visibleRows++;
             } else {
@@ -1376,6 +1387,7 @@ document.addEventListener('DOMContentLoaded', function () {
     searchInput.addEventListener('keyup', filterUsers);
     roleFilter.addEventListener('change', filterUsers);
     companyFilter.addEventListener('change', filterUsers);
+    connectionFilter.addEventListener('change', filterUsers);
 
     // --- Lógica para seleccionar/desmarcar todos los permisos ---
     window.toggleAllPermisos = function(formId) {
