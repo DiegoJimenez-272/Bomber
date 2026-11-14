@@ -271,6 +271,11 @@
                             <option value="connected">Con conexión</option>
                             <option value="never">Nunca se ha conectado</option>
                         </select>
+                        <select id="connectionSort" class="form-select" style="max-width: 220px;" aria-label="Ordenar usuarios por última conexión">
+                            <option value="">Orden original</option>
+                            <option value="newest">Conexión más reciente</option>
+                            <option value="oldest">Conexión más antigua</option>
+                        </select>
                     </div>
                 </div>
                 <div class="card-body">
@@ -291,7 +296,7 @@
                             </thead>
                             <tbody id="activeUsersTableBody">
                                 {% for user in active_users %}
-                                <tr data-has-connection="{{ user.last_login|yesno:'true,false' }}">
+                                <tr data-has-connection="{{ user.last_login|yesno:'true,false' }}" data-last-login="{% if user.last_login %}{{ user.last_login|date:'U' }}{% else %}0{% endif %}">
                                     <td>{{ user.get_full_name }}</td>
                                     <td>{{ user.email }}</td>
                                      <td>{{ user.clave_radial|default:"-" }}</td>
@@ -1340,9 +1345,27 @@ document.addEventListener('DOMContentLoaded', function () {
     const roleFilter = document.getElementById('roleFilter');
     const companyFilter = document.getElementById('companyFilter');
     const connectionFilter = document.getElementById('connectionFilter');
+    const connectionSort = document.getElementById('connectionSort');
     const tableBody = document.getElementById('activeUsersTableBody');
     const rows = tableBody.getElementsByTagName('tr');
     const noResultsRow = document.getElementById('no-users-found-row');
+    const userRows = Array.from(rows).filter(row => row.id !== 'no-users-found-row');
+
+    function sortUsersByConnection() {
+        const sortOrder = connectionSort.value;
+        const sortedRows = sortOrder ? [...userRows].sort((a, b) => {
+            const aLogin = Number(a.dataset.lastLogin) || 0;
+            const bLogin = Number(b.dataset.lastLogin) || 0;
+
+            // Los usuarios sin conexiones registradas permanecen al final.
+            if (!aLogin && bLogin) return 1;
+            if (aLogin && !bLogin) return -1;
+            return sortOrder === 'newest' ? bLogin - aLogin : aLogin - bLogin;
+        }) : userRows;
+
+        sortedRows.forEach(row => tableBody.appendChild(row));
+        if (noResultsRow) tableBody.appendChild(noResultsRow);
+    }
 
     function filterUsers() {
         const searchText = searchInput.value.toLowerCase();
@@ -1388,6 +1411,10 @@ document.addEventListener('DOMContentLoaded', function () {
     roleFilter.addEventListener('change', filterUsers);
     companyFilter.addEventListener('change', filterUsers);
     connectionFilter.addEventListener('change', filterUsers);
+    connectionSort.addEventListener('change', () => {
+        sortUsersByConnection();
+        filterUsers();
+    });
 
     // --- Lógica para seleccionar/desmarcar todos los permisos ---
     window.toggleAllPermisos = function(formId) {
