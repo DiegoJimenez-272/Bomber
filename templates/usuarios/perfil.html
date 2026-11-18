@@ -229,6 +229,7 @@
                         <li class="nav-item" role="presentation"><button class="btn btn-outline-danger active" id="edit-profile-tab" data-bs-toggle="tab" data-bs-target="#edit-profile" type="button" role="tab" aria-controls="edit-profile" aria-selected="true"><i class="bi bi-pencil-square me-1"></i>Editar Perfil</button></li>
                         
                         <li class="nav-item" role="presentation"><button class="btn btn-outline-danger" id="capacitaciones-tab" data-bs-toggle="tab" data-bs-target="#capacitaciones" type="button" role="tab" aria-controls="capacitaciones" aria-selected="false"><i class="bi bi-mortarboard-fill me-1"></i>Capacitaciones</button></li>
+                        <li class="nav-item" role="presentation"><button class="btn btn-outline-danger" id="participaciones-tab" data-bs-toggle="tab" data-bs-target="#participaciones" type="button" role="tab" aria-controls="participaciones" aria-selected="false"><i class="bi bi-calendar2-check me-1"></i>Mis participaciones</button></li>
                         <li class="nav-item" role="presentation"><button class="btn btn-outline-danger" id="equipamiento-tab" data-bs-toggle="tab" data-bs-target="#equipamiento" type="button" role="tab" aria-controls="equipamiento" aria-selected="false"><i class="bi bi-box-seam-fill me-1"></i>Mi Equipamiento</button></li>
                     </ul>
                 </div>
@@ -300,6 +301,70 @@
                                 </div>
                             {% endfor %}
                         </div>
+                    </div>
+
+                    <!-- Pestaña de salidas, emergencias y reuniones asociadas al usuario -->
+                    <div class="tab-pane fade" id="participaciones" role="tabpanel" aria-labelledby="participaciones-tab">
+                        <div class="d-flex align-items-center justify-content-between mb-4">
+                            <div>
+                                <h5 class="mb-1 fw-bold">Mi historial operativo</h5>
+                                <p class="text-muted small mb-0">Salidas, emergencias y reuniones donde apareces como participante o responsable.</p>
+                            </div>
+                        </div>
+
+                        <section class="mb-4" aria-labelledby="mis-salidas-titulo">
+                            <h6 id="mis-salidas-titulo" class="fw-bold border-bottom pb-2"><i class="bi bi-truck-front text-danger me-2"></i>Salidas a terreno <span class="badge bg-danger-subtle text-danger ms-1">{{ salidas_participadas.count }}</span></h6>
+                            <div class="list-group gap-2">
+                                {% for salida in salidas_participadas %}
+                                <article class="list-group-item rounded border shadow-sm">
+                                    <div class="d-flex flex-wrap justify-content-between gap-2">
+                                        <strong>{{ salida.motivo }}</strong>
+                                        <time class="small text-muted" datetime="{{ salida.fecha_hora_salida|date:'c' }}">{{ salida.fecha_hora_salida|date:"d/m/Y H:i" }}</time>
+                                    </div>
+                                    <div class="small text-muted mt-1"><i class="bi bi-geo-alt me-1"></i>{{ salida.direccion|default:"Sin dirección registrada" }}{% if salida.unidades_involucradas %}<span class="mx-2">·</span><i class="bi bi-truck me-1"></i>{{ salida.unidades_involucradas }}{% endif %}</div>
+                                    {% if salida.descripcion %}<p class="small mb-0 mt-2">{{ salida.descripcion|truncatewords:30 }}</p>{% endif %}
+                                </article>
+                                {% empty %}
+                                <p class="small text-muted mb-0 py-2">No tienes salidas a terreno registradas.</p>
+                                {% endfor %}
+                            </div>
+                        </section>
+
+                        <section class="mb-4" aria-labelledby="mis-emergencias-titulo">
+                            <h6 id="mis-emergencias-titulo" class="fw-bold border-bottom pb-2"><i class="bi bi-fire text-danger me-2"></i>Emergencias <span class="badge bg-danger-subtle text-danger ms-1">{{ emergencias_participadas.count }}</span></h6>
+                            <div class="list-group gap-2">
+                                {% for emergencia in emergencias_participadas %}
+                                <article class="list-group-item rounded border shadow-sm">
+                                    <div class="d-flex flex-wrap justify-content-between gap-2">
+                                        <strong>{{ emergencia.get_tipo_display }}</strong>
+                                        <time class="small text-muted" datetime="{{ emergencia.fecha_hora_alarma|date:'c' }}">{{ emergencia.fecha_hora_alarma|date:"d/m/Y H:i"|default:"Fecha no registrada" }}</time>
+                                    </div>
+                                    <div class="small text-muted mt-1"><i class="bi bi-geo-alt me-1"></i>{{ emergencia.direccion|default:"Sin dirección registrada" }}{% if emergencia.unidades_despachadas %}<span class="mx-2">·</span><i class="bi bi-truck me-1"></i>{{ emergencia.unidades_despachadas }}{% endif %}<span class="mx-2">·</span>{{ emergencia.get_estado_display }}</div>
+                                    {% if emergencia.descripcion %}<p class="small mb-0 mt-2">{{ emergencia.descripcion|truncatewords:30 }}</p>{% endif %}
+                                </article>
+                                {% empty %}
+                                <p class="small text-muted mb-0 py-2">No tienes emergencias registradas.</p>
+                                {% endfor %}
+                            </div>
+                        </section>
+
+                        <section aria-labelledby="mis-reuniones-titulo">
+                            <h6 id="mis-reuniones-titulo" class="fw-bold border-bottom pb-2"><i class="bi bi-people text-danger me-2"></i>Reuniones <span class="badge bg-danger-subtle text-danger ms-1">{{ reuniones_asistidas.count }}</span></h6>
+                            <div class="list-group gap-2">
+                                {% for reunion in reuniones_asistidas %}
+                                <article class="list-group-item rounded border shadow-sm">
+                                    <div class="d-flex flex-wrap justify-content-between gap-2">
+                                        <strong>{{ reunion.nombre }}</strong>
+                                        <time class="small text-muted" datetime="{{ reunion.fecha_inicio|date:'c' }}">{{ reunion.fecha_inicio|date:"d/m/Y H:i" }}</time>
+                                    </div>
+                                    <div class="small text-muted mt-1"><i class="bi bi-geo-alt me-1"></i>{{ reunion.lugar|default:"Lugar no especificado" }}</div>
+                                    {% if reunion.descripcion %}<p class="small mb-0 mt-2">{{ reunion.descripcion|truncatewords:30 }}</p>{% endif %}
+                                </article>
+                                {% empty %}
+                                <p class="small text-muted mb-0 py-2">No tienes reuniones registradas.</p>
+                                {% endfor %}
+                            </div>
+                        </section>
                     </div>
 
                     <!-- Pestaña Mi Equipamiento -->

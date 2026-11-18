@@ -3699,12 +3699,28 @@ def perfil_view(request):
 
 
     capacitaciones_asistidas = user.capacitaciones_asistidas.all()
+    reuniones_asistidas = capacitaciones_asistidas.filter(tipo_actividad='Reunión').order_by('-fecha_inicio')
+    salidas_participadas = SalidaTerreno.objects.filter(
+        Q(asistencias_unidades__asistentes=user) | Q(personal_a_cargo=user)
+    ).select_related('personal_a_cargo').prefetch_related(
+        'unidades', 'asistencias_unidades__unidad'
+    ).distinct().order_by('-fecha_hora_salida')
+    emergencias_participadas = Emergencia.objects.filter(
+        Q(asistentes=user) |
+        Q(unidades_asistencia__asistentes=user) |
+        Q(oficial_a_cargo=user)
+    ).select_related('oficial_a_cargo').prefetch_related(
+        'unidades_asistencia__unidad'
+    ).distinct().order_by('-fecha_hora_alarma')
     equipos_asignados = user.inventario_asignado.all()
     
     context = {
         'perfil_form': perfil_form,
 'user': user, 
         'capacitaciones_asistidas': capacitaciones_asistidas,
+        'reuniones_asistidas': reuniones_asistidas,
+        'salidas_participadas': salidas_participadas,
+        'emergencias_participadas': emergencias_participadas,
         'equipos_asignados': equipos_asignados
     }
     return render(request, 'usuarios/perfil.html', context)
