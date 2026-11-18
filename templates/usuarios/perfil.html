@@ -100,6 +100,34 @@
         color: #f8f9fa !important; /* Blanco Humo suave */
         box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
     }
+
+    @media (max-width: 575.98px) {
+        #profileTab {
+            display: grid !important;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.55rem !important;
+            overflow: visible !important;
+            margin-bottom: 0 !important;
+        }
+        #profileTab .nav-item {
+            min-width: 0;
+            width: 100%;
+        }
+        #profileTab button {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            min-height: 48px;
+            padding: 0.55rem 0.4rem;
+            white-space: normal;
+            line-height: 1.2;
+            font-size: 0.9rem;
+        }
+        #profileTab button i {
+            flex: 0 0 auto;
+        }
+    }
 </style>
 {% endblock %}
 
