@@ -110,7 +110,7 @@
                             <td>{{ emergencia.unidades_despachadas }}</td>
                             <td>
                                 {% if emergencia.asistencia_anterior %}
-                                    <details class="em-attendance-details mb-1">
+                                    <details class="em-attendance-details mb-1" {% if nombre_personal_filtro %}open{% endif %}>
                                         <summary>Asistencia anterior (sin unidad) · {{ emergencia.asistencia_anterior|length }} personas</summary>
                                         <div class="em-attendance-names">
                                             {% for usuario in emergencia.asistencia_anterior %}
@@ -123,7 +123,7 @@
                                     <div class="mb-1">
                                         {% with asistentes_unidad=detalle.asistentes_visibles %}
                                         {% if asistentes_unidad %}
-                                            <details class="em-attendance-details">
+                                            <details class="em-attendance-details" {% if nombre_personal_filtro %}open{% endif %}>
                                                 <summary>{{ detalle.unidad.nombre }} · {{ asistentes_unidad|length }} asistentes</summary>
                                                 <div class="em-attendance-names">
                                                     {% for usuario in asistentes_unidad %}

@@ -8,9 +8,9 @@ from django.contrib.auth import update_session_auth_hash
 from django.utils.html import escape
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.db import IntegrityError, transaction
-from django.db.models import Sum, Case, When, DecimalField, F, Q, Count, Prefetch
+from django.db.models import Sum, Case, When, DecimalField, F, Q, Count, Prefetch, Value
 from django.utils import timezone
-from django.db.models.functions import TruncDay
+from django.db.models.functions import TruncDay, Concat
 from datetime import datetime, timedelta
 from decimal import Decimal
 from urllib.parse import urlencode
@@ -2424,13 +2424,14 @@ def emergencias_view(request):
         emergencias = emergencias.filter(oficial_a_cargo__id=usuario_id)
 
     if nombre_personal:
-        emergencias = emergencias.filter(
-            Q(asistentes__nombre__icontains=nombre_personal) |
-            Q(asistentes__apellido__icontains=nombre_personal) |
-            Q(unidades_asistencia__asistentes__nombre__icontains=nombre_personal) |
-            Q(unidades_asistencia__asistentes__apellido__icontains=nombre_personal) |
-            Q(oficial_a_cargo__nombre__icontains=nombre_personal) |
-            Q(oficial_a_cargo__apellido__icontains=nombre_personal)
+        emergencias = emergencias.alias(
+            _nombre_asistente_directo=Concat('asistentes__nombre', Value(' '), 'asistentes__apellido'),
+            _nombre_asistente_unidad=Concat('unidades_asistencia__asistentes__nombre', Value(' '), 'unidades_asistencia__asistentes__apellido'),
+            _nombre_oficial=Concat('oficial_a_cargo__nombre', Value(' '), 'oficial_a_cargo__apellido'),
+        ).filter(
+            Q(_nombre_asistente_directo__icontains=nombre_personal) |
+            Q(_nombre_asistente_unidad__icontains=nombre_personal) |
+            Q(_nombre_oficial__icontains=nombre_personal)
         ).distinct()
 
     valid_sorts = ['-fecha_hora_alarma', 'fecha_hora_alarma', 'tipo', '-tipo']
