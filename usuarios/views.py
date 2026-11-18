@@ -2784,13 +2784,19 @@ def capacitaciones_view(request):
     
     base_filter = Q()
     base_filter_em = Q()
+    base_filter_salida_asistente = Q()
+    base_filter_salida_responsable = Q()
     if fecha_inicio_filtro:
         base_filter &= Q(capacitaciones_asistidas__fecha_inicio__gte=fecha_inicio_filtro)
         base_filter_em &= Q(emergencias_asistidas__fecha_hora_alarma__gte=fecha_inicio_filtro)
+        base_filter_salida_asistente &= Q(asistencias_salidas_terreno__salida__fecha_hora_salida__gte=fecha_inicio_filtro)
+        base_filter_salida_responsable &= Q(salidas_a_cargo__fecha_hora_salida__gte=fecha_inicio_filtro)
     if fecha_fin_filtro:
         # Añadir un día para incluir todo el día final (si se pasa solo la fecha)
         base_filter &= Q(capacitaciones_asistidas__fecha_inicio__lte=f"{fecha_fin_filtro} 23:59:59")
         base_filter_em &= Q(emergencias_asistidas__fecha_hora_alarma__lte=f"{fecha_fin_filtro} 23:59:59")
+        base_filter_salida_asistente &= Q(asistencias_salidas_terreno__salida__fecha_hora_salida__lte=f"{fecha_fin_filtro} 23:59:59")
+        base_filter_salida_responsable &= Q(salidas_a_cargo__fecha_hora_salida__lte=f"{fecha_fin_filtro} 23:59:59")
 
     usuarios_abono = Usuario.objects.miembros_activos().select_related('compania')
     if compania_filtro:
@@ -2803,10 +2809,28 @@ def capacitaciones_view(request):
         total_ejercicios_compania=Count('capacitaciones_asistidas', filter=base_filter & Q(capacitaciones_asistidas__tipo_actividad='Ejercicio de compañía'), distinct=True),
         total_campanas_economicas=Count('capacitaciones_asistidas', filter=base_filter & Q(capacitaciones_asistidas__tipo_actividad='Campaña económica'), distinct=True),
         total_charlas=Count('capacitaciones_asistidas', filter=base_filter & Q(capacitaciones_asistidas__tipo_actividad='Charla'), distinct=True),
-        total_visitas=Count('capacitaciones_asistidas', filter=base_filter & Q(capacitaciones_asistidas__tipo_actividad='Visita'), distinct=True),
+        total_salidas_terreno=(
+            Count('asistencias_salidas_terreno__salida', filter=base_filter_salida_asistente, distinct=True)
+            + Count('salidas_a_cargo', filter=base_filter_salida_responsable, distinct=True)
+            - Count(
+                'salidas_a_cargo',
+                filter=base_filter_salida_responsable & Q(salidas_a_cargo__asistencias_unidades__asistentes=F('pk')),
+                distinct=True,
+            )
+        ),
         total_otros=Count('capacitaciones_asistidas', filter=base_filter & Q(capacitaciones_asistidas__tipo_actividad='Otro'), distinct=True),
         total_emergencias=Count('emergencias_asistidas', filter=base_filter_em, distinct=True),
-        total_general=Count('capacitaciones_asistidas', filter=base_filter, distinct=True) + Count('emergencias_asistidas', filter=base_filter_em, distinct=True)
+        total_general=(
+            Count('capacitaciones_asistidas', filter=base_filter & ~Q(capacitaciones_asistidas__tipo_actividad='Visita'), distinct=True)
+            + Count('emergencias_asistidas', filter=base_filter_em, distinct=True)
+            + Count('asistencias_salidas_terreno__salida', filter=base_filter_salida_asistente, distinct=True)
+            + Count('salidas_a_cargo', filter=base_filter_salida_responsable, distinct=True)
+            - Count(
+                'salidas_a_cargo',
+                filter=base_filter_salida_responsable & Q(salidas_a_cargo__asistencias_unidades__asistentes=F('pk')),
+                distinct=True,
+            )
+        )
     ).order_by('nombre')
 
     context = {
