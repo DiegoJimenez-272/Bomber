@@ -2,6 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
 from django.contrib.auth import login, authenticate, logout
 from django.contrib.auth.decorators import login_required
+from django.core.paginator import Paginator
 from django.contrib import messages
 from django.contrib.auth import update_session_auth_hash
 from django.utils.html import escape
@@ -2262,6 +2263,44 @@ def salidas_terreno_view(request):
     if ordenar_por in valid_sorts:
         salidas = salidas.order_by(ordenar_por)
 
+    salidas_page = Paginator(salidas, 10).get_page(request.GET.get('page'))
+    salidas = salidas_page.object_list
+    pagination_query = request.GET.copy()
+    pagination_query.pop('page', None)
+    pagination_items = []
+    if salidas_page.paginator.num_pages > 1:
+        pagination_items.append({
+            'kind': 'previous', 'label': '‹',
+            'number': salidas_page.previous_page_number() if salidas_page.has_previous() else None,
+            'disabled': not salidas_page.has_previous(), 'aria_label': 'Página anterior',
+        })
+        first_page = max(1, salidas_page.number - 2)
+        last_page = min(salidas_page.paginator.num_pages, first_page + 4)
+        first_page = max(1, last_page - 4)
+        if first_page > 1:
+            pagination_items.append({'kind': 'number', 'label': '1', 'number': 1, 'active': False})
+            if first_page > 2:
+                pagination_items.append({'kind': 'gap', 'label': '…'})
+        for page_number in range(first_page, last_page + 1):
+            if page_number == 1 and first_page > 1:
+                continue
+            pagination_items.append({
+                'kind': 'number', 'label': str(page_number), 'number': page_number,
+                'active': page_number == salidas_page.number,
+            })
+        if last_page < salidas_page.paginator.num_pages:
+            if last_page < salidas_page.paginator.num_pages - 1:
+                pagination_items.append({'kind': 'gap', 'label': '…'})
+            last_number = salidas_page.paginator.num_pages
+            pagination_items.append({
+                'kind': 'number', 'label': str(last_number), 'number': last_number, 'active': False,
+            })
+        pagination_items.append({
+            'kind': 'next', 'label': '›',
+            'number': salidas_page.next_page_number() if salidas_page.has_next() else None,
+            'disabled': not salidas_page.has_next(), 'aria_label': 'Página siguiente',
+        })
+
     usuarios_con_salidas = Usuario.objects.filter(compania__isnull=False, salidas_a_cargo__isnull=False).distinct().order_by('nombre')
     motivos_unicos = SalidaTerreno.objects.values_list('motivo', flat=True).distinct().order_by('motivo')
     unidades_seleccionadas = form['unidades'].value() or []
@@ -2284,6 +2323,9 @@ def salidas_terreno_view(request):
         'unidades_seleccionadas': unidades_seleccionadas,
         'usuarios_asistencia': usuarios_asistencia,
         'salidas': salidas,
+        'salidas_page': salidas_page,
+        'pagination_query': pagination_query.urlencode(),
+        'pagination_items': pagination_items,
         'usuarios_con_salidas': usuarios_con_salidas,
         'motivos_unicos': motivos_unicos
     }
