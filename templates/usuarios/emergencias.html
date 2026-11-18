@@ -194,7 +194,7 @@
                     </tbody>
                 </table>
             </div>
-            <div id="emPaginationContainer" class="d-flex justify-content-between align-items-center flex-wrap gap-2 pt-3" hidden>
+            <div id="emPaginationContainer" class="system-pagination d-flex justify-content-between align-items-center flex-wrap gap-2 pt-3" hidden>
                 <small id="emPaginationInfo" class="text-muted" aria-live="polite"></small>
                 <nav aria-label="Paginación de emergencias"><ul id="emPagination" class="pagination pagination-sm mb-0"></ul></nav>
             </div>
@@ -465,19 +465,6 @@
         width: 171px;
         justify-content: center;
     }
-    #emPaginationContainer[hidden] { display: none !important; }
-    #emPagination .page-link {
-        color: #dc3545;
-        min-width: 38px;
-        min-height: 38px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        padding: .375rem .65rem;
-        font-size: .95rem;
-    }
-    #emPagination .page-item.active .page-link { color: #fff; background-color: #dc3545; border-color: #dc3545; }
-    #emPagination .page-link:focus-visible { box-shadow: 0 0 0 .2rem rgba(220, 53, 69, .2); }
 </style>
 <script>
 document.addEventListener('DOMContentLoaded', function () {

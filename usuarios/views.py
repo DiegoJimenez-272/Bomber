@@ -2,7 +2,6 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
 from django.contrib.auth import login, authenticate, logout
 from django.contrib.auth.decorators import login_required
-from django.core.paginator import Paginator
 from django.contrib import messages
 from django.contrib.auth import update_session_auth_hash
 from django.utils.html import escape
@@ -2263,11 +2262,6 @@ def salidas_terreno_view(request):
     if ordenar_por in valid_sorts:
         salidas = salidas.order_by(ordenar_por)
 
-    salidas_paginadas = Paginator(salidas, 25).get_page(request.GET.get('page'))
-    salidas = salidas_paginadas.object_list
-    pagination_query = request.GET.copy()
-    pagination_query.pop('page', None)
-
     usuarios_con_salidas = Usuario.objects.filter(compania__isnull=False, salidas_a_cargo__isnull=False).distinct().order_by('nombre')
     motivos_unicos = SalidaTerreno.objects.values_list('motivo', flat=True).distinct().order_by('motivo')
     unidades_seleccionadas = form['unidades'].value() or []
@@ -2290,8 +2284,6 @@ def salidas_terreno_view(request):
         'unidades_seleccionadas': unidades_seleccionadas,
         'usuarios_asistencia': usuarios_asistencia,
         'salidas': salidas,
-        'salidas_paginadas': salidas_paginadas,
-        'pagination_query': pagination_query.urlencode(),
         'usuarios_con_salidas': usuarios_con_salidas,
         'motivos_unicos': motivos_unicos
     }

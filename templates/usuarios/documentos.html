@@ -120,9 +120,9 @@
         </div>
         
         {% if carpetas %}
-        <div class="row row-cols-1 row-cols-md-3 row-cols-lg-4 g-3">
+        <div class="row row-cols-1 row-cols-md-3 row-cols-lg-4 g-3" data-pagination-list data-pagination-label="carpetas">
             {% for carpeta in carpetas %}
-            <div class="col">
+            <div class="col" data-pagination-item>
                 <a href="?carpeta={{ carpeta.id }}" class="text-decoration-none">
                     <div class="card h-100 shadow-sm border-0 folder-card position-relative" style="transition: transform 0.2s;">
                         <div class="card-body d-flex align-items-center">
@@ -173,7 +173,7 @@
                         <th scope="col">Acciones</th>
                     </tr>
                 </thead>
-                <tbody id="documentosTableBody">
+                <tbody id="documentosTableBody" data-pagination-label="documentos">
                     <tr id="no-docs-found" style="display: none;"><td colspan="6" class="text-center text-muted py-4">No se encontraron documentos con los filtros aplicados.</td></tr>
                     {% for doc in documentos %}
                     <tr>

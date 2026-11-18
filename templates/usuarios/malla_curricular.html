@@ -52,9 +52,9 @@
                     </div>
                     <i class="bi bi-mortarboard-fill" aria-hidden="true"></i>
                 </header>
-                <div class="malla-ramos">
+                <div class="malla-ramos" data-pagination-list data-pagination-label="ramos">
                     {% for ramo in nivel.ramos %}
-                    <article class="malla-ramo{% if not puede_editar_malla and not ramo.usuario_inscrito %} malla-ramo-no-cursando{% endif %}" {% if not puede_editar_malla and not ramo.usuario_inscrito %}title="No estás cursando este ramo"{% endif %}>
+                    <article class="malla-ramo{% if not puede_editar_malla and not ramo.usuario_inscrito %} malla-ramo-no-cursando{% endif %}" data-pagination-item {% if not puede_editar_malla and not ramo.usuario_inscrito %}title="No estás cursando este ramo"{% endif %}>
                         <div class="d-flex justify-content-between align-items-start gap-2">
                             <h3>{{ ramo.nombre }}{% if not puede_editar_malla and ramo.usuario_inscrito %} <span class="badge rounded-pill text-bg-success malla-cursando-badge">Cursando</span>{% endif %}</h3>
                             {% if ramo.aula_virtual %}<span class="malla-virtual" title="Incluye aula virtual"><i class="bi bi-globe2"></i></span>{% endif %}
@@ -95,9 +95,9 @@
                 <div><h2>{{ nivel.nombre }}</h2><p class="mb-0">Cursos que complementan la formación desde el nivel inicial.</p></div>
                 <span>{{ nivel.ramos|length }} cursos</span>
             </header>
-            <div class="row g-3 p-3">
+            <div class="row g-3 p-3" data-pagination-list data-pagination-label="cursos complementarios">
                 {% for ramo in nivel.ramos %}
-                <div class="col-12 col-md-6 col-xl-4">
+                <div class="col-12 col-md-6 col-xl-4" data-pagination-item>
                     <article class="malla-ramo malla-ramo-complementario h-100{% if not puede_editar_malla and not ramo.usuario_inscrito %} malla-ramo-no-cursando{% endif %}" {% if not puede_editar_malla and not ramo.usuario_inscrito %}title="No estás cursando este ramo"{% endif %}>
                         <div class="d-flex justify-content-between align-items-start gap-2"><h3>{{ ramo.nombre }}{% if not puede_editar_malla and ramo.usuario_inscrito %} <span class="badge rounded-pill text-bg-success malla-cursando-badge">Cursando</span>{% endif %}</h3><i class="bi bi-globe2 malla-virtual" title="Incluye aula virtual"></i></div>
                         <details class="malla-inscritos">

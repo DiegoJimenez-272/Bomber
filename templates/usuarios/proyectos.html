@@ -73,7 +73,7 @@
         No se encontraron proyectos con los filtros aplicados.
     </div>
 
-    <div id="proyectos-list">
+    <div id="proyectos-list" data-pagination-list data-pagination-label="proyectos">
         <!-- Bucle para listar los proyectos desde la base de datos -->
         {% for proyecto in proyectos %} 
             {% comment %} Lógica para determinar el estado del proyecto {% endcomment %}

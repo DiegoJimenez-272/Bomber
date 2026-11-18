@@ -109,9 +109,9 @@
                 No se encontraron cursos con los filtros aplicados.
             </div>
 
-            <div class="row row-cols-1 row-cols-lg-2 g-4" id="capacitaciones-list">
+            <div class="row row-cols-1 row-cols-lg-2 g-4" id="capacitaciones-list" data-pagination-list data-pagination-label="cursos">
                 {% for cap in cursos %}
-                <div class="col capacitacion-card" data-malla="{{ cap.malla }}" data-fecha="{{ cap.fecha_inicio|date:'Y-m-d' }}" data-companias="{% for c in cap.companias_invitadas.all %}{{ c.id }},{% endfor %}{% if cap.creado_por.compania %}{{ cap.creado_por.compania.id }},{% endif %}">
+                <div class="col capacitacion-card" data-pagination-item data-malla="{{ cap.malla }}" data-fecha="{{ cap.fecha_inicio|date:'Y-m-d' }}" data-companias="{% for c in cap.companias_invitadas.all %}{{ c.id }},{% endfor %}{% if cap.creado_por.compania %}{{ cap.creado_por.compania.id }},{% endif %}">
 
                     <div class="card h-100 shadow-sm border-primary border-opacity-25">
                         <div class="card-body">
@@ -254,9 +254,9 @@
                 No se encontraron actividades con los filtros aplicados.
             </div>
 
-            <div class="row row-cols-1 row-cols-lg-2 g-4" id="cap-intern-list">
+            <div class="row row-cols-1 row-cols-lg-2 g-4" id="cap-intern-list" data-pagination-list data-pagination-label="actividades">
                 {% for cap in actividades_internas %}
-                <div class="col cap-intern-card" data-tipo="{{ cap.tipo_actividad }}" data-nombre="{{ cap.nombre|lower }}" data-fecha="{{ cap.fecha_inicio|date:'Y-m-d' }}" data-companias="{{ cap.companias_filtro_ids }}">
+                <div class="col cap-intern-card" data-pagination-item data-tipo="{{ cap.tipo_actividad }}" data-nombre="{{ cap.nombre|lower }}" data-fecha="{{ cap.fecha_inicio|date:'Y-m-d' }}" data-companias="{{ cap.companias_filtro_ids }}">
 
                     <div class="card h-100 shadow-sm border-danger border-opacity-25">
                         <div class="card-body">
@@ -342,9 +342,9 @@
                 {% endfor %}
             </div>
             <h2 class="h5 mt-4 mb-3">Reuniones</h2>
-            <div class="row g-4" id="reuniones-list">
+            <div class="row g-4" id="reuniones-list" data-pagination-list data-pagination-label="reuniones">
                 {% for item in reuniones %}
-                <div class="col-12 col-md-6 col-lg-4 reunion-card"
+                <div class="col-12 col-md-6 col-lg-4 reunion-card" data-pagination-item
                      data-nombre="{{ item.nombre|lower }}"
                      data-tipo="Reunión"
                      data-fecha="{{ item.fecha_inicio|date:'Y-m-d' }}"
@@ -702,7 +702,7 @@
                         </tbody>
                     </table>
                 </div>
-                <div id="abonoPaginationContainer" class="d-flex justify-content-between align-items-center flex-wrap gap-2 p-3 border-top" hidden>
+                <div id="abonoPaginationContainer" class="system-pagination d-flex justify-content-between align-items-center flex-wrap gap-2 p-3 border-top" hidden>
                     <small id="abonoPaginationInfo" class="text-muted" aria-live="polite"></small>
                     <nav aria-label="Paginación de la lista de abonados">
                         <ul id="abonoPagination" class="pagination pagination-sm mb-0"></ul>
@@ -715,41 +715,6 @@
     </div> <!-- Cierre tab-content -->
 
     <style>
-        #abonoPaginationContainer[hidden] { display: none !important; }
-        #abonoPagination .page-link {
-            color: #dc3545;
-            border-color: #dee2e6;
-            min-width: 38px;
-            min-height: 38px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            padding: .375rem .65rem;
-            font-size: .95rem;
-        }
-        #abonoPagination .page-link:hover {
-            color: #a71d2a;
-            background-color: #fff0f1;
-            border-color: #f1b0b7;
-        }
-        #abonoPagination .page-item.active .page-link {
-            color: #fff;
-            background-color: #dc3545;
-            border-color: #dc3545;
-        }
-        #abonoPagination .page-link:focus-visible {
-            box-shadow: 0 0 0 .2rem rgba(220, 53, 69, .25);
-        }
-        body.dark-mode #abonoPagination .page-link {
-            color: #ff9aa2;
-            background-color: #343a40;
-            border-color: #495057;
-        }
-        body.dark-mode #abonoPagination .page-item.active .page-link {
-            color: #fff;
-            background-color: #dc3545;
-            border-color: #dc3545;
-        }
         .filter-panel {
             border: 1px solid #e1e5ea;
             border-radius: .65rem;

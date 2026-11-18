@@ -294,7 +294,7 @@
                                     <th>Acciones</th>
                                 </tr>
                             </thead>
-                            <tbody id="activeUsersTableBody">
+                            <tbody id="activeUsersTableBody" data-pagination-label="usuarios">
                                 {% for user in active_users %}
                                 <tr data-has-connection="{{ user.last_login|yesno:'true,false' }}" data-last-login="{% if user.last_login %}{{ user.last_login|date:'U' }}{% else %}0{% endif %}">
                                     <td>{{ user.get_full_name }}</td>
