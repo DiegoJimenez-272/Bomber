@@ -63,6 +63,12 @@
                         {% for user in usuarios_con_emergencias %}<option value="{{ user.id }}" {% if request.GET.usuario == user.id|stringformat:"s" %}selected{% endif %}>{{ user.get_full_name }}</option>{% endfor %}
                     </select>
                 </div>
+                {% if request.user.es_programador %}
+                <div class="col-lg-2">
+                    <label for="nombre_personal" class="form-label">Buscar participante</label>
+                    <input type="search" name="nombre_personal" id="nombre_personal" class="form-control" value="{{ nombre_personal_filtro }}" placeholder="Nombre o apellido" onchange="this.form.submit()">
+                </div>
+                {% endif %}
                 <div class="col-lg-2">
                     <label for="ordenar_por" class="form-label">Ordenar por</label>
                     <select name="ordenar_por" id="ordenar_por" class="form-select" onchange="this.form.submit()">

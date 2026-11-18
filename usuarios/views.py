@@ -2393,6 +2393,7 @@ def emergencias_view(request):
     fecha_inicio = request.GET.get('fecha_inicio')
     fecha_fin = request.GET.get('fecha_fin')
     usuario_id = request.GET.get('usuario')
+    nombre_personal = request.GET.get('nombre_personal', '').strip() if request.user.es_programador else ''
     ordenar_por = request.GET.get('ordenar_por', '-fecha_hora_alarma')
 
     emergencias = Emergencia.objects.select_related('oficial_a_cargo').prefetch_related(
@@ -2421,6 +2422,16 @@ def emergencias_view(request):
 
     if usuario_id:
         emergencias = emergencias.filter(oficial_a_cargo__id=usuario_id)
+
+    if nombre_personal:
+        emergencias = emergencias.filter(
+            Q(asistentes__nombre__icontains=nombre_personal) |
+            Q(asistentes__apellido__icontains=nombre_personal) |
+            Q(unidades_asistencia__asistentes__nombre__icontains=nombre_personal) |
+            Q(unidades_asistencia__asistentes__apellido__icontains=nombre_personal) |
+            Q(oficial_a_cargo__nombre__icontains=nombre_personal) |
+            Q(oficial_a_cargo__apellido__icontains=nombre_personal)
+        ).distinct()
 
     valid_sorts = ['-fecha_hora_alarma', 'fecha_hora_alarma', 'tipo', '-tipo']
     if ordenar_por in valid_sorts:
@@ -2472,6 +2483,7 @@ def emergencias_view(request):
         'form': form,
         'emergencias': emergencias,
         'usuarios_con_emergencias': usuarios_con_emergencias,
+        'nombre_personal_filtro': nombre_personal,
         'unidades_seleccionadas': unidades_seleccionadas,
         'usuarios_asistencia': usuarios_asistencia,
     }
