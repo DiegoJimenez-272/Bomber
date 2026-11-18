@@ -3,6 +3,15 @@
 
 {% block title %}Caja - {{ block.super }}{% endblock %}
 
+{% block extra_css %}
+<style>
+    .movimiento-mobile-card { border-left: 4px solid #dc3545; border-radius: .85rem; }
+    .movimiento-mobile-card .mov-mobile-label { color: #6c757d; font-size: .72rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
+    .movimiento-mobile-card .mov-mobile-actions .btn { min-height: 44px; }
+    body.dark-mode .movimiento-mobile-card .mov-mobile-label { color: #adb5bd; }
+</style>
+{% endblock %}
+
 {% block content %}
 <!-- Header del contenido principal -->
 <header class="d-flex align-items-center justify-content-between pb-3 mb-4 border-bottom">
@@ -124,6 +133,7 @@
     <div class="card shadow-sm">
         <div class="card-body">
             <h5 class="card-title">Historial de Movimientos</h5>
+            <div class="caja-desktop-view d-none d-md-block">
             <div class="table-responsive">
                 <table class="table table-hover">
                     <thead>
@@ -202,6 +212,43 @@
                         {% endfor %}
                     </tbody>
                 </table>
+            </div>
+            </div>
+            <div class="caja-mobile-view d-md-none">
+                <div class="d-flex flex-column gap-2" id="cajaMobileList" data-pagination-list data-pagination-label="movimientos">
+                    {% for mov in movimientos %}
+                    <article class="card movimiento-mobile-card" data-pagination-item data-mov-tipo="{{ mov.tipo|lower }}">
+                        <div class="card-body p-3">
+                            <div class="d-flex align-items-start justify-content-between gap-2">
+                                <div class="min-w-0"><div class="small text-muted"><i class="bi bi-calendar3 me-1"></i>{{ mov.fecha|date:"d/m/Y H:i" }}</div><h2 class="h6 fw-bold mb-1 mt-1">{{ mov.descripcion }}</h2></div>
+                                {% if mov.tipo == 'Ingreso' %}<span class="badge bg-success flex-shrink-0">Ingreso</span>{% else %}<span class="badge bg-danger flex-shrink-0">Egreso</span>{% endif %}
+                            </div>
+                            <div class="d-flex align-items-center justify-content-between gap-2 mt-2 py-2 border-top border-bottom">
+                                <span class="mov-mobile-label">Monto</span>
+                                <strong class="fs-5 {% if mov.tipo == 'Ingreso' %}text-success{% else %}text-danger{% endif %}">{% if mov.tipo == 'Ingreso' %}+{% else %}-{% endif %} ${{ mov.monto|floatformat:0|intcomma }}</strong>
+                            </div>
+                            <div class="row g-2 mt-2 small">
+                                <div class="col-6"><div class="mov-mobile-label">Tipo de cuenta</div><div>{{ mov.get_tipo_cuenta_display|default:"Sin especificar" }}</div></div>
+                                <div class="col-6"><div class="mov-mobile-label">Responsable</div><div>{{ mov.responsable.get_full_name|default:"N/A" }}</div></div>
+                                {% if request.user.is_superuser %}<div class="col-12"><div class="mov-mobile-label">Caja</div><span class="badge bg-secondary">{{ mov.compania.nombre|default:"General" }}</span></div>{% endif %}
+                            </div>
+                            <div class="d-flex flex-wrap gap-2 mt-3">
+                                {% if mov.documento_adjunto %}<a href="{{ mov.documento_adjunto.url }}" target="_blank" class="btn btn-sm btn-outline-secondary flex-fill"><i class="bi bi-paperclip me-1"></i>Ver comprobante</a>{% else %}<span class="small text-muted align-self-center">Sin comprobante</span>{% endif %}
+                            </div>
+                            {% if request.user.is_superuser or request.user.rol.editar_caja_chica %}
+                            <div class="mov-mobile-actions d-flex gap-2 mt-3 pt-3 border-top">
+                                <button type="button" class="btn btn-outline-danger flex-fill" data-bs-toggle="modal" data-bs-target="#editMovimientoModal"
+                                        data-mov-id="{{ mov.id }}" data-mov-tipo="{{ mov.tipo }}" data-mov-tipo-cuenta="{{ mov.tipo_cuenta }}"
+                                        data-mov-fecha="{{ mov.fecha|date:'Y-m-d' }}T{{ mov.fecha|date:'H:i' }}" data-mov-monto="{{ mov.monto|floatformat:'2u' }}"
+                                        data-mov-descripcion="{{ mov.descripcion }}" data-mov-compania="{{ mov.compania.id|default:'' }}"><i class="bi bi-pencil-fill me-1"></i>Editar</button>
+                                <button type="button" class="btn btn-outline-secondary flex-fill" data-bs-toggle="modal" data-bs-target="#deleteMovimientoModal" data-mov-id="{{ mov.id }}" data-mov-descripcion="{{ mov.descripcion }}"><i class="bi bi-trash-fill me-1"></i>Eliminar</button>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </article>
+                    {% empty %}<div class="text-center text-muted py-4">No hay movimientos registrados.</div>{% endfor %}
+                    <div id="no-caja-mobile-found" class="text-center text-muted py-3" style="display:none;">No se encontraron movimientos con los filtros aplicados.</div>
+                </div>
             </div>
         </div>
     </div>
@@ -410,6 +457,8 @@ document.addEventListener('DOMContentLoaded', function () {
     const cajaTypeFilter = document.getElementById('cajaTypeFilter');
     const cajaTableBody = document.getElementById('cajaTableBody');
     const noCajaRow = document.getElementById('no-caja-found');
+    const cajaMobileList = document.getElementById('cajaMobileList');
+    const noCajaMobileFound = document.getElementById('no-caja-mobile-found');
 
     function filterCaja() {
         if (!cajaTableBody) return;
@@ -433,9 +482,21 @@ document.addEventListener('DOMContentLoaded', function () {
         });
 
         if (noCajaRow) noCajaRow.style.display = visibleRows === 0 && rows.length > 0 ? "" : "none";
+
+        const mobileCards = cajaMobileList?.querySelectorAll('.movimiento-mobile-card') || [];
+        let visibleCards = 0;
+        mobileCards.forEach(card => {
+            const textContent = card.textContent.toLowerCase();
+            const matchesSearch = searchText === "" || textContent.includes(searchText);
+            const matchesType = selectedType === "" || card.dataset.movTipo === selectedType;
+            const visible = matchesSearch && matchesType;
+            card.style.display = visible ? "" : "none";
+            if (visible) visibleCards++;
+        });
+        if (noCajaMobileFound) noCajaMobileFound.style.display = mobileCards.length > 0 && visibleCards === 0 ? "" : "none";
     }
 
-    if (cajaSearchInput) cajaSearchInput.addEventListener('keyup', filterCaja);
+    if (cajaSearchInput) cajaSearchInput.addEventListener('input', filterCaja);
     if (cajaTypeFilter) cajaTypeFilter.addEventListener('change', filterCaja);
 });
 </script>

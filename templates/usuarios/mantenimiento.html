@@ -3,6 +3,15 @@
 
 {% block title %}Mantenimiento Vehicular - {{ block.super }}{% endblock %}
 
+{% block extra_css %}
+<style>
+    .mantenimiento-mobile-card { border-left: 4px solid #dc3545; border-radius: .85rem; }
+    .mantenimiento-mobile-card .mant-mobile-label { color: #6c757d; font-size: .72rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
+    .mantenimiento-mobile-card .mant-mobile-actions .btn { min-height: 44px; }
+    body.dark-mode .mantenimiento-mobile-card .mant-mobile-label { color: #adb5bd; }
+</style>
+{% endblock %}
+
 {% block content %}
 <!-- Header del contenido principal -->
 <header class="d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-3 pb-3 mb-4 border-bottom">
@@ -116,6 +125,7 @@
 
     <div class="card shadow-sm">
         <div class="card-body">
+            <div class="mantenimientos-desktop-view d-none d-md-block">
             <div class="table-responsive">
                 <table class="table table-hover">
                     <thead>
@@ -134,7 +144,7 @@
                 <tbody id="mantenimientosTableBody" data-pagination-label="mantenimientos">
                     <tr id="no-mants-found" style="display: none;"><td colspan="9" class="text-center text-muted py-4">No se encontraron mantenimientos con los filtros aplicados.</td></tr>
                         {% for mant in mantenimientos %}
-                        <tr>
+                        <tr data-mant-type="{{ mant.tipo|lower }}">
                             <td><strong>{{ mant.vehiculo }}</strong></td>
                             <td>{{ mant.fecha|date:"d/m/Y" }}</td>
                             <td>{{ mant.fecha_resolucion|date:"d/m/Y"|default:"-" }}</td>
@@ -200,6 +210,42 @@
                         {% endfor %}
                     </tbody>
                 </table>
+            </div>
+            </div>
+            <div class="mantenimientos-mobile-view d-md-none">
+                <div class="d-flex flex-column gap-2" id="mantenimientosMobileList" data-pagination-list data-pagination-label="mantenimientos">
+                    {% for mant in mantenimientos %}
+                    <article class="card mantenimiento-mobile-card" data-pagination-item data-mant-tipo="{{ mant.tipo|lower }}" data-mant-estado="{{ mant.estado|lower }}" data-responsable="{{ mant.responsable.get_full_name|default:'N/A'|lower }}">
+                        <div class="card-body p-3">
+                            <div class="d-flex align-items-start justify-content-between gap-2">
+                                <div class="min-w-0"><h2 class="h6 fw-bold mb-1 text-break">{{ mant.vehiculo }}</h2><p class="small mb-0">{{ mant.descripcion|truncatewords:16 }}</p></div>
+                                {% if mant.estado == 'Finalizado' %}<span class="badge bg-success flex-shrink-0">{{ mant.estado }}</span>
+                                {% elif mant.estado == 'En Progreso' %}<span class="badge bg-warning text-dark flex-shrink-0">{{ mant.estado }}</span>
+                                {% else %}<span class="badge bg-danger flex-shrink-0">{{ mant.estado }}</span>{% endif %}
+                            </div>
+                            <div class="row g-2 mt-2 py-2 border-top border-bottom">
+                                <div class="col-6"><div class="mant-mobile-label">Inicio</div><div class="small fw-semibold">{{ mant.fecha|date:"d/m/Y" }}</div></div>
+                                <div class="col-6"><div class="mant-mobile-label">Resolución</div><div class="small fw-semibold">{{ mant.fecha_resolucion|date:"d/m/Y"|default:"Pendiente" }}</div></div>
+                                <div class="col-6"><div class="mant-mobile-label">Costo</div><div class="small fw-bold text-danger">${{ mant.costo|floatformat:0|intcomma }}</div></div>
+                                <div class="col-6"><div class="mant-mobile-label">Responsable</div><div class="small fw-semibold">{{ mant.responsable.get_full_name|default:"N/A" }}</div></div>
+                            </div>
+                            <div class="d-flex flex-wrap gap-2 mt-2">
+                                {% for archivo in mant.archivos.all %}<a href="{{ archivo.archivo.url }}" target="_blank" class="btn btn-sm btn-outline-secondary"><i class="bi bi-paperclip me-1"></i>{{ archivo.archivo.name|cut:"mantenimientos_archivos/"|truncatechars:24 }}</a>{% empty %}<span class="small text-muted">Sin documentos adjuntos</span>{% endfor %}
+                            </div>
+                            {% if request.user.is_superuser or request.user.rol.editar_mantenimientos %}
+                            <div class="mant-mobile-actions d-flex gap-2 mt-3 pt-3 border-top">
+                                <button type="button" class="btn btn-outline-danger flex-fill" data-bs-toggle="modal" data-bs-target="#editMantenimientoModal"
+                                        data-mant-id="{{ mant.id }}" data-mant-fecha="{{ mant.fecha|date:'Y-m-d' }}" data-mant-fecha_resolucion="{{ mant.fecha_resolucion|date:'Y-m-d' }}"
+                                        data-mant-vehiculo="{{ mant.vehiculo }}" data-mant-costo="{{ mant.costo|default_if_none:'' }}" data-mant-responsable="{{ mant.responsable.id|default_if_none:'' }}"
+                                        data-mant-tipo="{{ mant.tipo }}" data-mant-descripcion="{{ mant.descripcion }}"><i class="bi bi-pencil-fill me-1"></i>Editar</button>
+                                <button type="button" class="btn btn-outline-secondary flex-fill" data-bs-toggle="modal" data-bs-target="#deleteMantenimientoModal" data-mant-id="{{ mant.id }}" data-mant-vehiculo="{{ mant.vehiculo }}"><i class="bi bi-trash-fill me-1"></i>Eliminar</button>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </article>
+                    {% empty %}<div class="text-center text-muted py-4">No hay mantenimientos registrados todavía.</div>{% endfor %}
+                    <div id="no-mants-mobile-found" class="text-center text-muted py-3" style="display:none;">No se encontraron mantenimientos con los filtros aplicados.</div>
+                </div>
             </div>
         </div>
     </div>
@@ -497,6 +543,8 @@ document.addEventListener('DOMContentLoaded', function () {
     const mantUserFilter = document.getElementById('mantUserFilter');
     const mantsTableBody = document.getElementById('mantenimientosTableBody');
     const noMantsRow = document.getElementById('no-mants-found');
+    const mantsMobileList = document.getElementById('mantenimientosMobileList');
+    const noMantsMobileFound = document.getElementById('no-mants-mobile-found');
 
     function filterMants() {
         if (!mantsTableBody) return;
@@ -516,7 +564,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const statusCell = row.cells[6] ? row.cells[6].textContent.trim().toLowerCase() : "";
             const userCell = row.cells[5] ? row.cells[5].textContent.toLowerCase() : "";
             const editBtn = row.querySelector('button[data-mant-tipo]');
-            let type = editBtn ? editBtn.getAttribute('data-mant-tipo').toLowerCase() : "";
+            let type = row.dataset.mantType || (editBtn ? editBtn.getAttribute('data-mant-tipo').toLowerCase() : "");
 
             const matchesSearch = searchText === "" || textContent.includes(searchText);
             const matchesType = selectedType === "" || type === selectedType;
@@ -527,9 +575,23 @@ document.addEventListener('DOMContentLoaded', function () {
             else { row.style.display = "none"; }
         });
         if (noMantsRow) noMantsRow.style.display = visibleRows === 0 && rows.length > 0 ? "" : "none";
+
+        const mobileCards = mantsMobileList?.querySelectorAll('.mantenimiento-mobile-card') || [];
+        let visibleCards = 0;
+        mobileCards.forEach(card => {
+            const textContent = card.textContent.toLowerCase();
+            const matchesSearch = searchText === "" || textContent.includes(searchText);
+            const matchesType = selectedType === "" || card.dataset.mantTipo === selectedType;
+            const matchesStatus = selectedStatus === "" || card.dataset.mantEstado === selectedStatus;
+            const matchesUser = !isUserSelected || (card.dataset.responsable || '').includes(selectedUserText) || selectedUserText === "todos";
+            const visible = matchesSearch && matchesType && matchesStatus && matchesUser;
+            card.style.display = visible ? "" : "none";
+            if (visible) visibleCards++;
+        });
+        if (noMantsMobileFound) noMantsMobileFound.style.display = mobileCards.length > 0 && visibleCards === 0 ? "" : "none";
     }
 
-    if (mantSearchInput) mantSearchInput.addEventListener('keyup', filterMants);
+    if (mantSearchInput) mantSearchInput.addEventListener('input', filterMants);
     if (mantTypeFilter) mantTypeFilter.addEventListener('change', filterMants);
     if (mantStatusFilter) mantStatusFilter.addEventListener('change', filterMants);
     if (mantUserFilter) mantUserFilter.addEventListener('change', filterMants);

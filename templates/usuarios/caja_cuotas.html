@@ -65,6 +65,7 @@
             <span class="small">Selecciona el mes de un voluntario para registrar o actualizar su cuota.</span>
         </div>
         <div class="card-body p-0">
+            <div class="cuotas-desktop-view d-none d-md-block">
             <div class="table-responsive">
                 <table class="table table-sm table-bordered table-hover align-middle mb-0 cuotas-table">
                     <thead class="table-light text-center">
@@ -124,6 +125,48 @@
                         </tr>
                     </tfoot>
                 </table>
+            </div>
+            </div>
+            <div class="cuotas-mobile-view d-md-none">
+                <div class="d-flex flex-column gap-2" id="cuotasMobileList" data-pagination-list data-pagination-label="voluntarios">
+                    {% for fila in filas %}
+                    <article class="card cuota-voluntario-mobile-card" data-pagination-item>
+                        <div class="card-body p-3">
+                            <div class="d-flex align-items-start justify-content-between gap-2 mb-3">
+                                <div class="min-w-0">
+                                    <h3 class="h6 fw-bold mb-1">{{ fila.voluntario.get_full_name }}</h3>
+                                    <div class="small text-muted">C.R. {{ fila.voluntario.clave_radial|default:'—' }}{% if request.user.is_superuser %} · {{ fila.voluntario.compania.nombre|default:'Sin compañía' }}{% endif %}</div>
+                                </div>
+                                <div class="text-end flex-shrink-0"><div class="cuota-mobile-label">Total {{ anio }}</div><strong class="text-success">${{ fila.total|floatformat:0|intcomma }}</strong></div>
+                            </div>
+                            <div class="row row-cols-3 g-2">
+                                {% for detalle in fila.cuotas_detalle %}
+                                <div class="col">
+                                    <div class="cuota-mobile-month">
+                                        <div class="cuota-mobile-label">{{ detalle.mes }}</div>
+                                        {% if permite_editar %}
+                                        <button type="button" class="btn btn-sm {% if detalle.cuota %}btn-outline-secondary{% else %}btn-outline-danger{% endif %} w-100 cuota-edit-btn"
+                                                data-bs-toggle="modal" data-bs-target="#cuotaModal"
+                                                data-voluntario-id="{{ fila.voluntario.id }}" data-voluntario="{{ fila.voluntario.get_full_name }}"
+                                                data-mes="{{ detalle.numero }}"
+                                                {% if detalle.cuota %}data-monto="{{ detalle.cuota.movimiento.monto|floatformat:'2u' }}" data-fecha="{{ detalle.cuota.movimiento.fecha|date:'Y-m-d' }}T{{ detalle.cuota.movimiento.fecha|date:'H:i' }}"{% endif %}>
+                                            {% if detalle.cuota %}${{ detalle.cuota.movimiento.monto|floatformat:0|intcomma }}{% else %}<i class="bi bi-plus-lg" aria-label="Registrar cuota"></i>{% endif %}
+                                        </button>
+                                        {% elif detalle.cuota %}<div class="cuota-mobile-value">${{ detalle.cuota.movimiento.monto|floatformat:0|intcomma }}</div>
+                                        {% else %}<div class="cuota-mobile-value text-muted">—</div>{% endif %}
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </article>
+                    {% empty %}<div class="text-center text-muted py-4">No hay voluntarios activos en la compañía seleccionada.</div>{% endfor %}
+                </div>
+            </div>
+            <div class="card border-success mt-3 d-md-none">
+                <div class="card-body d-flex justify-content-between align-items-center gap-2 py-3">
+                    <strong>Monto final recaudado</strong><strong class="fs-5 text-success">${{ total_final|floatformat:0|intcomma }}</strong>
+                </div>
             </div>
         </div>
     </div>
@@ -188,8 +231,15 @@
     .cuotas-table { min-width: 1180px; }
     .cuotas-table thead th { white-space: nowrap; }
     .cuota-edit-btn { min-width: 54px; }
+    .cuota-voluntario-mobile-card { border-left: 4px solid #dc3545; border-radius: .85rem; }
+    .cuota-mobile-month { height: 100%; padding: .45rem; border: 1px solid var(--card-border, #dee2e6); border-radius: .55rem; text-align: center; }
+    .cuota-mobile-month .btn { min-height: 38px; padding: .25rem .1rem; font-size: .78rem; }
+    .cuota-mobile-label { color: #6c757d; font-size: .68rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
+    .cuota-mobile-value { padding: .35rem 0; font-size: .78rem; font-weight: 600; }
     body.dark-mode .cuotas-table tbody td.bg-success-subtle { background-color: #164e3b !important; color: #d1e7dd !important; }
     body.dark-mode .cuotas-table tfoot tr.table-danger td { background-color: #842029 !important; color: #fff !important; border-color: #b02a37; }
+    body.dark-mode .cuota-mobile-month { border-color: #495057; }
+    body.dark-mode .cuota-mobile-label { color: #adb5bd; }
     body.dark-mode .cuota-file-help { color: #adb5bd !important; }
     body.dark-mode .cuota-file-input::file-selector-button { background-color: #343a40; color: #f8f9fa; border-color: #6c757d; }
     body.dark-mode .cuota-file-input:hover::file-selector-button { background-color: #495057; color: #fff; }
