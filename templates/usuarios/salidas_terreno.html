@@ -44,7 +44,7 @@
     <div class="card shadow-sm mb-4">
         <div class="card-body">
             <form method="get" class="row g-3 align-items-end salidas-filter-form">
-                <div class="col-lg-4">
+                <div class="col-lg-3">
                     <label for="q" class="form-label">Buscar por dirección, unidades...</label>
                     <input type="text" name="q" id="salidaSearchInput" class="form-control" value="{{ request.GET.q|default:'' }}">
                 </div>
@@ -72,6 +72,10 @@
                         <option value="motivo" {% if request.GET.ordenar_por == 'motivo' %}selected{% endif %}>Motivo (A-Z)</option>
                         <option value="-motivo" {% if request.GET.ordenar_por == '-motivo' %}selected{% endif %}>Motivo (Z-A)</option>
                     </select>
+                </div>
+                <div class="col-lg-1">
+                    <label class="form-label d-none d-lg-block">&nbsp;</label>
+                    <button type="submit" class="btn btn-outline-danger w-100" aria-label="Buscar salidas"><i class="bi bi-search"></i></button>
                 </div>
             </form>
         </div>
@@ -174,6 +178,32 @@
                     </tbody>
                 </table>
             </div>
+            {% if salidas_paginadas.paginator.num_pages > 1 %}
+            <nav class="d-flex flex-column flex-sm-row justify-content-between align-items-center gap-2 mt-3" aria-label="Paginación de salidas a terreno">
+                <small class="text-muted">
+                    Mostrando {{ salidas_paginadas.start_index }}–{{ salidas_paginadas.end_index }} de {{ salidas_paginadas.paginator.count }} salidas
+                </small>
+                <ul class="pagination pagination-sm mb-0">
+                    {% if salidas_paginadas.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?{% if pagination_query %}{{ pagination_query }}&amp;{% endif %}page={{ salidas_paginadas.previous_page_number }}" aria-label="Página anterior">Anterior</a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled"><span class="page-link">Anterior</span></li>
+                    {% endif %}
+                    <li class="page-item active" aria-current="page"><span class="page-link">{{ salidas_paginadas.number }} / {{ salidas_paginadas.paginator.num_pages }}</span></li>
+                    {% if salidas_paginadas.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?{% if pagination_query %}{{ pagination_query }}&amp;{% endif %}page={{ salidas_paginadas.next_page_number }}" aria-label="Página siguiente">Siguiente</a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled"><span class="page-link">Siguiente</span></li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% elif salidas_paginadas.paginator.count %}
+            <div class="text-end mt-3"><small class="text-muted">{{ salidas_paginadas.paginator.count }} salidas</small></div>
+            {% endif %}
         </div>
     </div>
 </main>
