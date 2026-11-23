@@ -256,12 +256,12 @@
                                     <thead>
                                         <tr>
                                             <th>Ítem</th>
-                                            <th class="text-center">Total General</th>
-                                            <th class="text-center">Asignados</th>
-                                            <th class="text-center">Disponibles</th>
-                                            <th class="text-center text-success">Buenos</th>
-                                            <th class="text-center text-warning">Regulares</th>
-                                            <th class="text-center text-danger">Malos/Baja/Reparación</th>
+                                            <th class="text-center">Total general de materiales</th>
+                                            <th class="text-center">Materiales asignados</th>
+                                            <th class="text-center">Materiales disponibles</th>
+                                            <th class="text-center text-success">Materiales buenos</th>
+                                            <th class="text-center text-warning">Materiales regulares</th>
+                                            <th class="text-center text-danger">Materiales malos / baja / reparación</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -1286,7 +1286,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 fila.hidden = indice < inicio || indice >= inicio + filasPorPagina;
             });
 
-            infoResumen.textContent = `Mostrando ${inicio + 1}–${Math.min(inicio + filasPorPagina, filasResumen.length)} de ${filasResumen.length} materiales`;
+            infoResumen.textContent = `Mostrando ${inicio + 1}–${Math.min(inicio + filasPorPagina, filasResumen.length)} de ${filasResumen.length} Items`;
             paginasResumen.replaceChildren();
             if (totalPaginas <= 1) {
                 resumenGeneralPagination.hidden = true;
