@@ -165,6 +165,7 @@ class ArchivoProyecto(models.Model):
 
 class Carpeta(models.Model):
     nombre = models.CharField(max_length=100)
+    padre = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True, related_name='subcarpetas')
     compania = models.ForeignKey(Compania, on_delete=models.CASCADE, null=True, blank=True, related_name='carpetas')
     creado_por = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
     creado_en = models.DateTimeField(auto_now_add=True)
@@ -196,6 +197,7 @@ class Documento(models.Model):
     subido_en = models.DateTimeField(auto_now_add=True)
     es_privado = models.BooleanField(default=False)
     es_de_inspector = models.BooleanField(default=False)
+    vigente = models.BooleanField(default=True, verbose_name='Documento vigente')
 
     def __str__(self):
         return self.nombre
@@ -209,6 +211,12 @@ class Documento(models.Model):
             except Exception:
                 return False
         return False
+
+    @property
+    def extension_archivo(self):
+        """Devuelve la extensión del archivo en minúsculas para la vista previa."""
+        nombre = self.archivo.name if self.archivo else ''
+        return nombre.rsplit('.', 1)[-1].lower() if '.' in nombre else ''
 
     @property
     def tamano_seguro(self):

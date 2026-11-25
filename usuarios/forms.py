@@ -348,23 +348,47 @@ class ArchivoProyectoForm(forms.Form):
         required=False
     )
 
+def etiqueta_ruta_carpeta(carpeta):
+    nombres = [carpeta.nombre]
+    padre = carpeta.padre
+    while padre:
+        nombres.append(padre.nombre)
+        padre = padre.padre
+    return ' / '.join(reversed(nombres))
+
+
 class CarpetaForm(forms.ModelForm):
     class Meta:
         model = Carpeta
-        fields = ['nombre', 'compania', 'es_privado']
+        fields = ['nombre', 'compania', 'es_privado', 'padre']
         widgets = {
             'nombre': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Nombre de la carpeta'}),
             'compania': forms.Select(attrs={'class': 'form-select'}),
             'es_privado': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'padre': forms.Select(attrs={'class': 'form-select'}),
         }
 
     def __init__(self, *args, **kwargs):
         self.user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
+
+        if 'padre' in self.fields:
+            self.fields['padre'].queryset = Carpeta.objects.filter(es_de_inspector=False)
+            self.fields['padre'].label = 'Carpeta principal (opcional)'
+            self.fields['padre'].required = False
+            self.fields['padre'].empty_label = 'Raíz (sin carpeta principal)'
+            self.fields['padre'].label_from_instance = etiqueta_ruta_carpeta
         
         if self.user and not self.user.is_superuser:
             if 'compania' in self.fields:
                 del self.fields['compania']
+            if 'padre' in self.fields:
+                if self.user.compania:
+                    self.fields['padre'].queryset = self.fields['padre'].queryset.filter(
+                        models.Q(compania=self.user.compania) | models.Q(compania__isnull=True)
+                    )
+                else:
+                    self.fields['padre'].queryset = self.fields['padre'].queryset.filter(compania__isnull=True)
         elif 'compania' in self.fields:
             self.fields['compania'].queryset = Compania.objects.all()
             self.fields['compania'].empty_label = "General (Visible para todos)"
@@ -406,6 +430,9 @@ class DocumentoForm(forms.ModelForm):
                 self.fields['compania'].empty_label = "General (Visible para todos)"
                 self.fields['compania'].required = False
             self.fields['carpeta'].queryset = Carpeta.objects.all()
+
+        self.fields['carpeta'].queryset = self.fields['carpeta'].queryset.filter(es_de_inspector=False)
+        self.fields['carpeta'].label_from_instance = etiqueta_ruta_carpeta
         
         self.fields['carpeta'].empty_label = "Sin Carpeta (Raíz)"
         self.fields['carpeta'].required = False
@@ -1216,3 +1243,5 @@ class InspectorCarpetaForm(CarpetaForm):
         super().__init__(*args, **kwargs)
         if 'compania' in self.fields:
             del self.fields['compania']
+        if 'padre' in self.fields:
+            self.fields['padre'].queryset = Carpeta.objects.filter(es_de_inspector=True)

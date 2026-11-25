@@ -1177,12 +1177,90 @@ def documentos_view(request):
         messages.error(request, 'No tienes permiso para acceder a Documentos.')
         return redirect('dashboard')
 
+    carpetas_accesibles = Carpeta.objects.filter(es_de_inspector=False)
+    if not request.user.is_superuser:
+        if request.user.compania:
+            carpetas_accesibles = carpetas_accesibles.filter(
+                Q(compania=request.user.compania) | Q(compania__isnull=True)
+            )
+        else:
+            carpetas_accesibles = carpetas_accesibles.filter(compania__isnull=True)
+    carpetas_accesibles = carpetas_accesibles.filter(
+        Q(es_privado=False) | Q(creado_por=request.user)
+    ).distinct()
+    documentos_accesibles = Documento.objects.filter(es_de_inspector=False)
+    if not request.user.is_superuser:
+        if request.user.compania:
+            documentos_accesibles = documentos_accesibles.filter(
+                Q(compania=request.user.compania) | Q(compania__isnull=True)
+            )
+        else:
+            documentos_accesibles = documentos_accesibles.filter(compania__isnull=True)
+    documentos_accesibles = documentos_accesibles.filter(
+        Q(es_privado=False) | Q(subido_por=request.user)
+    ).distinct()
+
     if request.method == 'POST':
         if not request.user.is_superuser and not (request.user.rol and request.user.rol.editar_documentacion):
             messages.error(request, 'No tienes permiso para modificar documentos.')
             return redirect_to_previous_page(request, reverse('documentos'))
             
         accion = request.POST.get('action')
+        if accion in ('cambiar_vigencia', 'mover_documento'):
+            documento = get_object_or_404(documentos_accesibles, id=request.POST.get('documento_id'))
+            if not pertenencia_compania(request.user, documento.compania):
+                messages.error(request, 'No tienes acceso a este documento.')
+                return redirect_to_previous_page(request, reverse('documentos'))
+            if accion == 'cambiar_vigencia':
+                documento.vigente = not documento.vigente
+                documento.save(update_fields=['vigente'])
+                estado = 'vigente' if documento.vigente else 'obsoleto'
+                messages.success(request, f'“{documento.nombre}” quedó marcado como {estado}.')
+                return redirect_to_previous_page(request, reverse('documentos'))
+
+            destino_id = request.POST.get('destino')
+            destino = None
+            if destino_id:
+                destino = get_object_or_404(carpetas_accesibles, id=destino_id)
+                if destino.compania_id and destino.compania_id != documento.compania_id:
+                    messages.error(request, 'El documento y la carpeta deben pertenecer a la misma compañía.')
+                    return redirect_to_previous_page(request, reverse('documentos'))
+            documento.carpeta = destino
+            documento.save(update_fields=['carpeta'])
+            messages.success(request, f'“{documento.nombre}” se movió correctamente.')
+            return redirect_to_previous_page(request, reverse('documentos'))
+
+        if accion == 'mover_carpeta':
+            carpeta = get_object_or_404(
+                carpetas_accesibles,
+                id=request.POST.get('carpeta_id'),
+            )
+            if carpeta.padre_id:
+                get_object_or_404(carpetas_accesibles, id=carpeta.padre_id)
+            destino_id = request.POST.get('destino')
+            destino = None
+            if destino_id:
+                destino = get_object_or_404(carpetas_accesibles, id=destino_id)
+                if destino.pk == carpeta.pk:
+                    messages.error(request, 'Una carpeta no puede moverse dentro de sí misma.')
+                    return redirect_to_previous_page(request, reverse('documentos'))
+                if destino.compania_id and destino.compania_id != carpeta.compania_id:
+                    messages.error(request, 'La carpeta y su destino deben pertenecer a la misma compañía.')
+                    return redirect_to_previous_page(request, reverse('documentos'))
+                descendientes = set()
+                pendientes = [carpeta.pk]
+                while pendientes:
+                    hijos = list(Carpeta.objects.filter(padre_id__in=pendientes).values_list('id', flat=True))
+                    descendientes.update(hijos)
+                    pendientes = hijos
+                if destino.pk in descendientes:
+                    messages.error(request, 'No puedes mover una carpeta dentro de una de sus subcarpetas.')
+                    return redirect_to_previous_page(request, reverse('documentos'))
+            carpeta.padre = destino
+            carpeta.save(update_fields=['padre'])
+            messages.success(request, f'La carpeta “{carpeta.nombre}” se movió correctamente.')
+            return redirect_to_previous_page(request, reverse('documentos'))
+
         if accion == 'crear_texto':
             nombre = request.POST.get('nombre_texto')
             descripcion = request.POST.get('descripcion_texto', '')
@@ -1227,9 +1305,10 @@ def documentos_view(request):
             
             if carpeta_id:
                 try:
-                    documento.carpeta = Carpeta.objects.get(id=carpeta_id)
+                    documento.carpeta = carpetas_accesibles.get(id=carpeta_id)
                 except Carpeta.DoesNotExist:
-                    pass
+                    messages.error(request, 'La carpeta seleccionada no está disponible.')
+                    return redirect_to_previous_page(request, reverse('documentos'))
             
             if request.user.is_superuser and compania_id:
                 try:
@@ -1246,11 +1325,17 @@ def documentos_view(request):
             return redirect_to_previous_page(request, reverse('documentos'))
         elif accion == 'crear_carpeta':
             carpeta_form = CarpetaForm(request.POST, user=request.user)
+            carpeta_form.fields['padre'].queryset = carpetas_accesibles
             if carpeta_form.is_valid():
                 carpeta = carpeta_form.save(commit=False)
                 carpeta.creado_por = request.user
                 if not request.user.is_superuser and request.user.compania:
                     carpeta.compania = request.user.compania
+                if carpeta.padre_id:
+                    if carpeta.padre.compania_id:
+                        carpeta.compania = carpeta.padre.compania
+                    elif request.user.is_superuser:
+                        carpeta.compania = None
                 carpeta.save()
                 carpeta_form.save_m2m()
                 messages.success(request, f'Carpeta "{carpeta.nombre}" creada exitosamente.')
@@ -1276,6 +1361,7 @@ def documentos_view(request):
         form = DocumentoForm(user=request.user)
     
     carpeta_form = CarpetaForm(user=request.user)
+    carpeta_form.fields['padre'].queryset = carpetas_accesibles
     
     # --- Lógica de Búsqueda y Filtros ---
     query = request.GET.get('q')
@@ -1286,7 +1372,7 @@ def documentos_view(request):
     carpeta_id = request.GET.get('carpeta')
 
     documentos = Documento.objects.select_related('subido_por', 'compania', 'carpeta').filter(es_de_inspector=False)
-    carpetas = Carpeta.objects.select_related('compania', 'creado_por').filter(es_de_inspector=False)
+    carpetas = Carpeta.objects.select_related('compania', 'creado_por', 'padre').filter(es_de_inspector=False)
 
     if not request.user.is_superuser:
         if request.user.compania:
@@ -1307,17 +1393,34 @@ def documentos_view(request):
         Q(creado_por=request.user)
     ).distinct()
             
+    carpetas_accesibles = carpetas
+
     # Filtrar por carpeta actual
     carpeta_actual = None
     if carpeta_id:
         try:
             carpeta_actual = carpetas.get(id=carpeta_id)
             documentos = documentos.filter(carpeta=carpeta_actual)
-            carpetas = Carpeta.objects.none() # No mostramos subcarpetas por ahora
+            carpetas = carpetas.filter(padre=carpeta_actual)
         except Carpeta.DoesNotExist:
             documentos = documentos.filter(carpeta__isnull=True)
+            carpetas = carpetas.filter(padre__isnull=True)
     else:
         documentos = documentos.filter(carpeta__isnull=True)
+        carpetas = carpetas.filter(padre__isnull=True)
+
+    ruta_carpetas = []
+    ancestro = carpeta_actual
+    while ancestro:
+        ruta_carpetas.append(ancestro)
+        ancestro = ancestro.padre
+    ruta_carpetas.reverse()
+
+    estado_documento = request.GET.get('estado')
+    if estado_documento == 'vigente':
+        documentos = documentos.filter(vigente=True)
+    elif estado_documento == 'obsoleto':
+        documentos = documentos.filter(vigente=False)
 
     # Filtrar por término de búsqueda
     if query:
@@ -1359,12 +1462,23 @@ def documentos_view(request):
     else:
         usuarios_con_docs = Usuario.objects.filter(compania__isnull=False, documento__isnull=False, documento__es_de_inspector=False).distinct().order_by('nombre')
 
+    carpetas_destino = list(carpetas_accesibles.select_related('padre').order_by('nombre'))
+    for carpeta_destino in carpetas_destino:
+        nombres_ruta = [carpeta_destino.nombre]
+        padre_ruta = carpeta_destino.padre
+        while padre_ruta:
+            nombres_ruta.append(padre_ruta.nombre)
+            padre_ruta = padre_ruta.padre
+        carpeta_destino.nombre_ruta = ' / '.join(reversed(nombres_ruta))
+
     context = {
         'form': form, 
         'carpeta_form': carpeta_form,
         'documentos': documentos, 
         'carpetas': carpetas,
         'carpeta_actual': carpeta_actual,
+        'ruta_carpetas': ruta_carpetas,
+        'carpetas_destino': carpetas_destino,
         'usuarios_con_docs': usuarios_con_docs,
         'tipos_documento': Documento.TIPO_DOCUMENTO_CHOICES
     }
@@ -1389,6 +1503,10 @@ def documento_descargar_view(request, doc_id):
     if documento.es_privado and documento.subido_por != request.user and not request.user.is_superuser:
         messages.error(request, 'Este documento es privado.')
         return redirect('documentos')
+
+    if not documento.vigente:
+        messages.warning(request, 'Este documento está marcado como obsoleto y su descarga está deshabilitada.')
+        return redirect('inspectores' if documento.es_de_inspector else 'documentos')
 
     if not documento.archivo_existe:
         messages.error(request, 'El archivo solicitado no se encuentra físicamente en el servidor.')

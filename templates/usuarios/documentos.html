@@ -24,7 +24,7 @@
     </div>
     {% if request.user.is_superuser or request.user.rol.editar_documentacion %}
         <div class="d-flex gap-2 flex-wrap justify-content-start justify-content-sm-end document-header-actions">
-            <button class="btn btn-outline-secondary" type="button" title="Crear Carpeta" aria-label="Crear Carpeta" data-bs-toggle="modal" data-bs-target="#createCarpetaModal">
+            <button class="btn btn-outline-secondary" type="button" title="Crear Carpeta" aria-label="Crear Carpeta" data-current-folder="{{ carpeta_actual.id|default:'' }}" data-bs-toggle="modal" data-bs-target="#createCarpetaModal">
                 <i class="bi bi-folder-plus me-1 document-action-icon"></i><span class="document-action-label">Crear Carpeta</span>
             </button>
             <button class="btn btn-outline-danger" type="button" title="Redactar Documento" aria-label="Redactar Documento" data-bs-toggle="modal" data-bs-target="#writeDocumentModal">
@@ -103,6 +103,14 @@
                         <option value="-nombre" {% if request.GET.ordenar_por == '-nombre' %}selected{% endif %}>Nombre (Z-A)</option>
                     </select>
                 </div>
+                <div class="col-lg-2">
+                    <label for="estado_documento" class="form-label">Vigencia</label>
+                    <select name="estado" id="estado_documento" class="form-select" onchange="this.form.submit()">
+                        <option value="">Vigentes y obsoletos</option>
+                        <option value="vigente" {% if request.GET.estado == 'vigente' %}selected{% endif %}>Vigentes</option>
+                        <option value="obsoleto" {% if request.GET.estado == 'obsoleto' %}selected{% endif %}>Obsoletos</option>
+                    </select>
+                </div>
             </form>
         </div>
     </div>
@@ -113,16 +121,14 @@
     <div class="mb-4">
         <div class="d-flex align-items-center mb-3">
             <h5 class="mb-0 me-3">
-                {% if carpeta_actual %}
-                    <a href="{% url 'documentos' %}" class="text-decoration-none text-dark"><i class="bi bi-folder-fill me-2 text-warning"></i>Raíz</a> 
-                    <i class="bi bi-chevron-right mx-2 text-muted"></i> 
-                    <i class="bi bi-folder2-open me-2 text-warning"></i>{{ carpeta_actual.nombre }}
-                {% else %}
-                    <i class="bi bi-folder-fill me-2 text-warning"></i>Raíz
-                {% endif %}
+                <a href="{% url 'documentos' %}" class="text-decoration-none text-dark"><i class="bi bi-folder-fill me-2 text-warning"></i>Raíz</a>
+                {% for ancestro in ruta_carpetas %}
+                    <i class="bi bi-chevron-right mx-2 text-muted"></i>
+                    {% if forloop.last %}<i class="bi bi-folder2-open me-2 text-warning"></i>{{ ancestro.nombre }}{% else %}<a href="?carpeta={{ ancestro.id }}" class="text-decoration-none text-dark">{{ ancestro.nombre }}</a>{% endif %}
+                {% endfor %}
             </h5>
             {% if carpeta_actual %}
-                <a href="{% url 'documentos' %}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-left"></i> Volver a la Raíz</a>
+                <a href="{% if carpeta_actual.padre %}?carpeta={{ carpeta_actual.padre_id }}{% else %}{% url 'documentos' %}{% endif %}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-left"></i> Volver</a>
             {% endif %}
         </div>
         
@@ -139,9 +145,10 @@
                                     {{ carpeta.nombre }}
                                     {% if carpeta.es_privado %}<i class="bi bi-lock-fill text-muted ms-1" title="Carpeta Privada"></i>{% endif %}
                                 </h6>
-                                <small class="text-muted">{{ carpeta.documentos.count }} documento(s)</small>
+                                <small class="text-muted">{{ carpeta.documentos.count }} documento(s) · {{ carpeta.subcarpetas.count }} subcarpeta(s)</small>
                             </div>
                             {% if request.user.is_superuser or request.user.rol.editar_documentacion %}
+                            <button type="button" class="btn btn-sm btn-outline-primary position-absolute top-0 end-0 mt-2 me-5" onclick="event.preventDefault();" data-bs-toggle="modal" data-bs-target="#moveDocumentItemModal" data-item-type="carpeta" data-item-id="{{ carpeta.id }}" data-item-parent="{{ carpeta.padre_id|default:'' }}" data-item-name="{{ carpeta.nombre }}" title="Mover carpeta"><i class="bi bi-folder-symlink"></i></button>
                             <button type="button" class="btn btn-sm btn-outline-danger position-absolute top-0 end-0 m-2 delete-carpeta-btn" 
                                     onclick="event.preventDefault();"
                                     data-bs-toggle="modal" 
@@ -178,11 +185,12 @@
                         {% endif %}
                         <th scope="col">Fecha de subida</th>
                         <th scope="col">Tamaño</th>
+                        <th scope="col">Vigencia</th>
                         <th scope="col">Acciones</th>
                     </tr>
                 </thead>
                 <tbody id="documentosTableBody" data-pagination-label="documentos">
-                    <tr id="no-docs-found" style="display: none;"><td colspan="6" class="text-center text-muted py-4">No se encontraron documentos con los filtros aplicados.</td></tr>
+                    <tr id="no-docs-found" style="display: none;"><td colspan="{% if request.user.is_superuser %}8{% else %}7{% endif %}" class="text-center text-muted py-4">No se encontraron documentos con los filtros aplicados.</td></tr>
                     {% for doc in documentos %}
                     <tr>
                         {% if doc.archivo_existe %}
@@ -214,20 +222,26 @@
                             {% endif %}
                             <td>{{ doc.subido_en|date:"d/m/Y H:i" }}</td>
                             <td>{{ doc.tamano_seguro|filesizeformat }}</td>
+                            <td><span class="badge {% if doc.vigente %}bg-success{% else %}bg-secondary{% endif %}">{% if doc.vigente %}Vigente{% else %}Obsoleto{% endif %}</span></td>
                             <td>
                                 <div class="btn-group" role="group">
+                                    {% if doc.vigente %}
                                     <button type="button" class="btn btn-sm btn-outline-primary view-doc-btn"
                                             data-bs-toggle="modal" 
                                             data-bs-target="#fileViewerModal"
-                                            data-file-url="{{ doc.archivo.url }}"
+                                            data-file-url="{% url 'documento_descargar' doc.id %}"
                                             data-file-name="{{ doc.nombre }}"
+                                            data-file-extension="{{ doc.extension_archivo }}"
                                             data-file-info="{{ doc.tamano_seguro|filesizeformat }} - Subido el {{ doc.subido_en|date:'d/m/Y' }}" title="Ver">
                                         <i class="bi bi-eye-fill"></i>
                                     </button>
-                                    <a href="{{ doc.archivo.url }}" download class="btn btn-sm btn-outline-secondary" title="Descargar">
+                                    <a href="{% url 'documento_descargar' doc.id %}" download class="btn btn-sm btn-outline-secondary" title="Descargar">
                                         <i class="bi bi-download"></i>
                                     </a>
+                                    {% endif %}
                                     {% if request.user.is_superuser or request.user.rol.editar_documentacion %}
+                                        <form method="post" class="d-inline">{% csrf_token %}<input type="hidden" name="action" value="cambiar_vigencia"><input type="hidden" name="documento_id" value="{{ doc.id }}"><button type="submit" class="btn btn-sm {% if doc.vigente %}btn-outline-warning{% else %}btn-outline-success{% endif %}" title="{% if doc.vigente %}Marcar obsoleto{% else %}Marcar vigente{% endif %}"><i class="bi {% if doc.vigente %}bi-archive{% else %}bi-arrow-counterclockwise{% endif %}"></i></button></form>
+                                        <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#moveDocumentItemModal" data-item-type="documento" data-item-id="{{ doc.id }}" data-item-parent="{{ doc.carpeta_id|default:'' }}" data-item-name="{{ doc.nombre }}" title="Mover documento"><i class="bi bi-folder-symlink"></i></button>
                                         <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteDocumentModal" data-doc-url="{% url 'documento_delete' doc.id %}" data-doc-name="{{ doc.nombre }}" title="Eliminar">
                                             <i class="bi bi-trash-fill"></i>
                                         </button>
@@ -235,11 +249,12 @@
                                 </div>
                             </td>
                         {% else %}
-                            <td colspan="{% if request.user.is_superuser %}5{% else %}4{% endif %}">
+                            <td colspan="{% if request.user.is_superuser %}6{% else %}5{% endif %}">
                                 <i class="bi bi-exclamation-triangle-fill text-warning me-2"></i>
                                 <strong>{{ doc.nombre }}</strong>
                                 <p class="text-danger small mb-0">Archivo no encontrado en el disco. Puede que haya sido eliminado.</p>
                             </td>
+                            <td><span class="badge {% if doc.vigente %}bg-success{% else %}bg-secondary{% endif %}">{% if doc.vigente %}Vigente{% else %}Obsoleto{% endif %}</span></td>
                             <td>
                                 {% if request.user.is_superuser or request.user.rol.editar_documentacion %}
                                 <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteDocumentModal" data-doc-url="{% url 'documento_delete' doc.id %}" data-doc-name="{{ doc.nombre }}" title="Eliminar registro de la base de datos">
@@ -251,7 +266,7 @@
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="{% if request.user.is_superuser %}6{% else %}5{% endif %}" class="text-center text-muted py-4">No hay documentos subidos todavía.</td>
+                        <td colspan="{% if request.user.is_superuser %}8{% else %}7{% endif %}" class="text-center text-muted py-4">No hay documentos subidos todavía.</td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -277,6 +292,7 @@
                                     {% else %}<i class="bi bi-exclamation-triangle-fill text-warning fs-4"></i>{% endif %}
                                     <div class="min-w-0">
                                         <h2 class="h6 fw-bold mb-1 text-break">{{ doc.nombre }}{% if doc.es_privado %} <i class="bi bi-lock-fill text-muted" title="Documento privado"></i>{% endif %}</h2>
+                                        <span class="badge {% if doc.vigente %}bg-success{% else %}bg-secondary{% endif %}">{% if doc.vigente %}Vigente{% else %}Obsoleto{% endif %}</span>
                                         <span class="badge bg-secondary">{{ doc.get_tipo_display }}</span>
                                     </div>
                                 </div>
@@ -293,16 +309,20 @@
                             <p class="small text-danger mb-2 mt-2">El archivo no está disponible en el disco.</p>
                             {% endif %}
                             <div class="d-flex flex-wrap gap-2 mt-3 pt-3 border-top">
-                                {% if doc.archivo_existe %}
+                                {% if doc.archivo_existe and doc.vigente %}
                                 <button type="button" class="btn btn-sm btn-outline-danger flex-fill view-doc-btn"
                                         data-bs-toggle="modal" data-bs-target="#fileViewerModal"
-                                        data-file-url="{{ doc.archivo.url }}" data-file-name="{{ doc.nombre }}"
+                                        data-file-url="{% url 'documento_descargar' doc.id %}" data-file-name="{{ doc.nombre }}"
+                                        data-file-extension="{{ doc.extension_archivo }}"
                                         data-file-info="{{ doc.tamano_seguro|filesizeformat }} - Subido el {{ doc.subido_en|date:'d/m/Y' }}">
                                     <i class="bi bi-eye-fill me-1"></i>Ver
                                 </button>
-                                <a href="{{ doc.archivo.url }}" download class="btn btn-sm btn-outline-secondary flex-fill"><i class="bi bi-download me-1"></i>Descargar</a>
+                                <a href="{% url 'documento_descargar' doc.id %}" download class="btn btn-sm btn-outline-secondary flex-fill"><i class="bi bi-download me-1"></i>Descargar</a>
+                                {% elif not doc.vigente %}<span class="small text-muted align-self-center">Descarga deshabilitada: documento obsoleto.</span>
                                 {% endif %}
                                 {% if request.user.is_superuser or request.user.rol.editar_documentacion %}
+                                <form method="post" class="d-inline">{% csrf_token %}<input type="hidden" name="action" value="cambiar_vigencia"><input type="hidden" name="documento_id" value="{{ doc.id }}"><button type="submit" class="btn btn-sm {% if doc.vigente %}btn-outline-warning{% else %}btn-outline-success{% endif %}"><i class="bi {% if doc.vigente %}bi-archive{% else %}bi-arrow-counterclockwise{% endif %} me-1"></i>{% if doc.vigente %}Marcar obsoleto{% else %}Restaurar vigencia{% endif %}</button></form>
+                                <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#moveDocumentItemModal" data-item-type="documento" data-item-id="{{ doc.id }}" data-item-parent="{{ doc.carpeta_id|default:'' }}" data-item-name="{{ doc.nombre }}" title="Mover documento"><i class="bi bi-folder-symlink"></i></button>
                                 <button type="button" class="btn btn-sm btn-outline-secondary flex-fill" data-bs-toggle="modal" data-bs-target="#deleteDocumentModal" data-doc-url="{% url 'documento_delete' doc.id %}" data-doc-name="{{ doc.nombre }}">
                                     <i class="bi bi-trash-fill me-1"></i>{% if doc.archivo_existe %}Eliminar{% else %}Eliminar registro{% endif %}
                                 </button>
@@ -336,6 +356,11 @@
                     <div class="mb-3">
                         <label for="{{ carpeta_form.nombre.id_for_label }}" class="form-label">Nombre de la Carpeta *</label>
                         {{ carpeta_form.nombre }}
+                    </div>
+                    <div class="mb-3">
+                        <label for="{{ carpeta_form.padre.id_for_label }}" class="form-label">Carpeta principal</label>
+                        {{ carpeta_form.padre }}
+                        <div class="form-text">Elige una carpeta para crear aquí una subcarpeta, o deja Raíz para crear una carpeta principal.</div>
                     </div>
                     {% if request.user.is_superuser %}
                     <div class="mb-3">
@@ -448,8 +473,8 @@
                             <label for="carpeta_texto" class="form-label">Carpeta</label>
                             <select class="form-select" id="carpeta_texto" name="carpeta">
                                 <option value="">Sin Carpeta (Raíz)</option>
-                                {% for carpeta in carpetas %}
-                                <option value="{{ carpeta.id }}">{{ carpeta.nombre }}</option>
+                                {% for carpeta in carpetas_destino %}
+                                <option value="{{ carpeta.id }}">{{ carpeta.nombre_ruta }}</option>
                                 {% endfor %}
                             </select>
                         </div>
@@ -565,7 +590,7 @@
             <div class="modal-body">
                 <p>¿Estás seguro de que quieres eliminar la carpeta "<strong id="carpetaNameToDelete"></strong>"?</p>
                 <div class="alert alert-danger">
-                    <i class="bi bi-exclamation-triangle-fill me-2"></i> <strong>¡Advertencia!</strong> Esta acción también eliminará permanentemente todos los documentos que estén dentro de esta carpeta.
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i> <strong>¡Advertencia!</strong> Esta acción eliminará la carpeta, sus subcarpetas y todos los documentos que contengan.
                 </div>
             </div>
             <div class="modal-footer">
@@ -579,8 +604,47 @@
     </div>
 </div>
 
+<!-- Modal Mover Documento o Carpeta -->
+<div class="modal fade" id="moveDocumentItemModal" tabindex="-1" aria-labelledby="moveDocumentItemModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" id="moveDocumentItemForm">
+                {% csrf_token %}
+                <input type="hidden" name="action" id="moveItemAction">
+                <input type="hidden" name="documento_id" id="moveDocumentId">
+                <input type="hidden" name="carpeta_id" id="moveCarpetaId">
+                <div class="modal-header">
+                    <h2 class="modal-title fs-5" id="moveDocumentItemModalLabel">Mover elemento</h2>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="mb-3">Destino para <strong id="moveItemName"></strong></p>
+                    <label class="form-label" for="moveItemDestination">Carpeta de destino</label>
+                    <select class="form-select" id="moveItemDestination" name="destino">
+                        <option value="">Raíz</option>
+                        {% for carpeta in carpetas_destino %}<option value="{{ carpeta.id }}">{{ carpeta.nombre_ruta }}</option>{% endfor %}
+                    </select>
+                    <div class="form-text">Mover cambia la ubicación sin borrar ni volver a subir el archivo.</div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary"><i class="bi bi-folder-symlink me-1"></i>Mover</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+    const createCarpetaModal = document.getElementById('createCarpetaModal');
+    createCarpetaModal.addEventListener('show.bs.modal', function (event) {
+        const button = event.relatedTarget;
+        const currentFolder = button.getAttribute('data-current-folder') || '';
+        const parentSelect = document.getElementById('{{ carpeta_form.padre.id_for_label }}');
+        parentSelect.value = currentFolder;
+    });
+
     const fileViewerModal = document.getElementById('fileViewerModal');
     fileViewerModal.addEventListener('show.bs.modal', function (event) {
         // Botón que activó el modal
@@ -600,7 +664,7 @@ document.addEventListener('DOMContentLoaded', function () {
         modalInfo.textContent = fileInfo;
 
         // Determinar el tipo de archivo para la previsualización
-        const fileExtension = fileUrl.split('.').pop().toLowerCase();
+        const fileExtension = button.getAttribute('data-file-extension') || '';
         
         if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(fileExtension)) {
             modalBody.innerHTML = `
@@ -647,6 +711,34 @@ document.addEventListener('DOMContentLoaded', function () {
             carpetaNameSpan.textContent = carpetaName;
         });
     }
+
+    const moveDocumentItemModal = document.getElementById('moveDocumentItemModal');
+    moveDocumentItemModal.addEventListener('show.bs.modal', function (event) {
+        const button = event.relatedTarget;
+        const itemType = button.getAttribute('data-item-type');
+        const itemId = button.getAttribute('data-item-id');
+        const itemName = button.getAttribute('data-item-name');
+        const currentParent = button.getAttribute('data-item-parent') || '';
+        const documentId = document.getElementById('moveDocumentId');
+        const carpetaId = document.getElementById('moveCarpetaId');
+
+        document.getElementById('moveItemName').textContent = itemName;
+        document.getElementById('moveDocumentItemModalLabel').textContent = itemType === 'carpeta' ? 'Mover carpeta' : 'Mover documento';
+        document.getElementById('moveItemAction').value = itemType === 'carpeta' ? 'mover_carpeta' : 'mover_documento';
+        documentId.value = itemType === 'documento' ? itemId : '';
+        carpetaId.value = itemType === 'carpeta' ? itemId : '';
+        const destination = document.getElementById('moveItemDestination');
+        destination.value = currentParent;
+        if (itemType === 'carpeta') {
+            const selfOption = destination.querySelector('option[value="' + itemId + '"]');
+            if (selfOption) selfOption.disabled = true;
+        }
+    });
+    moveDocumentItemModal.addEventListener('hidden.bs.modal', function () {
+        moveDocumentItemModal.querySelectorAll('#moveItemDestination option').forEach(function (option) {
+            option.disabled = false;
+        });
+    });
 
     // --- Lógica de Filtrado en Tiempo Real para Documentos ---
     const docSearchInput = document.getElementById('docSearchInput');
