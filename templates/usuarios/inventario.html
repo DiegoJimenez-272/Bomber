@@ -191,6 +191,9 @@
             <i class="bi bi-arrow-left me-1"></i> Volver a todas las compañías
         </a>
         {% endif %}
+        <button class="btn btn-outline-dark" type="button" data-bs-toggle="modal" data-bs-target="#devolucionesInventarioModal">
+            <i class="bi bi-clock-history me-1"></i> Historial de devoluciones
+        </button>
         <button class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#createVehiculoModal">
             <i class="bi bi-truck me-1"></i> Registrar Carro
         </button>
@@ -1240,25 +1243,91 @@
     </div>
 </div>
 
-<!-- Modal Devolver a Bodega -->
+<!-- Formulario de devolución a bodega -->
 <div class="modal fade" id="unassignInventarioModal" tabindex="-1" aria-labelledby="unassignInventarioModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="unassignInventarioModalLabel">Confirmar Devolución</h5>
+                <h5 class="modal-title" id="unassignInventarioModalLabel">Formulario de devolución a bodega</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body">
-                <p>¿Estás seguro de que quieres devolver a bodega el ítem "<strong id="itemNameToUnassign"></strong>"?</p>
-                <p class="text-muted small">El ítem quedará disponible en bodega para ser reasignado a otro usuario.</p>
-            </div>
-            <div class="modal-footer">
-                <form id="unassignInventarioForm" method="post">
-                    {% csrf_token %}
+            <form id="unassignInventarioForm" method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <p class="mb-3">Equipo que se devuelve: <strong id="itemNameToUnassign"></strong></p>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="devolucionEstado" class="form-label">Estado en que se devuelve *</label>
+                            <select class="form-select" id="devolucionEstado" name="estado_retorno" required>
+                                {% for value, label in inventario_estados %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="devolucionUbicacion" class="form-label">Ubicación de destino *</label>
+                            <input class="form-control" id="devolucionUbicacion" type="text" name="ubicacion_retorno" value="Bodega" maxlength="150" required>
+                        </div>
+                        <div class="col-12">
+                            <label for="devolucionObservaciones" class="form-label">Observaciones</label>
+                            <textarea class="form-control" id="devolucionObservaciones" name="observaciones" rows="3" placeholder="Detalles de la devolución (opcional)"></textarea>
+                        </div>
+                        <div class="col-12">
+                            <label for="devolucionFotos" class="form-label">Registro fotográfico</label>
+                            <input class="form-control" id="devolucionFotos" type="file" name="fotos" accept=".jpg,.jpeg,.png,.webp" multiple>
+                            <div class="form-text">Opcional. Hasta 10 imágenes JPG, PNG o WebP de máximo 5 MB cada una (25 MB en total).</div>
+                        </div>
+                        <div class="col-12">
+                            <label for="devolucionActa" class="form-label">Archivo del acta (opcional)</label>
+                            <input class="form-control" id="devolucionActa" type="file" name="acta" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg">
+                            <div class="form-text">Adjunta el acta de entrega/devolución ya preparada. El sistema la guardará junto al registro.</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-warning text-dark fw-bold">Sí, devolver a bodega</button>
-                </form>
+                    <button type="submit" class="btn btn-warning text-dark fw-bold"><i class="bi bi-box-arrow-in-down me-1"></i>Guardar devolución</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Historial de devoluciones -->
+<div class="modal fade" id="devolucionesInventarioModal" tabindex="-1" aria-labelledby="devolucionesInventarioModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="devolucionesInventarioModalLabel">Historial de devoluciones</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
             </div>
+            <div class="modal-body">
+                {% if devoluciones %}
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover align-middle">
+                        <thead><tr><th>Fecha</th><th>Equipo</th><th>Devuelto desde</th><th>Estado</th><th>Ubicación</th><th>Observaciones</th><th>Fotos / Acta</th></tr></thead>
+                        <tbody>
+                            {% for devolucion in devoluciones %}
+                            <tr>
+                                <td class="text-nowrap">{{ devolucion.creado_en|date:"d/m/Y H:i" }}<small class="d-block text-muted">{{ devolucion.realizado_por.get_full_name|default:"Usuario eliminado" }}</small></td>
+                                <td>{{ devolucion.nombre_item }}</td>
+                                <td>{{ devolucion.entregado_a|default:"Sin asignación anterior" }}</td>
+                                <td><span class="badge {% if devolucion.estado_retorno == 'Bueno' %}bg-success{% elif devolucion.estado_retorno == 'Regular' %}bg-info text-dark{% else %}bg-warning text-dark{% endif %}">{{ devolucion.estado_retorno }}</span></td>
+                                <td>{{ devolucion.ubicacion_retorno }}</td>
+                                <td>{{ devolucion.observaciones|default:"—"|truncatechars:100 }}</td>
+                                <td>
+                                    {% for foto in devolucion.fotos.all %}<a class="btn btn-sm btn-outline-secondary mb-1" href="{{ foto.archivo.url }}" target="_blank" rel="noopener">Foto {{ forloop.counter }}</a> {% endfor %}
+                                    {% if devolucion.acta %}<a class="btn btn-sm btn-outline-primary mb-1" href="{{ devolucion.acta.url }}" target="_blank" rel="noopener" download>Descargar acta</a>{% endif %}
+                                    {% if not devolucion.acta and not devolucion.fotos.all %}<span class="text-muted">Sin adjuntos</span>{% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted mb-0">Todavía no hay devoluciones registradas para esta compañía.</p>
+                {% endif %}
+            </div>
+            <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button></div>
         </div>
     </div>
 </div>
@@ -1518,7 +1587,9 @@ document.addEventListener('DOMContentLoaded', function () {
     if (unassignModal) {
         unassignModal.addEventListener('show.bs.modal', function (event) {
             var button = event.relatedTarget;
-            document.getElementById('unassignInventarioForm').action = `/inventario/${button.dataset.itemId}/unassign/`;
+            var returnForm = document.getElementById('unassignInventarioForm');
+            returnForm.reset();
+            returnForm.action = `/inventario/${button.dataset.itemId}/unassign/`;
             document.getElementById('itemNameToUnassign').textContent = button.dataset.itemNombre;
         });
     }

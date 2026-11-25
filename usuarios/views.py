@@ -30,8 +30,8 @@ from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter
 import openpyxl
 from reportlab.lib.units import inch
-from .forms import RegistroForm, LoginForm, ProyectoForm, ArchivoProyectoForm, DocumentoForm, CarpetaForm, SalidaTerrenoForm, EmergenciaForm, PerfilForm, PasswordChangeForm, CapacitacionForm, ReunionForm, MantenimientoForm, ArchivoMantenimientoForm, InventarioForm, CajaChicaForm, AdminUserCreationForm, AdminUserChangeForm, RolForm, CompaniaForm, InventarioEditForm, InventarioGroupEditForm, AvisoForm, ReporteErrorForm, PasswordResetRequestForm, PasswordResetVerifyForm, PasswordResetNewPasswordForm, VehiculoForm, VehiculoHojaVidaForm, VehiculoDocumentacionForm, RondaVehiculoForm
-from .models import Rol, Compania, Proyecto, ArchivoProyecto, Documento, Carpeta, SalidaTerreno, SalidaTerrenoUnidad, Emergencia, EmergenciaUnidad, Usuario, Capacitacion, CursoMalla, Mantenimiento, ArchivoMantenimiento, Inventario, CajaChica, CuotaVoluntario, Notificacion, Aviso, AvisoDestinatario, ReporteError, PasswordResetCode, RegistroPendiente, Vehiculo, RondaVehiculo
+from .forms import RegistroForm, LoginForm, ProyectoForm, ArchivoProyectoForm, DocumentoForm, CarpetaForm, SalidaTerrenoForm, EmergenciaForm, PerfilForm, PasswordChangeForm, CapacitacionForm, ReunionForm, MantenimientoForm, ArchivoMantenimientoForm, InventarioForm, DevolucionInventarioForm, CajaChicaForm, AdminUserCreationForm, AdminUserChangeForm, RolForm, CompaniaForm, InventarioEditForm, InventarioGroupEditForm, AvisoForm, ReporteErrorForm, PasswordResetRequestForm, PasswordResetVerifyForm, PasswordResetNewPasswordForm, VehiculoForm, VehiculoHojaVidaForm, VehiculoDocumentacionForm, RondaVehiculoForm
+from .models import Rol, Compania, Proyecto, ArchivoProyecto, Documento, Carpeta, SalidaTerreno, SalidaTerrenoUnidad, Emergencia, EmergenciaUnidad, Usuario, Capacitacion, CursoMalla, Mantenimiento, ArchivoMantenimiento, Inventario, DevolucionInventario, DevolucionInventarioFoto, CajaChica, CuotaVoluntario, Notificacion, Aviso, AvisoDestinatario, ReporteError, PasswordResetCode, RegistroPendiente, Vehiculo, RondaVehiculo
 from .decorators import admin_required, permiso_requerido, pertenencia_compania
 from .inventory_permissions import (
     puede_acceder_inventario_compania,
@@ -1691,6 +1691,13 @@ def inventario_view(request):
     if compania_activa_id and not any(str(compania.id) == compania_activa_id for compania in inventario_por_compania):
         compania_activa_id = ''
 
+    devoluciones = DevolucionInventario.objects.none()
+    if puede_ver_todas_companias and compania_activa_id:
+        devoluciones = DevolucionInventario.objects.filter(compania_id=compania_activa_id)
+    elif not puede_ver_todas_companias and request.user.compania_id:
+        devoluciones = DevolucionInventario.objects.filter(compania_id=request.user.compania_id)
+    devoluciones = devoluciones.select_related('item', 'realizado_por').prefetch_related('fotos').order_by('-creado_en')
+
     # Datos para el nuevo panel de asignación
     usuarios_activos = Usuario.objects.miembros_activos().order_by('nombre')
     # Los roles limitados solo pueden asignar a miembros de su propia compañía.
@@ -1742,6 +1749,8 @@ def inventario_view(request):
         'first_compania_id': list(inventario_por_compania.keys())[0].id if inventario_por_compania else None,
         'puede_gestionar_inventario_global': puede_ver_todas_companias,
         'compania_activa_id': compania_activa_id or '',
+        'devoluciones': devoluciones,
+        'inventario_estados': Inventario.ESTADO_CHOICES,
     }
     return render(request, 'usuarios/inventario.html', context)
 
@@ -2006,26 +2015,57 @@ def inventario_unassign_view(request, item_id):
         return redirect_to_previous_page(request, reverse('inventario'))
 
     if request.method == 'POST':
-        usuario_anterior = item.asignado_a
-        vehiculo_anterior = item.asignado_a_vehiculo
-        item_name = item.get_nombre_display()
-        
-        if usuario_anterior:
-            item.asignado_a = None
-            item.save() # El save() limpiará también el QR asignado a este ítem automáticamente
-            Notificacion.objects.create(
-                usuario=usuario_anterior,
-                mensaje=f"Has devuelto a bodega el equipo: {item_name}.",
-                link="/inventario/"
+        form = DevolucionInventarioForm(request.POST, request.FILES)
+        if not form.is_valid():
+            messages.error(request, f'No se pudo registrar la devolución: {form.errors.as_text()}')
+            return redirect_to_previous_page(request, reverse('inventario'))
+
+        with transaction.atomic():
+            item_actualizado = Inventario.objects.select_for_update().select_related(
+                'asignado_a', 'asignado_a_vehiculo', 'compania'
+            ).filter(pk=item.pk).first()
+            if not item_actualizado:
+                messages.error(request, 'El ítem ya no está disponible para registrar la devolución.')
+                return redirect_to_previous_page(request, reverse('inventario'))
+            item = item_actualizado
+            usuario_anterior = item.asignado_a
+            vehiculo_anterior = item.asignado_a_vehiculo
+            if not usuario_anterior and not vehiculo_anterior:
+                messages.warning(request, f'El ítem "{item.get_nombre_display()}" ya se encontraba en bodega.')
+                return redirect_to_previous_page(request, reverse('inventario'))
+
+            item_name = item.get_nombre_display()
+            entregado_a = usuario_anterior.get_full_name() if usuario_anterior else f'Carro: {vehiculo_anterior.nombre}'
+            devolucion = DevolucionInventario.objects.create(
+                item=item,
+                compania=item.compania,
+                compania_nombre=item.compania.nombre if item.compania else '',
+                nombre_item=item_name,
+                entregado_a=entregado_a,
+                ubicacion_anterior=item.ubicacion,
+                ubicacion_retorno=form.cleaned_data['ubicacion_retorno'],
+                estado_retorno=form.cleaned_data['estado_retorno'],
+                observaciones=form.cleaned_data['observaciones'],
+                acta=form.cleaned_data.get('acta') or '',
+                realizado_por=request.user,
             )
-            messages.success(request, f'Ítem "{item_name}" devuelto a bodega exitosamente (desasignado de {usuario_anterior.get_full_name()}).')
-        elif vehiculo_anterior:
+            for foto in form.cleaned_data.get('fotos', []):
+                DevolucionInventarioFoto.objects.create(devolucion=devolucion, archivo=foto)
+
+            item.estado = devolucion.estado_retorno
+            item.ubicacion = devolucion.ubicacion_retorno
+            item.asignado_a = None
             item.asignado_a_vehiculo = None
-            item.save() # El save() limpiará también el QR asignado a este ítem automáticamente
-            messages.success(request, f'Ítem "{item_name}" devuelto a bodega exitosamente (desasignado del carro {vehiculo_anterior.nombre}).')
-        else:
-            messages.warning(request, f'El ítem "{item_name}" ya se encontraba en bodega.')
-            
+            item.save()  # Actualiza el estado, ubicación y elimina el QR al quedar en bodega.
+
+            if usuario_anterior:
+                Notificacion.objects.create(
+                    usuario=usuario_anterior,
+                    mensaje=f"Has devuelto a bodega el equipo: {item_name}.",
+                    link="/inventario/"
+                )
+            messages.success(request, f'Devolución de “{item_name}” registrada; estado: {devolucion.estado_retorno}.')
+
     return redirect_to_previous_page(request, reverse('inventario'))
 
 @login_required

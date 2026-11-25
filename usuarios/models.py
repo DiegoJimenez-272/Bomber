@@ -650,6 +650,44 @@ class Inventario(models.Model):
             # Guardamos los cambios del QR en una sola llamada para evitar bucles
             super().save(update_fields=['qr_code'])
 
+
+class DevolucionInventario(models.Model):
+    item = models.ForeignKey(Inventario, on_delete=models.SET_NULL, null=True, blank=True, related_name='devoluciones')
+    compania = models.ForeignKey(Compania, on_delete=models.SET_NULL, null=True, blank=True, related_name='devoluciones_inventario')
+    compania_nombre = models.CharField(max_length=80, blank=True)
+    nombre_item = models.CharField(max_length=200)
+    entregado_a = models.CharField(max_length=160, blank=True)
+    ubicacion_anterior = models.CharField(max_length=150, blank=True)
+    ubicacion_retorno = models.CharField(max_length=150)
+    estado_retorno = models.CharField(max_length=20, choices=Inventario.ESTADO_CHOICES)
+    observaciones = models.TextField(blank=True)
+    acta = models.FileField(
+        upload_to=SecureFilePath('devoluciones/actas/'),
+        validators=[validar_extension_archivo],
+        blank=True,
+    )
+    realizado_por = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='devoluciones_inventario_registradas')
+    creado_en = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-creado_en']
+        verbose_name = 'Devolución de inventario'
+        verbose_name_plural = 'Devoluciones de inventario'
+
+    def __str__(self):
+        return f'Devolución de {self.nombre_item} ({self.creado_en:%d/%m/%Y})'
+
+
+class DevolucionInventarioFoto(models.Model):
+    devolucion = models.ForeignKey(DevolucionInventario, on_delete=models.CASCADE, related_name='fotos')
+    archivo = models.ImageField(
+        upload_to=SecureFilePath('devoluciones/fotos/'),
+        validators=[validar_extension_imagen],
+    )
+
+    def __str__(self):
+        return f'Fotografía de {self.devolucion.nombre_item}'
+
 class CajaChica(models.Model):
     TIPO_MOVIMIENTO_CHOICES = [
         ('Ingreso', 'Ingreso'),

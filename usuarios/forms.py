@@ -6,7 +6,7 @@ from django.db import models
 from django.db.models import Sum, Case, When, DecimalField, F, Q
 from django.utils import timezone
 from .models import Usuario, Compania, Rol, Proyecto, Documento, Carpeta, SalidaTerreno, SalidaTerrenoUnidad, Emergencia, EmergenciaUnidad, Capacitacion, Mantenimiento, Inventario, CajaChica, Aviso, PasswordResetCode, Vehiculo, RondaVehiculo
-from .validators import validar_rut_chileno, formatear_rut
+from .validators import validar_rut_chileno, formatear_rut, validar_extension_imagen, validar_extension_archivo
 from .inventory_permissions import puede_gestionar_inventario_global
 
 
@@ -341,6 +341,45 @@ class MultipleFileField(forms.FileField):
         else:
             result = [single_file_clean(data, initial)]
         return result
+
+
+class DevolucionInventarioForm(forms.Form):
+    estado_retorno = forms.ChoiceField(
+        label='Estado en que se devuelve',
+        choices=Inventario.ESTADO_CHOICES,
+        widget=forms.Select(attrs={'class': 'form-select'}),
+    )
+    ubicacion_retorno = forms.CharField(
+        label='Ubicación de destino',
+        max_length=150,
+        initial='Bodega',
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej: Bodega 1'}),
+    )
+    observaciones = forms.CharField(
+        label='Observaciones',
+        required=False,
+        widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Detalles de la devolución (opcional)'}),
+    )
+    acta = forms.FileField(
+        label='Acta de entrega/devolución (opcional)',
+        required=False,
+        validators=[validar_extension_archivo],
+        widget=forms.ClearableFileInput(attrs={'class': 'form-control', 'accept': '.pdf,.doc,.docx,.png,.jpg,.jpeg'}),
+    )
+    fotos = MultipleFileField(
+        label='Registro fotográfico (opcional)',
+        required=False,
+        validators=[validar_extension_imagen],
+        widget=MultipleFileInput(attrs={'class': 'form-control', 'accept': '.jpg,.jpeg,.png,.webp'}),
+    )
+
+    def clean_fotos(self):
+        fotos = [foto for foto in (self.cleaned_data.get('fotos') or []) if foto]
+        if len(fotos) > 10:
+            raise forms.ValidationError('Puedes adjuntar hasta 10 fotografías por devolución.')
+        if sum(foto.size for foto in fotos) > 25 * 1024 * 1024:
+            raise forms.ValidationError('El tamaño total de las fotografías no puede superar 25 MB.')
+        return fotos
 
 class ArchivoProyectoForm(forms.Form):
     archivos = MultipleFileField(
