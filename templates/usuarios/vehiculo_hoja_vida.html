@@ -57,6 +57,7 @@
                                 <dt class="col-6">Modelo</dt><dd class="col-6">{{ vehiculo.modelo|default:"—" }}</dd>
                                 <dt class="col-6">Año fabricación</dt><dd class="col-6">{{ vehiculo.anio_fabricacion|default:"—" }}</dd>
                                 <dt class="col-6">Año puesta en servicio</dt><dd class="col-6">{{ vehiculo.anio_puesta_servicio|default:"—" }}</dd>
+                                <dt class="col-6">Odómetro actual</dt><dd class="col-6">{% if vehiculo.odometro_actual != None %}{{ vehiculo.odometro_actual }} km{% else %}—{% endif %}</dd>
                                 <dt class="col-6">Estado operativo</dt><dd class="col-6">{{ vehiculo.get_estado_display }}</dd>
                             </dl>
                             {% if vehiculo.descripcion %}<hr><h3 class="h6">Descripción</h3><p class="mb-0">{{ vehiculo.descripcion|linebreaksbr }}</p>{% endif %}

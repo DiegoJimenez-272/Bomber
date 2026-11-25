@@ -1,6 +1,7 @@
 from django.urls import path
 from django.shortcuts import redirect
 from . import views
+from .operaciones import registro_operativo_view
 
 urlpatterns = [
     # Página raíz (redirige al login) y página de inicio
@@ -59,6 +60,7 @@ urlpatterns = [
     path('salidas/<int:salida_id>/delete/', views.salida_terreno_delete_view, name='salida_terreno_delete'),
 
     # Emergencias
+    path('emergencias/operaciones/', registro_operativo_view, name='registro_operativo'),
     path('emergencias/', views.emergencias_view, name='emergencias'),
     path('emergencias/<int:emergencia_id>/edit/', views.emergencia_edit_view, name='emergencia_edit'),
     path('emergencias/<int:emergencia_id>/delete/', views.emergencia_delete_view, name='emergencia_delete'),

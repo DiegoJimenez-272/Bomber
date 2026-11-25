@@ -289,6 +289,11 @@ class Emergencia(models.Model):
         ('10-2', 'Rescate Vehicular'),
         ('10-3', 'Rescate de Personas'),
         ('10-4', 'Materiales Peligrosos'),
+        ('10-4-1', 'Emergencia vehicular 10-4-1'),
+        ('10-4-2', 'Emergencia vehicular 10-4-2'),
+        ('10-4-3', 'Emergencia vehicular 10-4-3'),
+        ('10-4-4', 'Emergencia vehicular 10-4-4'),
+        ('10-4-5', 'Emergencia vehicular 10-4-5'),
         ('Otro', 'Otro'),
     ]
     ESTADO_CHOICES = [
@@ -507,6 +512,7 @@ class Vehiculo(models.Model):
     capacidad_bomba = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True)
     capacidad_bomba_unidad = models.CharField(max_length=4, choices=BOMBA_UNIDAD_CHOICES, blank=True, default='')
     horometro = models.DecimalField(max_digits=10, decimal_places=1, null=True, blank=True)
+    odometro_actual = models.PositiveIntegerField(null=True, blank=True, verbose_name='Odómetro actual (km)')
     revision_tecnica_vencimiento = models.DateField(null=True, blank=True)
     revision_tecnica_archivo = models.FileField(
         upload_to=SecureFilePath('vehiculos_documentacion/'),
@@ -562,6 +568,96 @@ class RondaVehiculo(models.Model):
 
     def __str__(self):
         return f"Ronda de {self.vehiculo.nombre} ({self.fecha:%d/%m/%Y})"
+
+
+class RegistroOperativo(models.Model):
+    TIPO_CHOICES = [
+        ('emergencia', 'Emergencia'),
+        ('emergencia_vehicular', 'Emergencia vehicular (10-4)'),
+        ('servicio_especial', 'Servicio especial'),
+        ('practica_maquinista', 'Práctica de maquinista'),
+        ('rodaje_6_13', 'Se dirige a (6-13) — Rodaje'),
+        ('combustible_6_14', 'Carga de combustible (6-14)'),
+        ('ronda_maquinistas', 'Ronda de maquinistas'),
+        ('llegada_cuartel', 'Voluntarios llegados al cuartel'),
+    ]
+    APOYO_CHOICES = [
+        ('municipalidad', 'Municipalidad'),
+        ('carabineros', 'Carabineros'),
+        ('ambulancia', 'Ambulancia'),
+        ('pdi', 'PDI'),
+        ('conaf', 'CONAF'),
+        ('cmpc', 'CMPC'),
+        ('ruta_5_sur', 'Asistencia Ruta 5 Sur'),
+        ('otro_cuerpo', 'Otro Cuerpo de Bomberos'),
+        ('otros', 'Otros'),
+    ]
+    ESTACION_CHOICES = [
+        ('copec', 'Copec'), ('shell', 'Shell'), ('aramco', 'Aramco'), ('otra', 'Otra'),
+    ]
+    COMBUSTIBLE_CHOICES = [
+        ('diesel', 'Diésel'), ('bencina_93', 'Bencina 93'),
+        ('bencina_95', 'Bencina 95'), ('bencina_97', 'Bencina 97'), ('otro', 'Otro'),
+    ]
+
+    tipo = models.CharField(max_length=32, choices=TIPO_CHOICES)
+    codigo = models.CharField(max_length=80, blank=True, default='')
+    fecha_inicio = models.DateField()
+    fecha_termino = models.DateField(null=True, blank=True)
+    hora_despacho = models.TimeField(null=True, blank=True)
+    hora_llegada = models.TimeField(null=True, blank=True)
+    kilometraje_despacho = models.PositiveIntegerField(null=True, blank=True)
+    kilometraje_llegada = models.PositiveIntegerField(null=True, blank=True)
+    direccion = models.CharField(max_length=255, blank=True, default='')
+    estacion_servicio = models.CharField(max_length=30, choices=ESTACION_CHOICES, blank=True, default='')
+    estacion_detalle = models.CharField(max_length=180, blank=True, default='')
+    vehiculo = models.ForeignKey(Vehiculo, on_delete=models.SET_NULL, null=True, blank=True, related_name='registros_operativos')
+    maquinista = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='registros_operativos_conduccion')
+    obac = models.CharField(max_length=160, blank=True, default='')
+    instituciones_apoyo = models.JSONField(default=list, blank=True)
+    apoyo_otro_cuerpo = models.CharField(max_length=160, blank=True, default='')
+    apoyo_otros = models.CharField(max_length=255, blank=True, default='')
+    informe = models.TextField(blank=True, default='')
+    novedades_unidad = models.TextField(blank=True, default='')
+    lesionados_externos = models.TextField(blank=True, default='')
+    involucrados = models.JSONField(default=list, blank=True)
+    autorizaciones = models.JSONField(default=list, blank=True)
+    aspirante_nombre = models.CharField(max_length=160, blank=True, default='')
+    aspirante_clave = models.CharField(max_length=40, blank=True, default='')
+    instructor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='practicas_maquinista_instructor')
+    combustible_tipo = models.CharField(max_length=20, choices=COMBUSTIBLE_CHOICES, blank=True, default='')
+    monto_combustible = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    checklist = models.JSONField(default=list, blank=True)
+    emergencia = models.ForeignKey('Emergencia', on_delete=models.SET_NULL, null=True, blank=True, related_name='registros_operativos')
+    salida_terreno = models.ForeignKey('SalidaTerreno', on_delete=models.SET_NULL, null=True, blank=True, related_name='registros_operativos')
+    movimiento_caja = models.OneToOneField('CajaChica', on_delete=models.SET_NULL, null=True, blank=True, related_name='registro_operativo')
+    asistentes = models.ManyToManyField(settings.AUTH_USER_MODEL, blank=True, related_name='asistencias_registros_operativos')
+    creado_por = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='registros_operativos_creados')
+    creado_en = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-fecha_inicio', '-creado_en']
+        verbose_name = 'Registro operativo'
+        verbose_name_plural = 'Registros operativos'
+
+    @property
+    def kilometros_recorridos(self):
+        if self.kilometraje_despacho is not None and self.kilometraje_llegada is not None:
+            return self.kilometraje_llegada - self.kilometraje_despacho
+        return None
+
+    @property
+    def horas_practica(self):
+        if self.hora_despacho and self.hora_llegada:
+            inicio = self.hora_despacho.hour * 60 + self.hora_despacho.minute
+            termino = self.hora_llegada.hour * 60 + self.hora_llegada.minute
+            if termino < inicio:
+                termino += 24 * 60
+            return (termino - inicio) / 60
+        return None
+
+    def __str__(self):
+        return f'{self.get_tipo_display()} — {self.fecha_inicio:%d/%m/%Y}'
 
 class Inventario(models.Model):
     ESTADO_CHOICES = [

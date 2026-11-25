@@ -1,0 +1,265 @@
+{% extends 'base_con_condicion.html' %}
+
+{% block title %}Registrar actividad operativa - {{ block.super }}{% endblock %}
+
+{% block content %}
+<header class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 border-bottom pb-3 mb-4">
+    <div>
+        <h1 class="h2 mb-1">Registrar actividad operativa</h1>
+        <p class="text-muted mb-0">Selecciona el tipo de registro para mostrar sus campos y validaciones.</p>
+    </div>
+    <a href="{% url 'emergencias' %}" class="btn btn-outline-danger"><i class="bi bi-arrow-left me-1"></i>Volver a Emergencias</a>
+</header>
+
+{% if messages %}{% for message in messages %}<div class="alert alert-{{ message.tags }} alert-dismissible fade show">{{ message }}<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button></div>{% endfor %}{% endif %}
+
+<section class="card shadow-sm mb-4">
+    <div class="card-body p-3 p-lg-4">
+        <form method="post" id="registroOperativoForm" novalidate>
+            {% csrf_token %}
+            {% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors }}</div>{% endif %}
+
+            <div class="row g-3">
+                <div class="col-12 col-lg-6" data-operacion-field="tipo">
+                    <label class="form-label fw-semibold" for="id_tipo_operativo">Tipo de actividad <span class="text-danger">*</span></label>
+                    {{ form.tipo }}{{ form.tipo.errors }}
+                </div>
+                <div class="col-12 col-lg-6" data-operacion-field="codigo">
+                    <label class="form-label fw-semibold" for="id_codigo">Código / tipo específico</label>
+                    {{ form.codigo }}{{ form.codigo.errors }}
+                </div>
+
+                <div class="col-12"><h2 class="h6 fw-bold border-bottom pb-2 mt-2 mb-0">Fecha, unidad y desplazamiento</h2></div>
+                <div class="col-12 col-md-6" data-operacion-field="fecha_inicio"><label class="form-label" id="fechaInicioLabel">Fecha de inicio / carga <span class="text-danger">*</span></label>{{ form.fecha_inicio }}{{ form.fecha_inicio.errors }}</div>
+                <div class="col-12 col-md-6" data-operacion-field="fecha_termino"><label class="form-label">Fecha de término / llegada <span class="text-danger">*</span></label>{{ form.fecha_termino }}{{ form.fecha_termino.errors }}</div>
+                <div class="col-12 col-md-6" data-operacion-field="hora_despacho"><label class="form-label">Hora de despacho <span class="text-danger">*</span></label>{{ form.hora_despacho }}{{ form.hora_despacho.errors }}</div>
+                <div class="col-12 col-md-6" data-operacion-field="hora_llegada"><label class="form-label">Hora de llegada <span class="text-danger">*</span></label>{{ form.hora_llegada }}{{ form.hora_llegada.errors }}</div>
+                <div class="col-12 col-md-6" data-operacion-field="kilometraje_despacho"><label class="form-label">Kilometraje de despacho <span class="text-danger">*</span></label>{{ form.kilometraje_despacho }}{{ form.kilometraje_despacho.errors }}</div>
+                <div class="col-12 col-md-6" data-operacion-field="kilometraje_llegada"><label class="form-label">Kilometraje de llegada <span class="text-danger">*</span></label>{{ form.kilometraje_llegada }}{{ form.kilometraje_llegada.errors }}</div>
+                <div class="col-12 col-md-6" data-operacion-field="direccion"><label class="form-label">Dirección <span class="text-danger">*</span></label>{{ form.direccion }}{{ form.direccion.errors }}</div>
+                <div class="col-12 col-md-6" data-operacion-field="vehiculo"><label class="form-label">Carro / unidad <span class="text-danger">*</span></label>{{ form.vehiculo }}{{ form.vehiculo.errors }}</div>
+                <div class="col-12 col-md-6" data-operacion-field="maquinista"><label class="form-label">Maquinista / conductor</label>{{ form.maquinista }}{{ form.maquinista.errors }}</div>
+                <div class="col-12 col-md-6" data-operacion-field="obac"><label class="form-label">OBAC <span class="text-danger">*</span></label>{{ form.obac }}{{ form.obac.errors }}</div>
+
+                <div class="col-12" data-operacion-field="instituciones_apoyo">
+                    <label class="form-label fw-semibold">Apoyo de otras instituciones (opcional)</label>
+                    <div class="row row-cols-2 row-cols-md-3 g-2 p-2 border rounded">{{ form.instituciones_apoyo }}</div>
+                    {{ form.instituciones_apoyo.errors }}
+                </div>
+                <div class="col-12 col-md-6" data-operacion-field="apoyo_otro_cuerpo"><label class="form-label">Nombre del otro Cuerpo de Bomberos</label>{{ form.apoyo_otro_cuerpo }}{{ form.apoyo_otro_cuerpo.errors }}</div>
+                <div class="col-12 col-md-6" data-operacion-field="apoyo_otros"><label class="form-label">Especifica otra institución</label>{{ form.apoyo_otros }}{{ form.apoyo_otros.errors }}</div>
+
+                <div class="col-12"><h2 class="h6 fw-bold border-bottom pb-2 mt-2 mb-0" data-section-for="informe">Detalles de la actividad</h2></div>
+                <div class="col-12" data-operacion-field="informe"><label class="form-label">Informe / descripción</label>{{ form.informe }}{{ form.informe.errors }}</div>
+                <div class="col-12" data-operacion-field="novedades_unidad"><label class="form-label">Novedades de la unidad <span class="text-danger">*</span></label>{{ form.novedades_unidad }}<div class="form-text">Si no hubo novedades, escribe “Sin novedad”. Los hallazgos se agregan a la hoja de vida del carro.</div>{{ form.novedades_unidad.errors }}</div>
+
+                <div class="col-12"><h2 class="h6 fw-bold border-bottom pb-2 mt-2 mb-0" data-section-for="vehicular">Emergencia vehicular</h2></div>
+                <div class="col-12" data-operacion-field="lesionados_externos"><label class="form-label">Lesionados externos (no conductores ni dueños; nombre y RUT) <span class="text-danger">*</span></label>{{ form.lesionados_externos }}{{ form.lesionados_externos.errors }}</div>
+                <div class="col-12" data-operacion-field="involucrados_json">
+                    <label class="form-label">Datos de vehículos y personas involucradas (opcional)</label>
+                    {{ form.involucrados_json }}{{ form.involucrados_json.errors }}
+                    <div id="involucradosList" class="d-grid gap-2 mb-2"></div>
+                    <button type="button" id="addInvolucrado" class="btn btn-sm btn-outline-danger"><i class="bi bi-plus-lg me-1"></i>¿Otro involucrado? Agregar</button>
+                </div>
+
+                <div class="col-12"><h2 class="h6 fw-bold border-bottom pb-2 mt-2 mb-0" data-section-for="practica_maquinista">Práctica de maquinista</h2></div>
+                <div class="col-12 col-md-6" data-operacion-field="aspirante_nombre"><label class="form-label">Aspirante (opcional)</label>{{ form.aspirante_nombre }}</div>
+                <div class="col-12 col-md-6" data-operacion-field="aspirante_clave"><label class="form-label">Clave radial del aspirante</label>{{ form.aspirante_clave }}</div>
+                <div class="col-12 col-md-6" data-operacion-field="instructor"><label class="form-label">Instructor <span class="text-danger">*</span></label>{{ form.instructor }}{{ form.instructor.errors }}</div>
+                <div class="col-12 col-md-6" data-operacion-field="practica_calculo"><label class="form-label">Cálculo automático</label><div class="form-control bg-body-secondary" id="practicaCalculo">Horas: — · Kilómetros: —</div></div>
+
+                <div class="col-12" data-operacion-field="autorizaciones">
+                    <label class="form-label fw-semibold">Autorizado por <span class="text-danger">*</span></label>
+                    <div class="d-flex flex-wrap gap-3 p-2 border rounded">{{ form.autorizaciones }}</div>{{ form.autorizaciones.errors }}
+                </div>
+
+                <div class="col-12"><h2 class="h6 fw-bold border-bottom pb-2 mt-2 mb-0" data-section-for="combustible_6_14">Carga de combustible</h2></div>
+                <div class="col-12 col-md-6" data-operacion-field="estacion_servicio"><label class="form-label">Estación de servicio <span class="text-danger">*</span></label>{{ form.estacion_servicio }}{{ form.estacion_servicio.errors }}</div>
+                <div class="col-12 col-md-6" data-operacion-field="estacion_detalle"><label class="form-label">Nombre de la estación <span class="text-danger">*</span></label>{{ form.estacion_detalle }}{{ form.estacion_detalle.errors }}</div>
+                <div class="col-12 col-md-6" data-operacion-field="combustible_tipo"><label class="form-label">Tipo de combustible <span class="text-danger">*</span></label>{{ form.combustible_tipo }}{{ form.combustible_tipo.errors }}</div>
+                <div class="col-12 col-md-6" data-operacion-field="monto_combustible"><label class="form-label">Monto cargado (CLP) <span class="text-danger">*</span></label>{{ form.monto_combustible }}{{ form.monto_combustible.errors }}<div class="form-text">Se registra como egreso en Caja propia de la compañía de la unidad.</div></div>
+
+                <div class="col-12" data-operacion-field="emergencia_activa"><label class="form-label">Emergencia activa / código <span class="text-danger">*</span></label>{{ form.emergencia_activa }}{{ form.emergencia_activa.errors }}</div>
+                <div class="col-12" data-operacion-field="asistentes">
+                    <label class="form-label fw-semibold">Toma de asistencia</label>
+                    <p class="form-text">Selecciona el carro para abrir la asistencia de esa unidad.</p>
+                    <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 g-2 p-2 border rounded attendance-list">{{ form.asistentes }}</div>
+                    {{ form.asistentes.errors }}
+                </div>
+
+                <div class="col-12" data-operacion-field="checklist_json">
+                    <h2 class="h6 fw-bold border-bottom pb-2 mt-2">Checklist preventivo de la unidad <span class="text-danger">*</span></h2>
+                    {{ form.checklist_json }}{{ form.checklist_json.errors }}
+                    <p class="small text-muted">Cada respuesta negativa habilita una observación obligatoria y crea una entrada en la hoja de vida de la unidad.</p>
+                    <div class="table-responsive"><table class="table table-sm align-middle"><thead><tr><th>Ítem</th><th style="min-width:190px">Estado</th><th style="min-width:220px">Observación si hay falla</th></tr></thead><tbody id="checklistRows"></tbody></table></div>
+                </div>
+            </div>
+
+            <div class="d-flex flex-column flex-sm-row justify-content-end gap-2 border-top mt-4 pt-3">
+                <a href="{% url 'emergencias' %}" class="btn btn-outline-secondary">Cancelar</a>
+                <button type="submit" class="btn btn-danger"><i class="bi bi-check-lg me-1"></i>Guardar registro</button>
+            </div>
+        </form>
+    </div>
+</section>
+
+{% if registros %}
+<section class="card shadow-sm">
+    <div class="card-header bg-danger text-white fw-bold">Registros operativos recientes</div>
+    <div class="table-responsive"><table class="table table-hover align-middle mb-0">
+        <thead><tr><th>Fecha</th><th>Tipo</th><th>Carro</th><th>Maquinista</th><th>Detalle / distancia</th></tr></thead>
+        <tbody>{% for registro in registros %}<tr>
+            <td>{{ registro.fecha_inicio|date:'d/m/Y' }}</td><td>{{ registro.get_tipo_display }}</td>
+            <td>{{ registro.vehiculo.nombre|default:'—' }}</td><td>{{ registro.maquinista.get_full_name|default:'—' }}</td>
+            <td>{% if registro.kilometros_recorridos != None %}{{ registro.kilometros_recorridos }} km{% endif %}{% if registro.informe %}<div class="small text-muted">{{ registro.informe|truncatechars:100 }}</div>{% endif %}</td>
+        </tr>{% endfor %}</tbody>
+    </table></div>
+</section>
+{% endif %}
+
+{{ codigos_por_tipo|json_script:'registro-codigos' }}
+{{ rondas_checklist|json_script:'registro-checklist' }}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const form = document.getElementById('registroOperativoForm');
+    const tipo = document.getElementById('id_tipo_operativo');
+    const codigo = document.getElementById('id_codigo');
+    const codigos = JSON.parse(document.getElementById('registro-codigos').textContent);
+    const checklist = JSON.parse(document.getElementById('registro-checklist').textContent);
+    const visibleByType = {
+        codigo: ['emergencia','emergencia_vehicular','servicio_especial','practica_maquinista','rodaje_6_13','combustible_6_14'],
+        fecha_inicio: ['emergencia','emergencia_vehicular','servicio_especial','practica_maquinista','rodaje_6_13','combustible_6_14','llegada_cuartel','ronda_maquinistas'],
+        fecha_termino: ['emergencia','emergencia_vehicular','servicio_especial','practica_maquinista','rodaje_6_13'],
+        hora_despacho: ['emergencia','emergencia_vehicular','servicio_especial','practica_maquinista','rodaje_6_13','combustible_6_14'],
+        hora_llegada: ['emergencia','emergencia_vehicular','servicio_especial','practica_maquinista','rodaje_6_13'],
+        kilometraje_despacho: ['emergencia','emergencia_vehicular','servicio_especial','practica_maquinista','rodaje_6_13','combustible_6_14'],
+        kilometraje_llegada: ['emergencia','emergencia_vehicular','servicio_especial','practica_maquinista','rodaje_6_13'],
+        direccion: ['emergencia','emergencia_vehicular','servicio_especial','practica_maquinista','rodaje_6_13','llegada_cuartel'],
+        vehiculo: ['emergencia','emergencia_vehicular','servicio_especial','practica_maquinista','rodaje_6_13','combustible_6_14','ronda_maquinistas'],
+        maquinista: ['emergencia','emergencia_vehicular','servicio_especial','rodaje_6_13','combustible_6_14','ronda_maquinistas','llegada_cuartel'],
+        obac: ['emergencia','emergencia_vehicular','servicio_especial','rodaje_6_13'],
+        instituciones_apoyo: ['emergencia','emergencia_vehicular'],
+        apoyo_otro_cuerpo: ['emergencia','emergencia_vehicular'], apoyo_otros: ['emergencia','emergencia_vehicular'],
+        informe: ['emergencia_vehicular','servicio_especial','rodaje_6_13','llegada_cuartel'],
+        novedades_unidad: ['emergencia','emergencia_vehicular','servicio_especial','practica_maquinista','rodaje_6_13'],
+        lesionados_externos: ['emergencia_vehicular'], involucrados_json: ['emergencia_vehicular'],
+        autorizaciones: ['servicio_especial','practica_maquinista'],
+        aspirante_nombre: ['practica_maquinista'], aspirante_clave: ['practica_maquinista'], instructor: ['practica_maquinista'], practica_calculo: ['practica_maquinista'],
+        estacion_servicio: ['combustible_6_14'], estacion_detalle: ['combustible_6_14'], combustible_tipo: ['combustible_6_14'], monto_combustible: ['combustible_6_14'],
+        emergencia_activa: ['llegada_cuartel'], asistentes: ['emergencia','emergencia_vehicular','servicio_especial','practica_maquinista','llegada_cuartel'],
+        checklist_json: ['ronda_maquinistas']
+    };
+    const requiredByType = {
+        emergencia: ['codigo','fecha_inicio','fecha_termino','hora_despacho','hora_llegada','kilometraje_despacho','kilometraje_llegada','direccion','vehiculo','maquinista','obac','novedades_unidad'],
+        emergencia_vehicular: ['codigo','fecha_inicio','fecha_termino','hora_despacho','hora_llegada','kilometraje_despacho','kilometraje_llegada','direccion','vehiculo','maquinista','obac','informe','novedades_unidad','lesionados_externos'],
+        servicio_especial: ['codigo','fecha_inicio','fecha_termino','hora_despacho','hora_llegada','kilometraje_despacho','kilometraje_llegada','direccion','vehiculo','maquinista','obac','informe','novedades_unidad','autorizaciones'],
+        practica_maquinista: ['fecha_inicio','fecha_termino','hora_despacho','hora_llegada','kilometraje_despacho','kilometraje_llegada','direccion','vehiculo','instructor','novedades_unidad','autorizaciones'],
+        rodaje_6_13: ['fecha_inicio','fecha_termino','hora_despacho','hora_llegada','kilometraje_despacho','kilometraje_llegada','direccion','vehiculo','maquinista','obac','informe','novedades_unidad'],
+        combustible_6_14: ['fecha_inicio','hora_despacho','kilometraje_despacho','vehiculo','maquinista','estacion_servicio','combustible_tipo','monto_combustible'],
+        ronda_maquinistas: ['vehiculo','maquinista','checklist_json'],
+        llegada_cuartel: ['fecha_inicio','direccion','emergencia_activa']
+    };
+    function updateForm() {
+        const selected = tipo.value;
+        document.querySelectorAll('[data-operacion-field]').forEach((wrapper) => {
+            const name = wrapper.dataset.operacionField;
+            let isShown = name === 'tipo' || (visibleByType[name] || []).includes(selected);
+            if (name === 'asistentes' && selected !== 'llegada_cuartel') isShown = isShown && Boolean(document.getElementById('id_vehiculo')?.value);
+            wrapper.hidden = !isShown;
+            wrapper.querySelectorAll('input,select,textarea').forEach((input) => {
+                input.required = isShown && (requiredByType[selected] || []).includes(name);
+            });
+        });
+        document.querySelectorAll('[data-section-for]').forEach((heading) => {
+            const key = heading.dataset.sectionFor;
+            const types = key === 'vehicular' ? ['emergencia_vehicular'] : key === 'informe' ? ['emergencia_vehicular','servicio_especial','rodaje_6_13'] : [key];
+            heading.hidden = !types.includes(selected);
+        });
+        const dateLabel = document.getElementById('fechaInicioLabel');
+        if (dateLabel) dateLabel.textContent = selected === 'llegada_cuartel' ? 'Fecha de la emergencia *' : selected === 'combustible_6_14' ? 'Fecha de carga *' : selected === 'ronda_maquinistas' ? 'Fecha de la ronda' : 'Fecha de inicio *';
+        const autorizacion7 = document.querySelector('[name="autorizaciones"][value="7"]');
+        if (autorizacion7) autorizacion7.closest('label').hidden = selected !== 'practica_maquinista';
+        const current = codigo.value;
+        codigo.replaceChildren(new Option('Seleccionar', ''));
+        (codigos[selected] || []).forEach(([value, label]) => codigo.add(new Option(label, value)));
+        if ((codigos[selected] || []).some(([value]) => value === current)) codigo.value = current;
+        updateConditionalFields();
+        updateChecklist();
+        updatePractice();
+    }
+    function updateConditionalFields() {
+        const station = document.getElementById('id_estacion_servicio');
+        const detail = document.getElementById('id_estacion_detalle');
+        const detailWrap = detail?.closest('[data-operacion-field]');
+        if (detailWrap && tipo.value === 'combustible_6_14') detailWrap.hidden = !station || station.value !== 'otra';
+        if (detail) detail.required = tipo.value === 'combustible_6_14' && station?.value === 'otra';
+        const selectedSupport = Array.from(document.querySelectorAll('[name="instituciones_apoyo"]:checked')).map((x) => x.value);
+        const otherBody = document.querySelector('[data-operacion-field="apoyo_otro_cuerpo"]');
+        const other = document.querySelector('[data-operacion-field="apoyo_otros"]');
+        if (otherBody) otherBody.hidden = !selectedSupport.includes('otro_cuerpo');
+        if (other) other.hidden = !selectedSupport.includes('otros');
+        const bodyInput = otherBody?.querySelector('input'); if (bodyInput) bodyInput.required = selectedSupport.includes('otro_cuerpo');
+        const otherInput = other?.querySelector('input'); if (otherInput) otherInput.required = selectedSupport.includes('otros');
+    }
+    function updatePractice() {
+        const out = document.getElementById('id_hora_despacho')?.value;
+        const back = document.getElementById('id_hora_llegada')?.value;
+        const kmOut = Number(document.getElementById('id_kilometraje_despacho')?.value);
+        const kmBack = Number(document.getElementById('id_kilometraje_llegada')?.value);
+        let hours = '—';
+        if (out && back) { let diff = (new Date(`1970-01-01T${back}`) - new Date(`1970-01-01T${out}`)) / 3600000; if (diff < 0) diff += 24; hours = diff.toFixed(2).replace('.', ','); }
+        const kms = Number.isFinite(kmOut) && Number.isFinite(kmBack) && kmBack >= kmOut ? `${kmBack - kmOut}` : '—';
+        const target = document.getElementById('practicaCalculo'); if (target) target.textContent = `Horas: ${hours} · Kilómetros: ${kms}`;
+    }
+    const checklistBody = document.getElementById('checklistRows');
+    function updateChecklist() {
+        if (!checklistBody) return;
+        if (tipo.value !== 'ronda_maquinistas' || checklistBody.childElementCount) return;
+        const hidden = document.getElementById('id_checklist_json');
+        let saved = []; try { saved = JSON.parse(hidden.value || '[]'); } catch (e) { saved = []; }
+        const byId = Object.fromEntries(saved.map((item) => [item.id, item]));
+        checklist.forEach(([id, label, answers]) => {
+            const tr = document.createElement('tr');
+            const name = document.createElement('td'); name.textContent = label;
+            const answerCell = document.createElement('td');
+            const select = document.createElement('select'); select.className = 'form-select form-select-sm'; select.dataset.checkAnswer = id; select.required = true;
+            select.add(new Option('Seleccionar', '')); answers.forEach((answer) => select.add(new Option(answer, answer)));
+            select.value = byId[id]?.respuesta || '';
+            const noteCell = document.createElement('td');
+            const note = document.createElement('textarea'); note.className = 'form-control form-control-sm'; note.rows = 1; note.placeholder = 'Describe la falla'; note.dataset.checkNote = id; note.value = byId[id]?.observacion || ''; note.hidden = !isNegative(select.value);
+            select.addEventListener('change', () => { note.hidden = !isNegative(select.value); note.required = isNegative(select.value); writeChecklist(); });
+            note.addEventListener('input', writeChecklist);
+            answerCell.appendChild(select); noteCell.appendChild(note); tr.append(name, answerCell, noteCell); checklistBody.appendChild(tr);
+        });
+        writeChecklist();
+    }
+    function isNegative(answer) { return ['No','En mal estado','Bajo aceite motor','Bajo refrigerante'].includes(answer); }
+    function writeChecklist() {
+        const field = document.getElementById('id_checklist_json'); if (!field) return;
+        field.value = JSON.stringify(checklist.map(([id]) => ({id, respuesta: document.querySelector(`[data-check-answer="${id}"]`)?.value || '', observacion: document.querySelector(`[data-check-note="${id}"]`)?.value || ''})));
+    }
+    const involvedField = document.getElementById('id_involucrados_json');
+    const involvedList = document.getElementById('involucradosList');
+    function addInvolucrado(data = {}) {
+        const card = document.createElement('div'); card.className = 'border rounded p-3';
+        card.innerHTML = '<div class="d-flex justify-content-between align-items-center mb-2"><strong>Involucrado</strong><button type="button" class="btn btn-sm btn-outline-danger" aria-label="Quitar">Quitar</button></div><div class="row g-2"><div class="col-md-6"><input class="form-control" placeholder="Nombre" data-involved="nombre"></div><div class="col-md-6"><input class="form-control" placeholder="RUT" data-involved="rut"></div><div class="col-md-6"><input class="form-control" placeholder="Tipo de vehículo" data-involved="tipo_vehiculo"></div><div class="col-md-6"><input class="form-control" placeholder="Patente" data-involved="patente"></div></div>';
+        card.querySelectorAll('[data-involved]').forEach((input) => { input.value = data[input.dataset.involved] || ''; input.addEventListener('input', saveInvolucrados); });
+        card.querySelector('button').addEventListener('click', () => { card.remove(); saveInvolucrados(); });
+        involvedList.appendChild(card);
+    }
+    function saveInvolucrados() {
+        if (!involvedField) return;
+        involvedField.value = JSON.stringify(Array.from(involvedList.querySelectorAll('.border.rounded')).map((card) => Object.fromEntries(Array.from(card.querySelectorAll('[data-involved]')).map((input) => [input.dataset.involved, input.value.trim()]))).filter((item) => Object.values(item).some(Boolean)));
+    }
+    try { JSON.parse(involvedField?.value || '[]').forEach(addInvolucrado); } catch (e) {}
+    document.getElementById('addInvolucrado')?.addEventListener('click', () => addInvolucrado());
+    tipo.addEventListener('change', updateForm);
+    document.getElementById('id_vehiculo')?.addEventListener('change', updateForm);
+    document.getElementById('id_estacion_servicio')?.addEventListener('change', updateConditionalFields);
+    document.querySelectorAll('[name="instituciones_apoyo"]').forEach((input) => input.addEventListener('change', updateConditionalFields));
+    ['id_hora_despacho','id_hora_llegada','id_kilometraje_despacho','id_kilometraje_llegada'].forEach((id) => document.getElementById(id)?.addEventListener('input', updatePractice));
+    form.addEventListener('submit', () => { writeChecklist(); saveInvolucrados(); });
+    updateForm();
+});
+</script>
+{% endblock %}

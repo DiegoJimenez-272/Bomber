@@ -18,9 +18,9 @@
 <header class="d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-3 pb-3 mb-4 border-bottom">
     <h1 class="h2 mb-0">Emergencias y Salidas a Terreno</h1>
     {% if puede_editar_emergencias or puede_editar_salidas %}
-    <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="{% if puede_editar_emergencias %}#createEmergenciaModal{% else %}#createSalidaModal{% endif %}">
+    <a class="btn btn-danger" href="{% url 'registro_operativo' %}">
         <i class="bi bi-plus-lg me-1"></i>Registrar actividad
-    </button>
+    </a>
     {% endif %}
 </header>
 
