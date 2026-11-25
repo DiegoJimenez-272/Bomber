@@ -3,6 +3,32 @@
 {% block title %}Inventario - {{ block.super }}{% endblock %}
 {% block content %}
 <style>
+    /* En el modal de devolución, el formulario es un hijo del contenido del modal;
+       mantenemos el pie fijo y desplazamos solo el cuerpo en pantallas pequeñas. */
+    #unassignInventarioModal .modal-content {
+        height: 100%;
+        max-height: 100%;
+        overflow: hidden;
+    }
+    #unassignInventarioForm {
+        display: flex;
+        flex: 1 1 auto;
+        flex-direction: column;
+        min-height: 0;
+        overflow: hidden;
+    }
+    #unassignInventarioForm .modal-body {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior: contain;
+    }
+    #unassignInventarioForm .modal-footer {
+        flex: 0 0 auto;
+        padding-bottom: max(var(--bs-modal-padding), env(safe-area-inset-bottom));
+    }
+
     /* Estilos personalizados para las pestañas de las compañías */
     .nav-pills-custom .nav-item {
         margin-right: 0.5rem;
