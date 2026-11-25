@@ -24,6 +24,19 @@
     {% endif %}
 </header>
 
+<div class="d-flex flex-wrap gap-2 mb-4" role="group" aria-label="Secciones de emergencias y salidas a terreno">
+    {% if puede_ver_emergencias %}
+    <button type="button" class="btn {% if request.GET.vista != 'salidas' or not puede_ver_salidas %}btn-danger{% else %}btn-outline-danger{% endif %} px-4 py-2" data-operaciones-section="emergencias" aria-pressed="{% if request.GET.vista != 'salidas' or not puede_ver_salidas %}true{% else %}false{% endif %}">
+        <i class="bi bi-fire me-2"></i>Emergencias
+    </button>
+    {% endif %}
+    {% if puede_ver_salidas %}
+    <button type="button" class="btn {% if request.GET.vista == 'salidas' or not puede_ver_emergencias %}btn-danger{% else %}btn-outline-danger{% endif %} px-4 py-2" data-operaciones-section="salidas" aria-pressed="{% if request.GET.vista == 'salidas' or not puede_ver_emergencias %}true{% else %}false{% endif %}">
+        <i class="bi bi-truck-front-fill me-2"></i>Salidas a terreno
+    </button>
+    {% endif %}
+</div>
+
 <!-- Contenido de Emergencias -->
 <main>
     {% if messages %}
@@ -100,6 +113,7 @@
     {% endif %}
 
     {% if puede_ver_emergencias %}
+    <div id="emergenciasPanel" {% if request.GET.vista == 'salidas' %}hidden{% endif %}>
     <div class="card shadow-sm">
         <div class="card-body">
             <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
@@ -279,7 +293,9 @@
         </div>
     </div>
     {% endif %}
+    </div>
     {% if puede_ver_salidas %}
+    <div id="salidasPanel" {% if request.GET.vista != 'salidas' and puede_ver_emergencias %}hidden{% endif %}>
     <div class="card shadow-sm mt-4">
         <div class="card-body">
             <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
@@ -321,11 +337,33 @@
         </div>
     </div>
     {% endif %}
+    </div>
 </main>
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+    const buttons = document.querySelectorAll('[data-operaciones-section]');
     const vistaFilter = document.querySelector('#operacionesFilterForm [name="vista"]');
+    const panels = {
+        emergencias: document.getElementById('emergenciasPanel'),
+        salidas: document.getElementById('salidasPanel')
+    };
+
+    buttons.forEach((button) => {
+        button.addEventListener('click', function () {
+            const selected = button.dataset.operacionesSection;
+            if (vistaFilter) vistaFilter.value = selected;
+            Object.entries(panels).forEach(([section, panel]) => {
+                if (panel) panel.hidden = section !== selected;
+            });
+            buttons.forEach((item) => {
+                const active = item === button;
+                item.classList.toggle('btn-danger', active);
+                item.classList.toggle('btn-outline-danger', !active);
+                item.setAttribute('aria-pressed', active ? 'true' : 'false');
+            });
+        });
+    });
 
     document.querySelectorAll('[data-salida-page]').forEach((link) => {
         link.addEventListener('click', function (event) {
