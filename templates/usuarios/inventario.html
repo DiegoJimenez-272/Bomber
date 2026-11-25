@@ -757,7 +757,6 @@
                                     <th class="ps-4">Ítem</th>
                                     <th>Ubicación</th>
                                     <th>Estado</th>
-                                    <th>Valor</th>
                                     <th class="text-end pe-4">Opciones</th>
                                 </tr>
                             </thead>
@@ -773,7 +772,6 @@
                                         {% else %}<span class="badge bg-danger">{{ item.estado }}</span>
                                         {% endif %}
                                     </td>
-                                    <td>{% if item.valor %}${{ item.valor }}{% else %}-{% endif %}</td>
                                     <td class="text-end pe-4">
                                         {% if request.user.is_superuser or request.user.rol.editar_inventario %}
                                         <div class="btn-group" role="group">
@@ -852,7 +850,6 @@
                                     <th class="ps-4">Ítem</th>
                                     <th>Ubicación</th>
                                     <th>Estado</th>
-                                    <th>Valor</th>
                                     <th class="text-end pe-4">Opciones</th>
                                 </tr>
                             </thead>
@@ -868,7 +865,6 @@
                                         {% else %}<span class="badge bg-danger">{{ item.estado }}</span>
                                         {% endif %}
                                     </td>
-                                    <td>{% if item.valor %}${{ item.valor }}{% else %}-{% endif %}</td>
                                     <td class="text-end pe-4">
                                         {% if request.user.is_superuser or request.user.rol.editar_inventario %}
                                         <div class="btn-group" role="group">

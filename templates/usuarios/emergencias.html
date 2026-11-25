@@ -16,10 +16,10 @@
 {% block content %}
 <!-- Header del contenido principal -->
 <header class="d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-3 pb-3 mb-4 border-bottom">
-    <h1 class="h2 mb-0">Gestión de Emergencias</h1>
-    {% if request.user.is_superuser or request.user.rol.editar_emergencias %}
-    <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#createEmergenciaModal">
-        <i class="bi bi-plus-lg me-1"></i> Registrar Emergencia
+    <h1 class="h2 mb-0">Emergencias y Salidas a Terreno</h1>
+    {% if puede_editar_emergencias or puede_editar_salidas %}
+    <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="{% if puede_editar_emergencias %}#createEmergenciaModal{% else %}#createSalidaModal{% endif %}">
+        <i class="bi bi-plus-lg me-1"></i> Registrar
     </button>
     {% endif %}
 </header>
@@ -53,10 +53,11 @@
                     <input type="text" name="q" id="emSearchInput" class="form-control" value="{{ request.GET.q|default:'' }}">
                 </div>
                 <div class="col-lg-2">
-                    <label for="tipo" class="form-label">Tipo de Emergencia</label>
+                    <label for="tipo" class="form-label">Tipo</label>
                     <select name="tipo" id="emTypeFilter" class="form-select">
                         <option value="">Todos</option>
-                        {% for value, text in form.fields.tipo.choices %}<option value="{{ value }}" {% if request.GET.tipo == value %}selected{% endif %}>{{ text }}</option>{% endfor %}
+                        {% if puede_ver_emergencias %}{% for value, text in form.fields.tipo.choices %}<option value="{{ value }}" {% if request.GET.tipo == value %}selected{% endif %}>{{ text }}</option>{% endfor %}{% endif %}
+                        {% if puede_ver_salidas %}<option value="salida_terreno" {% if request.GET.tipo == 'salida_terreno' %}selected{% endif %}>Salidas a Terreno</option>{% endif %}
                     </select>
                 </div>
                 <div class="col-lg-2">
@@ -92,6 +93,7 @@
     </div>
     </div>
 
+    {% if puede_ver_emergencias %}
     <div class="card shadow-sm">
         <div class="card-body">
             <h5 class="card-title">Historial de Emergencias</h5>
@@ -268,6 +270,43 @@
             </div>
         </div>
     </div>
+    {% endif %}
+    {% if puede_ver_salidas %}
+    <div class="card shadow-sm mt-4">
+        <div class="card-body">
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+                <h5 class="card-title mb-0">Historial de Salidas a Terreno</h5>
+                {% if puede_editar_salidas and puede_ver_salidas %}<a class="btn btn-sm btn-outline-danger" href="{% url 'salidas_terreno' %}">Administrar historial</a>{% endif %}
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead><tr><th>Motivo / Dirección</th><th>Salida</th><th>Regreso</th><th>Unidades</th><th>Kilómetros</th><th>Personal a cargo</th></tr></thead>
+                    <tbody>
+                        {% for salida in salidas_page %}
+                        <tr>
+                            <td><strong>{{ salida.motivo }}</strong><div class="small text-muted">{{ salida.direccion }}</div></td>
+                            <td>{{ salida.fecha_hora_salida|date:"d/m/Y H:i" }}</td>
+                            <td>{{ salida.fecha_hora_regreso|date:"d/m/Y H:i"|default:"En servicio" }}</td>
+                            <td>{% for unidad in salida.unidades.all %}<span class="badge bg-light text-dark border me-1">{{ unidad.nombre }}</span>{% empty %}{{ salida.unidades_involucradas|default:"—" }}{% endfor %}</td>
+                            <td>{% if salida.kilometraje_regreso != None %}{{ salida.kilometros_recorridos }} km{% else %}Pendiente{% endif %}</td>
+                            <td>{{ salida.personal_a_cargo.get_full_name|default:"N/A" }}</td>
+                        </tr>
+                        {% empty %}<tr><td colspan="6" class="text-center text-muted py-4">No hay salidas a terreno registradas.</td></tr>{% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% if salidas_page.paginator.num_pages > 1 %}
+            <nav class="mt-3" aria-label="Paginación de salidas">
+                <ul class="pagination pagination-sm mb-0">
+                    {% if salidas_page.has_previous %}<li class="page-item"><a class="page-link" href="?salida_page={{ salidas_page.previous_page_number }}{% if request.GET.q %}&q={{ request.GET.q|urlencode }}{% endif %}">Anterior</a></li>{% endif %}
+                    <li class="page-item disabled"><span class="page-link">Página {{ salidas_page.number }} de {{ salidas_page.paginator.num_pages }}</span></li>
+                    {% if salidas_page.has_next %}<li class="page-item"><a class="page-link" href="?salida_page={{ salidas_page.next_page_number }}{% if request.GET.q %}&q={{ request.GET.q|urlencode }}{% endif %}">Siguiente</a></li>{% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
 </main>
 
 <template id="emUnidadAsistenciaGroupTemplate">
@@ -302,6 +341,30 @@
         </div>
     </div>
 </template>
+{% if puede_editar_salidas %}
+<template id="salidaUnidadAsistenciaGroupTemplate">
+    <div class="unidad-asistencia-card border rounded p-3 mb-3" data-em-unidad-asistencia>
+        <div class="d-flex justify-content-between align-items-center gap-2 mb-2">
+            <label class="form-label mb-0">Unidad</label>
+            <button type="button" class="btn btn-sm btn-outline-danger" data-em-remove-unidad aria-label="Quitar unidad"><i class="bi bi-trash"></i> Quitar</button>
+        </div>
+        <select class="form-select em-unidad-asistencia-select" data-em-unidad-select>
+            <option value="">Seleccionar carro</option>
+            {% for choice in salida_form.unidades.field.choices %}{% if choice.0 %}<option value="{{ choice.0 }}">{{ choice.1 }}</option>{% endif %}{% endfor %}
+        </select>
+        <div class="mt-3" data-em-asistencia-panel hidden>
+            <label class="form-label fw-semibold" data-em-asistencia-titulo>Asistencia</label>
+            <input type="search" class="form-control form-control-sm mb-2" data-em-asistencia-search placeholder="Buscar bombero...">
+            <div class="em-unidad-asistencia-list border rounded p-2 overflow-auto" data-em-asistencia-list style="max-height:220px"></div>
+            <div class="text-end mt-2"><button type="button" class="btn btn-sm btn-danger attendance-action-button" data-em-save-asistencia><i class="bi bi-check-lg me-1"></i>Guardar asistencia</button></div>
+        </div>
+        <div class="d-flex justify-content-between align-items-center gap-2 mt-2" data-em-asistencia-summary hidden>
+            <small class="text-success" data-em-asistencia-resumen></small>
+            <button type="button" class="btn btn-sm btn-outline-secondary attendance-action-button" data-em-edit-asistencia><i class="bi bi-pencil me-1"></i>Editar asistencia</button>
+        </div>
+    </div>
+</template>
+{% endif %}
 {{ usuarios_asistencia|json_script:"emergencia-usuarios-asistencia" }}
 
 <!-- Modal Registrar Emergencia -->
@@ -314,11 +377,17 @@
             </div>
             <form id="createEmergenciaForm" method="post" enctype="multipart/form-data" novalidate>
                 {% csrf_token %}
+                <input type="hidden" name="tipo_registro" value="emergencia">
                 <div class="modal-body">
                     <div class="row g-3">
                         <div class="col-md-6">
-                            <label for="{{ form.tipo.id_for_label }}" class="form-label">Tipo de Emergencia</label>
-                            {{ form.tipo }}
+                            <label for="{{ form.tipo.id_for_label }}" class="form-label">Tipo</label>
+                            <select name="tipo" id="{{ form.tipo.id_for_label }}" class="form-select">
+                                {% for value, label in form.fields.tipo.choices %}
+                                <option value="{{ value }}" {% if form.tipo.value == value %}selected{% endif %}>{{ label }}</option>
+                                {% endfor %}
+                                {% if puede_editar_salidas %}<option value="salida_terreno">Salidas a Terreno</option>{% endif %}
+                            </select>
                             {% for error in form.tipo.errors %}
                                 <div class="invalid-feedback d-block">{{ error }}</div>
                             {% endfor %}
@@ -396,6 +465,84 @@
     </div>
 </div>
 
+<!-- Modal Registrar Salida a Terreno dentro del módulo unificado -->
+{% if puede_editar_salidas %}
+<div class="modal fade" id="createSalidaModal" tabindex="-1" aria-labelledby="createSalidaModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="createSalidaModalLabel">Registrar Nueva Salida a Terreno</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <form id="createSalidaForm" method="post" novalidate>
+                {% csrf_token %}
+                <input type="hidden" name="tipo_registro" value="salida_terreno">
+                <div class="modal-body">
+                    {% if salida_form.non_field_errors %}<div class="alert alert-danger">{{ salida_form.non_field_errors }}</div>{% endif %}
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="{{ salida_form.motivo.id_for_label }}" class="form-label">Motivo de la Salida</label>
+                            {{ salida_form.motivo }}
+                            {% for error in salida_form.motivo.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="{{ salida_form.direccion.id_for_label }}" class="form-label">Dirección</label>
+                            {{ salida_form.direccion }}
+                            {% for error in salida_form.direccion.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="{{ salida_form.fecha_hora_salida.id_for_label }}" class="form-label">Fecha y Hora de Salida</label>
+                            {{ salida_form.fecha_hora_salida }}
+                            {% for error in salida_form.fecha_hora_salida.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="{{ salida_form.fecha_hora_regreso.id_for_label }}" class="form-label">Fecha y Hora de Regreso (Opcional)</label>
+                            {{ salida_form.fecha_hora_regreso }}
+                            {% for error in salida_form.fecha_hora_regreso.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Unidades y asistencia</label>
+                            <input type="hidden" name="asistencia_unidades" id="salida_asistencia_unidades" value="{{ salida_form.asistencia_unidades.value|default:'{}' }}">
+                            <div id="createSalidaUnitGroups" data-em-unidad-groups data-em-template="salidaUnidadAsistenciaGroupTemplate" data-initial-units="{{ salida_unidades_seleccionadas|join:',' }}"></div>
+                            <button type="button" class="btn btn-sm btn-outline-danger" data-em-add-unidad="createSalidaUnitGroups" data-em-template="salidaUnidadAsistenciaGroupTemplate">
+                                <i class="bi bi-plus-lg me-1"></i>Agregar otro carro
+                            </button>
+                            {% for error in salida_form.unidades.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                            {% for error in salida_form.asistencia_unidades.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                            <div class="form-text">Marca el personal asistente para cada carro.</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="{{ salida_form.personal_a_cargo.id_for_label }}" class="form-label">Personal a Cargo</label>
+                            {{ salida_form.personal_a_cargo }}
+                            {% for error in salida_form.personal_a_cargo.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="{{ salida_form.kilometraje_salida.id_for_label }}" class="form-label">Kilometraje de Salida *</label>
+                            {{ salida_form.kilometraje_salida }}
+                            {% for error in salida_form.kilometraje_salida.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="{{ salida_form.kilometraje_regreso.id_for_label }}" class="form-label">Kilometraje de Regreso *</label>
+                            {{ salida_form.kilometraje_regreso }}
+                            {% for error in salida_form.kilometraje_regreso.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                        </div>
+                        <div class="col-12">
+                            <label for="{{ salida_form.descripcion.id_for_label }}" class="form-label">Reporte / Novedades</label>
+                            {{ salida_form.descripcion }}
+                            {% for error in salida_form.descripcion.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-danger">Registrar Salida</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+
 <!-- Modal Editar Emergencia -->
 <div class="modal fade" id="editEmergenciaModal" tabindex="-1" aria-labelledby="editEmergenciaModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
@@ -409,7 +556,7 @@
                 <div class="modal-body">
                     <div class="row g-3">
                         <div class="col-md-6">
-                            <label for="edit_tipo" class="form-label">Tipo de Emergencia</label>
+                            <label for="edit_tipo" class="form-label">Tipo</label>
                             <select id="edit_tipo" name="tipo" class="form-select">
                                 {% for choice in form.tipo.field.choices %}<option value="{{ choice.0 }}">{{ choice.1 }}</option>{% endfor %}
                             </select>
@@ -679,7 +826,11 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function agregarUnidad(container, unidadId, asistentes = [], contraer = false) {
-        const group = unidadTemplate.content.firstElementChild.cloneNode(true);
+        const template = container.dataset.emTemplate
+            ? document.getElementById(container.dataset.emTemplate)
+            : unidadTemplate;
+        if (!template) return;
+        const group = template.content.firstElementChild.cloneNode(true);
         container.appendChild(group);
         const select = group.querySelector('[data-em-unidad-select]');
         if (unidadId) select.value = String(unidadId);
@@ -722,9 +873,44 @@ document.addEventListener('DOMContentLoaded', function () {
         agregarUnidad(createUnitGroups);
     }
 
+    const createSalidaUnitGroups = document.getElementById('createSalidaUnitGroups');
+    if (createSalidaUnitGroups) {
+        const salidaAttendanceInput = document.getElementById('salida_asistencia_unidades');
+        let salidaAttendance = {};
+        try { salidaAttendance = JSON.parse(salidaAttendanceInput.value || '{}'); } catch (error) { salidaAttendance = {}; }
+        const salidaUnitIds = createSalidaUnitGroups.dataset.initialUnits.split(',').filter(Boolean);
+        if (salidaUnitIds.length) {
+            salidaUnitIds.forEach(function (unitId) { agregarUnidad(createSalidaUnitGroups, unitId, salidaAttendance[unitId] || []); });
+        } else {
+            agregarUnidad(createSalidaUnitGroups);
+        }
+    }
+
+    const tipoRegistroSelect = document.getElementById('{{ form.tipo.id_for_label }}');
+    const createEmergenciaModalElement = document.getElementById('createEmergenciaModal');
+    const createSalidaModalElement = document.getElementById('createSalidaModal');
+    if (tipoRegistroSelect && createSalidaModalElement) {
+        let abrirSalidaAlCerrarEmergencia = false;
+        tipoRegistroSelect.addEventListener('change', function () {
+            if (tipoRegistroSelect.value !== 'salida_terreno') return;
+            abrirSalidaAlCerrarEmergencia = true;
+            bootstrap.Modal.getOrCreateInstance(createEmergenciaModalElement).hide();
+        });
+        createEmergenciaModalElement.addEventListener('hidden.bs.modal', function () {
+            if (!abrirSalidaAlCerrarEmergencia) return;
+            abrirSalidaAlCerrarEmergencia = false;
+            tipoRegistroSelect.value = 'Otro';
+            bootstrap.Modal.getOrCreateInstance(createSalidaModalElement).show();
+        });
+    }
+
     {% if form.errors %}
         var createEmergenciaModal = new bootstrap.Modal(document.getElementById('createEmergenciaModal'));
         createEmergenciaModal.show();
+    {% endif %}
+
+    {% if salida_form.errors %}
+        if (createSalidaModalElement) bootstrap.Modal.getOrCreateInstance(createSalidaModalElement).show();
     {% endif %}
 
     // Lógica para el modal de edición

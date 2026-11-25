@@ -355,8 +355,7 @@ def dashboard_view(request):
         {'id': 'dashboard_summary', 'url_name': 'dashboard_summary', 'icon': 'bi-bar-chart-line-fill', 'title': 'Ver Resumen General', 'desc': 'Visualiza KPIs, gráficos y actividad reciente del sistema.'},
         {'id': 'documentos', 'url_name': 'documentos', 'icon': 'bi-file-earmark-text-fill', 'title': 'Documentos', 'desc': 'Gestión de documentos e informes'},
         {'id': 'inventario', 'url_name': 'inventario', 'icon': 'bi-box-seam-fill', 'title': 'Inventario', 'desc': 'Control de equipos y herramientas'},
-        {'id': 'salidas', 'url_name': 'salidas_terreno', 'icon': 'bi-truck-front-fill', 'title': 'Salidas a Terreno', 'desc': 'Registro y seguimiento de operaciones'},
-        {'id': 'emergencias', 'url_name': 'emergencias', 'icon': 'bi-exclamation-octagon-fill', 'title': 'Emergencias', 'desc': 'Gestión de incidentes y respuesta'},
+        {'id': 'emergencias', 'url_name': 'emergencias', 'icon': 'bi-exclamation-octagon-fill', 'title': 'Emergencias', 'desc': 'Gestión de emergencias y salidas a terreno'},
         {'id': 'capacitaciones', 'url_name': 'capacitaciones', 'icon': 'bi-mortarboard-fill', 'title': 'Cursos y Capacitaciones', 'desc': 'Programación y seguimiento de cursos y entrenamientos'},
         {'id': 'mantenimiento', 'url_name': 'mantenimiento', 'icon': 'bi-wrench-adjustable-circle-fill', 'title': 'Mantenimiento', 'desc': 'Gestión de la flota vehicular'},
         {'id': 'caja_chica', 'url_name': 'caja_chica', 'icon': 'bi-wallet-fill', 'title': 'Caja', 'desc': 'Control de gastos menores'},
@@ -391,8 +390,7 @@ def dashboard_view(request):
                 if m['id'] == 'dashboard_summary' and rol.ver_resumen_general: filtered_modules.append(m)
                 elif m['id'] == 'documentos' and rol.ver_documentacion: filtered_modules.append(m)
                 elif m['id'] == 'inventario' and rol.ver_inventario: filtered_modules.append(m)
-                elif m['id'] == 'salidas' and rol.ver_salidas_terreno: filtered_modules.append(m)
-                elif m['id'] == 'emergencias' and rol.ver_emergencias: filtered_modules.append(m)
+                elif m['id'] == 'emergencias' and (rol.ver_emergencias or rol.ver_salidas_terreno): filtered_modules.append(m)
                 elif m['id'] == 'capacitaciones' and rol.ver_capacitaciones: filtered_modules.append(m)
                 elif m['id'] == 'mantenimiento' and rol.ver_mantenimientos: filtered_modules.append(m)
                 elif m['id'] == 'caja_chica' and rol.ver_caja_chica: filtered_modules.append(m)
@@ -2363,29 +2361,50 @@ def salida_terreno_delete_view(request, salida_id):
 
 @login_required
 def emergencias_view(request):
-    if not request.user.is_superuser and not (request.user.rol and request.user.rol.ver_emergencias):
-        messages.error(request, 'No tienes permiso para acceder a Emergencias.')
+    rol = getattr(request.user, 'rol', None)
+    puede_ver_emergencias = request.user.is_superuser or bool(rol and rol.ver_emergencias)
+    puede_ver_salidas = request.user.is_superuser or bool(rol and rol.ver_salidas_terreno)
+    puede_editar_emergencias = request.user.is_superuser or bool(rol and rol.editar_emergencias)
+    puede_editar_salidas = request.user.is_superuser or bool(rol and rol.editar_salidas_terreno)
+    if not (puede_ver_emergencias or puede_ver_salidas):
+        messages.error(request, 'No tienes permiso para acceder a Emergencias y Salidas a Terreno.')
         return redirect('dashboard')
 
     if request.method == 'POST':
-        if not request.user.is_superuser and not (request.user.rol and request.user.rol.editar_emergencias):
-            messages.error(request, 'No tienes permiso para registrar emergencias.')
-            return redirect_to_previous_page(request, reverse('emergencias'))
-            
-        form = EmergenciaForm(request.POST, request.FILES, user=request.user)
-        if form.is_valid():
-            emergencia = form.save(commit=False)
-            emergencia.creado_por = request.user
-            emergencia.registro_completado = 'guardar_incompleto' not in request.POST
-            emergencia.save()
-            form.save_m2m()
-            form.save_unit_attendance(emergencia)
-            messages.success(request, f'Emergencia "{emergencia.get_tipo_display()}" registrada exitosamente.')
-            return redirect_to_previous_page(request, reverse('emergencias'))
+        if request.POST.get('tipo_registro') == 'salida_terreno':
+            if not puede_editar_salidas:
+                messages.error(request, 'No tienes permiso para registrar salidas a terreno.')
+                return redirect_to_previous_page(request, reverse('emergencias'))
+            salida_form = SalidaTerrenoForm(request.POST, user=request.user)
+            form = EmergenciaForm(user=request.user)
+            if salida_form.is_valid():
+                salida = salida_form.save(commit=False)
+                salida.creado_por = request.user
+                salida.save()
+                salida_form.save_m2m()
+                salida_form.save_unit_attendance(salida)
+                messages.success(request, f'Salida a terreno por "{salida.motivo}" registrada.')
+                return redirect_to_previous_page(request, reverse('emergencias'))
+            messages.error(request, 'Error al registrar la salida. Revisa los datos ingresados.')
         else:
+            if not puede_editar_emergencias:
+                messages.error(request, 'No tienes permiso para registrar emergencias.')
+                return redirect_to_previous_page(request, reverse('emergencias'))
+            form = EmergenciaForm(request.POST, request.FILES, user=request.user)
+            salida_form = SalidaTerrenoForm(user=request.user)
+            if form.is_valid():
+                emergencia = form.save(commit=False)
+                emergencia.creado_por = request.user
+                emergencia.registro_completado = 'guardar_incompleto' not in request.POST
+                emergencia.save()
+                form.save_m2m()
+                form.save_unit_attendance(emergencia)
+                messages.success(request, f'Emergencia "{emergencia.get_tipo_display()}" registrada exitosamente.')
+                return redirect_to_previous_page(request, reverse('emergencias'))
             messages.error(request, 'Error al registrar la emergencia. Por favor, revisa el formulario.')
     else:
         form = EmergenciaForm(user=request.user)
+        salida_form = SalidaTerrenoForm(user=request.user)
 
     # --- Lógica de Búsqueda y Filtros ---
     query = request.GET.get('q')
@@ -2402,7 +2421,15 @@ def emergencias_view(request):
             'unidades_asistencia',
             queryset=EmergenciaUnidad.objects.select_related('unidad').prefetch_related('asistentes'),
         ),
-    ).all()
+    ).all() if puede_ver_emergencias else Emergencia.objects.none()
+
+    salidas = SalidaTerreno.objects.select_related('personal_a_cargo').prefetch_related(
+        'unidades__compania',
+        Prefetch(
+            'asistencias_unidades',
+            queryset=SalidaTerrenoUnidad.objects.select_related('unidad').prefetch_related('asistentes'),
+        ),
+    ).all() if puede_ver_salidas else SalidaTerreno.objects.none()
 
     if query:
         emergencias = emergencias.filter(
@@ -2411,7 +2438,9 @@ def emergencias_view(request):
             Q(unidades_despachadas__icontains=query)
         )
     
-    if tipo_emergencia:
+    if tipo_emergencia == 'salida_terreno':
+        emergencias = Emergencia.objects.none()
+    elif tipo_emergencia:
         emergencias = emergencias.filter(tipo=tipo_emergencia)
     
     if fecha_inicio:
@@ -2419,6 +2448,22 @@ def emergencias_view(request):
         
     if fecha_fin:
         emergencias = emergencias.filter(fecha_hora_alarma__lte=f"{fecha_fin} 23:59:59")
+
+    if query:
+        salidas = salidas.filter(
+            Q(motivo__icontains=query) | Q(direccion__icontains=query) |
+            Q(unidades_involucradas__icontains=query) | Q(unidades__nombre__icontains=query) |
+            Q(descripcion__icontains=query) | Q(personal_a_cargo__nombre__icontains=query) |
+            Q(personal_a_cargo__apellido__icontains=query)
+        ).distinct()
+    if tipo_emergencia and tipo_emergencia != 'salida_terreno':
+        salidas = SalidaTerreno.objects.none()
+    if fecha_inicio:
+        salidas = salidas.filter(fecha_hora_salida__gte=fecha_inicio)
+    if fecha_fin:
+        salidas = salidas.filter(fecha_hora_salida__lte=f"{fecha_fin} 23:59:59")
+    if usuario_id:
+        salidas = salidas.filter(personal_a_cargo__id=usuario_id)
 
     if usuario_id:
         emergencias = emergencias.filter(oficial_a_cargo__id=usuario_id)
@@ -2438,7 +2483,10 @@ def emergencias_view(request):
     if ordenar_por in valid_sorts:
         emergencias = emergencias.order_by(ordenar_por)
 
-    usuarios_con_emergencias = Usuario.objects.filter(compania__isnull=False, emergencias_a_cargo__isnull=False).distinct().order_by('nombre')
+    usuarios_con_emergencias = Usuario.objects.filter(
+        Q(compania__isnull=False, emergencias_a_cargo__isnull=False) |
+        Q(compania__isnull=False, salidas_a_cargo__isnull=False)
+    ).distinct().order_by('nombre')
 
     unidades_disponibles = list(form.fields['unidades'].queryset)
     unidades_por_nombre = {}
@@ -2473,8 +2521,17 @@ def emergencias_view(request):
         ] if not detalles else []
         emergencia.asistencia_unidades_json = json.dumps(asistencia)
 
+    for salida in salidas:
+        salida.detalles_asistencia = list(salida.asistencias_unidades.all())
+        for detalle in salida.detalles_asistencia:
+            detalle.asistentes_visibles = [usuario for usuario in detalle.asistentes.all() if usuario.compania_id]
+
+    salidas_page = Paginator(salidas.order_by('-fecha_hora_salida'), 10).get_page(request.GET.get('salida_page'))
+
     unidades_seleccionadas = form['unidades'].value() or []
     unidades_seleccionadas = [str(getattr(unidad, 'pk', unidad)) for unidad in unidades_seleccionadas]
+    salida_unidades_seleccionadas = salida_form['unidades'].value() or []
+    salida_unidades_seleccionadas = [str(getattr(unidad, 'pk', unidad)) for unidad in salida_unidades_seleccionadas]
     usuarios_asistencia = [
         {'id': usuario.pk, 'nombre': usuario.get_full_name()}
         for usuario in Usuario.objects.miembros_activos().only('id', 'nombre', 'apellido').order_by('nombre', 'apellido')
@@ -2482,10 +2539,18 @@ def emergencias_view(request):
 
     context = {
         'form': form,
+        'salida_form': salida_form,
+        'tipo_registro_actual': request.POST.get('tipo_registro') or ('emergencia' if puede_editar_emergencias else 'salida_terreno'),
+        'puede_ver_emergencias': puede_ver_emergencias,
+        'puede_ver_salidas': puede_ver_salidas,
+        'puede_editar_emergencias': puede_editar_emergencias,
+        'puede_editar_salidas': puede_editar_salidas,
         'emergencias': emergencias,
+        'salidas_page': salidas_page,
         'usuarios_con_emergencias': usuarios_con_emergencias,
         'nombre_personal_filtro': nombre_personal,
         'unidades_seleccionadas': unidades_seleccionadas,
+        'salida_unidades_seleccionadas': salida_unidades_seleccionadas,
         'usuarios_asistencia': usuarios_asistencia,
     }
     return render(request, 'usuarios/emergencias.html', context)

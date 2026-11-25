@@ -333,12 +333,8 @@
                 <li class="nav-item"><a href="{% url 'inventario' %}" class="nav-link {% if request.resolver_match.url_name == 'inventario' %}active{% endif %}"><i class="bi bi-box-seam-fill"></i>Inventario</a></li>
                 {% endif %}
                 
-                {% if request.user.is_superuser or request.user.rol.ver_salidas_terreno %}
-                <li class="nav-item"><a href="{% url 'salidas_terreno' %}" class="nav-link {% if request.resolver_match.url_name == 'salidas_terreno' %}active{% endif %}"><i class="bi bi-truck-front-fill"></i>Salidas a Terreno</a></li>
-                {% endif %}
-                
-                {% if request.user.is_superuser or request.user.rol.ver_emergencias %}
-                <li class="nav-item"><a href="{% url 'emergencias' %}" class="nav-link {% if request.resolver_match.url_name == 'emergencias' %}active{% endif %}"><i class="bi bi-exclamation-octagon-fill"></i>Emergencias</a></li>
+                {% if request.user.is_superuser or request.user.rol.ver_emergencias or request.user.rol.ver_salidas_terreno %}
+                <li class="nav-item"><a href="{% url 'emergencias' %}" class="nav-link {% if request.resolver_match.url_name == 'emergencias' or request.resolver_match.url_name == 'salidas_terreno' %}active{% endif %}"><i class="bi bi-exclamation-octagon-fill"></i>Emergencias</a></li>
                 {% endif %}
                 
                 {% if request.user.is_superuser or request.user.rol.ver_capacitaciones %}
