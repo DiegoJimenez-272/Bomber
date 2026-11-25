@@ -303,7 +303,7 @@
             </div>
             <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0">
-                    <thead><tr><th>Motivo / Dirección</th><th>Salida</th><th>Regreso</th><th>Unidades</th><th>Kilómetros</th><th>Personal a cargo</th></tr></thead>
+                    <thead><tr><th>Motivo / Dirección</th><th>Salida</th><th>Regreso</th><th>Unidades</th><th>Kilómetros</th><th>Personal a cargo</th>{% if puede_editar_salidas %}<th>Acciones</th>{% endif %}</tr></thead>
                     <tbody>
                         {% for salida in salidas_page %}
                         <tr>
@@ -313,8 +313,29 @@
                             <td>{% for unidad in salida.unidades.all %}<span class="badge bg-light text-dark border me-1">{{ unidad.nombre }}</span>{% empty %}{{ salida.unidades_involucradas|default:"—" }}{% endfor %}</td>
                             <td>{% if salida.kilometraje_regreso != None %}{{ salida.kilometros_recorridos }} km{% else %}Pendiente{% endif %}</td>
                             <td>{{ salida.personal_a_cargo.get_full_name|default:"N/A" }}</td>
+                            {% if puede_editar_salidas %}<td>
+                                <div class="btn-group btn-group-sm" role="group" aria-label="Acciones de salida">
+                                    <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#createSalidaModal"
+                                        data-salida-edit-id="{{ salida.id }}" data-salida-edit-motivo="{{ salida.motivo }}"
+                                        data-salida-edit-direccion="{{ salida.direccion }}"
+                                        data-salida-edit-salida="{{ salida.fecha_hora_salida|date:'Y-m-d\TH:i' }}"
+                                        data-salida-edit-regreso="{{ salida.fecha_hora_regreso|date:'Y-m-d\TH:i' }}"
+                                        data-salida-edit-unidades="{% for unidad in salida.unidades.all %}{{ unidad.id }}{% if not forloop.last %},{% endif %}{% endfor %}"
+                                        data-salida-edit-asistencia="{{ salida.asistencia_unidades_json }}"
+                                        data-salida-edit-km-salida="{{ salida.kilometraje_salida }}"
+                                        data-salida-edit-km-regreso="{{ salida.kilometraje_regreso|default_if_none:'' }}"
+                                        data-salida-edit-responsable="{{ salida.personal_a_cargo_id|default_if_none:'' }}"
+                                        data-salida-edit-descripcion="{{ salida.descripcion }}" aria-label="Editar salida">
+                                        <i class="bi bi-pencil-fill"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteSalidaModal"
+                                        data-salida-delete-id="{{ salida.id }}" data-salida-delete-motivo="{{ salida.motivo }}" aria-label="Eliminar salida">
+                                        <i class="bi bi-trash-fill"></i>
+                                    </button>
+                                </div>
+                            </td>{% endif %}
                         </tr>
-                        {% empty %}<tr><td colspan="6" class="text-center text-muted py-4">No hay salidas a terreno registradas.</td></tr>{% endfor %}
+                        {% empty %}<tr><td colspan="{% if puede_editar_salidas %}7{% else %}6{% endif %}" class="text-center text-muted py-4">No hay salidas a terreno registradas.</td></tr>{% endfor %}
                     </tbody>
                 </table>
             </div>
@@ -339,6 +360,16 @@
     {% endif %}
     </div>
 </main>
+
+{% if puede_editar_salidas %}
+<div class="modal fade" id="deleteSalidaModal" tabindex="-1" aria-labelledby="deleteSalidaModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered"><div class="modal-content">
+        <div class="modal-header"><h5 class="modal-title" id="deleteSalidaModalLabel">Confirmar eliminación</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button></div>
+        <div class="modal-body"><p>¿Seguro que quieres eliminar la salida <strong id="salidaMotivoToDelete"></strong>?</p><p class="text-danger small mb-0">Esta acción no se puede deshacer.</p></div>
+        <div class="modal-footer"><form id="deleteSalidaForm" method="post">{% csrf_token %}<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button><button type="submit" class="btn btn-danger">Sí, eliminar</button></form></div>
+    </div></div>
+</div>
+{% endif %}
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
@@ -373,6 +404,58 @@ document.addEventListener('DOMContentLoaded', function () {
             params.set('salida_page', link.dataset.salidaPage);
             window.location.search = params.toString();
         });
+    });
+
+    const salidaModal = document.getElementById('createSalidaModal');
+    if (salidaModal) {
+        const salidaForm = document.getElementById('createSalidaForm');
+        const salidaGroups = document.getElementById('createSalidaUnitGroups');
+        const asistenciaInput = document.getElementById('salida_asistencia_unidades');
+        const title = document.getElementById('createSalidaModalLabel');
+        const submit = salidaForm?.querySelector('[type="submit"]');
+        salidaModal.addEventListener('show.bs.modal', function (event) {
+            const trigger = event.relatedTarget;
+            if (!trigger?.dataset.salidaEditId) return;
+            salidaForm.dataset.editing = 'true';
+            salidaForm.action = `/salidas/${trigger.dataset.salidaEditId}/edit/`;
+            title.textContent = 'Editar salida a terreno';
+            submit.textContent = 'Guardar cambios';
+            salidaForm.querySelector('#id_motivo').value = trigger.dataset.salidaEditMotivo || '';
+            salidaForm.querySelector('#id_direccion').value = trigger.dataset.salidaEditDireccion || '';
+            salidaForm.querySelector('#id_fecha_hora_salida').value = trigger.dataset.salidaEditSalida || '';
+            salidaForm.querySelector('#id_fecha_hora_regreso').value = trigger.dataset.salidaEditRegreso || '';
+            salidaForm.querySelector('#id_kilometraje_salida').value = trigger.dataset.salidaEditKmSalida || '';
+            salidaForm.querySelector('#id_kilometraje_regreso').value = trigger.dataset.salidaEditKmRegreso || '';
+            salidaForm.querySelector('#id_personal_a_cargo').value = trigger.dataset.salidaEditResponsable || '';
+            salidaForm.querySelector('#id_descripcion').value = trigger.dataset.salidaEditDescripcion || '';
+            let asistencia = {};
+            try { asistencia = JSON.parse(trigger.dataset.salidaEditAsistencia || '{}'); } catch (error) { asistencia = {}; }
+            asistenciaInput.value = JSON.stringify(asistencia);
+            salidaGroups.replaceChildren();
+            const units = (trigger.dataset.salidaEditUnidades || '').split(',').filter(Boolean);
+            if (units.length) units.forEach((unitId) => agregarUnidad(salidaGroups, unitId, asistencia[unitId] || [], true));
+            else agregarUnidad(salidaGroups);
+        });
+        salidaModal.addEventListener('hidden.bs.modal', function () {
+            if (salidaForm.dataset.editing !== 'true') return;
+            salidaForm.reset();
+            salidaGroups.replaceChildren();
+            let initialAttendance = {};
+            try { initialAttendance = JSON.parse(asistenciaInput.value || '{}'); } catch (error) { initialAttendance = {}; }
+            const initialUnits = salidaGroups.dataset.initialUnits.split(',').filter(Boolean);
+            if (initialUnits.length) initialUnits.forEach((unitId) => agregarUnidad(salidaGroups, unitId, initialAttendance[unitId] || []));
+            else agregarUnidad(salidaGroups);
+            salidaForm.action = '';
+            delete salidaForm.dataset.editing;
+            title.textContent = 'Registrar Nueva Salida a Terreno';
+            submit.textContent = 'Registrar Salida';
+        });
+    }
+    const deleteSalidaModal = document.getElementById('deleteSalidaModal');
+    deleteSalidaModal?.addEventListener('show.bs.modal', function (event) {
+        const trigger = event.relatedTarget;
+        document.getElementById('deleteSalidaForm').action = `/salidas/${trigger.dataset.salidaDeleteId}/delete/`;
+        document.getElementById('salidaMotivoToDelete').textContent = trigger.dataset.salidaDeleteMotivo || '';
     });
 });
 </script>
