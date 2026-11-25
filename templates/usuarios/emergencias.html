@@ -43,8 +43,7 @@
         {% endfor %}
     {% endif %}
 
-    {% if puede_ver_emergencias %}
-    <div id="emergenciasPanel" {% if request.GET.vista == 'salidas' %}hidden{% endif %}>
+    {% if puede_ver_emergencias or puede_ver_salidas %}
     <!-- Formulario de Búsqueda y Filtros -->
     <!-- Botón Desplegar / Reducir Filtros (Móvil) -->
     <div class="d-md-none mb-3">
@@ -57,15 +56,15 @@
     <div class="collapse d-md-block" id="emFilterCollapse">
     <div class="card shadow-sm mb-4">
         <div class="card-body">
-            <form method="get" class="row g-3 align-items-end">
-                <input type="hidden" name="vista" value="emergencias">
+            <form method="get" class="row g-3 align-items-end" id="operacionesFilterForm">
+                <input type="hidden" name="vista" value="{% if request.GET.vista %}{{ request.GET.vista }}{% elif puede_ver_emergencias %}emergencias{% else %}salidas{% endif %}">
                 <div class="col-lg-2">
                     <label for="q" class="form-label">Buscar por dirección...</label>
-                    <input type="text" name="q" id="emSearchInput" class="form-control" value="{{ request.GET.q|default:'' }}">
+                    <input type="text" name="q" id="emSearchInput" class="form-control" value="{{ request.GET.q|default:'' }}" onchange="this.form.submit()">
                 </div>
                 <div class="col-lg-2">
                     <label for="tipo" class="form-label">Tipo</label>
-                    <select name="tipo" id="emTypeFilter" class="form-select">
+                    <select name="tipo" id="emTypeFilter" class="form-select" onchange="this.form.submit()">
                         <option value="">Todos</option>
                         {% if puede_ver_emergencias %}{% for value, text in form.fields.tipo.choices %}<option value="{{ value }}" {% if request.GET.tipo == value %}selected{% endif %}>{{ text }}</option>{% endfor %}{% endif %}
                         {% if puede_ver_salidas %}<option value="salida_terreno" {% if request.GET.tipo == 'salida_terreno' %}selected{% endif %}>Salidas a Terreno</option>{% endif %}
@@ -81,7 +80,7 @@
                 </div>
                 <div class="col-lg-2">
                     <label for="usuario" class="form-label">Oficial a Cargo</label>
-                    <select name="usuario" id="emUserFilter" class="form-select">
+                    <select name="usuario" id="emUserFilter" class="form-select" onchange="this.form.submit()">
                         <option value="">Todos</option>
                         {% for user in usuarios_con_emergencias %}<option value="{{ user.id }}" {% if request.GET.usuario == user.id|stringformat:"s" %}selected{% endif %}>{{ user.get_full_name }}</option>{% endfor %}
                     </select>
@@ -99,11 +98,17 @@
                         <option value="fecha_hora_alarma" {% if request.GET.ordenar_por == 'fecha_hora_alarma' %}selected{% endif %}>Más antiguas</option>
                     </select>
                 </div>
+                <div class="col-lg-2">
+                    <button type="submit" class="btn btn-danger w-100"><i class="bi bi-funnel me-1"></i>Filtrar</button>
+                </div>
             </form>
         </div>
     </div>
     </div>
+    {% endif %}
 
+    {% if puede_ver_emergencias %}
+    <div id="emergenciasPanel" {% if request.GET.vista == 'salidas' %}hidden{% endif %}>
     <div class="card shadow-sm">
         <div class="card-body">
             <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
@@ -293,7 +298,6 @@
                 <h5 class="card-title mb-0">Historial de Salidas a Terreno</h5>
                 <div class="d-flex flex-wrap gap-2">
                     {% if puede_editar_salidas %}<button class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#createSalidaModal"><i class="bi bi-plus-lg me-1"></i>Registrar salida</button>{% endif %}
-                    {% if puede_editar_salidas and puede_ver_salidas %}<a class="btn btn-sm btn-outline-danger" href="{% url 'salidas_terreno' %}"><i class="bi bi-pencil-square me-1"></i>Administrar salidas</a>{% endif %}
                 </div>
             </div>
             <div class="table-responsive">
@@ -314,13 +318,20 @@
                 </table>
             </div>
             {% if salidas_page.paginator.num_pages > 1 %}
-            <nav class="mt-3" aria-label="Paginación de salidas">
-                <ul class="pagination pagination-sm mb-0">
-                    {% if salidas_page.has_previous %}<li class="page-item"><a class="page-link" href="?vista=salidas&amp;salida_page={{ salidas_page.previous_page_number }}{% if request.GET.q %}&amp;q={{ request.GET.q|urlencode }}{% endif %}">Anterior</a></li>{% endif %}
-                    <li class="page-item disabled"><span class="page-link">Página {{ salidas_page.number }} de {{ salidas_page.paginator.num_pages }}</span></li>
-                    {% if salidas_page.has_next %}<li class="page-item"><a class="page-link" href="?vista=salidas&amp;salida_page={{ salidas_page.next_page_number }}{% if request.GET.q %}&amp;q={{ request.GET.q|urlencode }}{% endif %}">Siguiente</a></li>{% endif %}
-                </ul>
-            </nav>
+            <div class="system-pagination d-flex justify-content-between align-items-center flex-wrap gap-2 pt-3">
+                <small class="text-muted" aria-live="polite">Mostrando {{ salidas_page.start_index }}–{{ salidas_page.end_index }} de {{ salidas_page.paginator.count }} salidas</small>
+                <nav aria-label="Paginación de salidas a terreno">
+                    <ul class="pagination pagination-sm mb-0">
+                        {% if salidas_page.has_previous %}<li class="page-item"><a class="page-link" href="#" data-salida-page="{{ salidas_page.previous_page_number }}" aria-label="Página anterior">‹</a></li>{% endif %}
+                        {% for numero_pagina in salidas_page.paginator.page_range %}
+                        <li class="page-item{% if numero_pagina == salidas_page.number %} active{% endif %}">
+                            {% if numero_pagina == salidas_page.number %}<span class="page-link" aria-current="page">{{ numero_pagina }}</span>{% else %}<a class="page-link" href="#" data-salida-page="{{ numero_pagina }}" aria-label="Página {{ numero_pagina }}">{{ numero_pagina }}</a>{% endif %}
+                        </li>
+                        {% endfor %}
+                        {% if salidas_page.has_next %}<li class="page-item"><a class="page-link" href="#" data-salida-page="{{ salidas_page.next_page_number }}" aria-label="Página siguiente">›</a></li>{% endif %}
+                    </ul>
+                </nav>
+            </div>
             {% endif %}
         </div>
     </div>
@@ -331,6 +342,7 @@
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const buttons = document.querySelectorAll('[data-operaciones-section]');
+    const vistaFilter = document.querySelector('#operacionesFilterForm [name="vista"]');
     const panels = {
         emergencias: document.getElementById('emergenciasPanel'),
         salidas: document.getElementById('salidasPanel')
@@ -339,6 +351,7 @@ document.addEventListener('DOMContentLoaded', function () {
     buttons.forEach((button) => {
         button.addEventListener('click', function () {
             const selected = button.dataset.operacionesSection;
+            if (vistaFilter) vistaFilter.value = selected;
             Object.entries(panels).forEach(([section, panel]) => {
                 if (panel) panel.hidden = section !== selected;
             });
@@ -348,6 +361,16 @@ document.addEventListener('DOMContentLoaded', function () {
                 item.classList.toggle('btn-outline-danger', !active);
                 item.setAttribute('aria-pressed', active ? 'true' : 'false');
             });
+        });
+    });
+
+    document.querySelectorAll('[data-salida-page]').forEach((link) => {
+        link.addEventListener('click', function (event) {
+            event.preventDefault();
+            const params = new URLSearchParams(window.location.search);
+            if (vistaFilter) params.set('vista', 'salidas');
+            params.set('salida_page', link.dataset.salidaPage);
+            window.location.search = params.toString();
         });
     });
 });
