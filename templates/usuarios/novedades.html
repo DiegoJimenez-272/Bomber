@@ -3,6 +3,13 @@
 {% block title %}Novedades - {{ block.super }}{% endblock %}
 
 {% block content %}
+<style>
+    .licencia-integrante-wrap { position: relative; }
+    .licencia-integrante-sugerencias { position: absolute; inset: calc(100% + .2rem) 0 auto; z-index: 20; max-height: 16rem; overflow-y: auto; border: 1px solid var(--bs-border-color); border-radius: .5rem; background: var(--bs-body-bg); box-shadow: 0 .5rem 1rem rgba(0,0,0,.15); }
+    .licencia-integrante-opcion { display: block; width: 100%; padding: .55rem .75rem; border: 0; border-bottom: 1px solid var(--bs-border-color); background: transparent; color: var(--bs-body-color); text-align: left; }
+    .licencia-integrante-opcion:hover, .licencia-integrante-opcion:focus { background: var(--bs-tertiary-bg); outline: none; }
+    .licencia-integrante-opcion small { display: block; color: var(--bs-secondary-color); }
+</style>
 <header class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-3 pb-3 mb-4 border-bottom">
     <div><h1 class="h2 mb-1">Novedades</h1><p class="text-muted mb-0">Licencias médicas y estado operativo de los carros.</p></div>
     <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Volver al inicio</a>
@@ -22,7 +29,7 @@
                 {% if puede_editar_novedades %}
                 <form method="post" class="row g-3 mb-4 pb-4 border-bottom">
                     {% csrf_token %}
-                    <div class="col-12"><label class="form-label" for="{{ form.integrante.id_for_label }}">Integrante</label>{{ form.integrante }}<datalist id="integrantes-licencia-sugerencias">{% for integrante in form.fields.integrante.queryset %}<option value="{{ integrante.get_full_name }}" label="{{ integrante.compania.nombre }}"></option>{% endfor %}</datalist>{{ form.integrante.errors }}</div>
+                    <div class="col-12"><label class="form-label" for="{{ form.integrante.id_for_label }}">Integrante</label><div class="licencia-integrante-wrap">{{ form.integrante }}<div class="licencia-integrante-sugerencias" id="integrantesLicenciaSugerencias" role="listbox" hidden></div><div id="integrantesLicenciaFuente" hidden>{% for integrante in form.fields.integrante.queryset %}<span data-nombre="{{ integrante.get_full_name }}" data-correo="{{ integrante.email }}" data-compania="{{ integrante.compania.nombre }}"></span>{% endfor %}</div></div>{{ form.integrante.errors }}</div>
                     <div class="col-6"><label class="form-label" for="{{ form.fecha_inicio.id_for_label }}">Desde</label>{{ form.fecha_inicio }}{{ form.fecha_inicio.errors }}</div>
                     <div class="col-6"><label class="form-label" for="{{ form.fecha_termino.id_for_label }}">Hasta</label>{{ form.fecha_termino }}{{ form.fecha_termino.errors }}</div>
                     <div class="col-12"><button class="btn btn-danger" type="submit"><i class="bi bi-plus-lg me-1"></i>Registrar licencia</button></div>
@@ -63,6 +70,63 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+    const integranteInput = document.querySelector('[data-integrante-autocomplete]');
+    const sugerencias = document.getElementById('integrantesLicenciaSugerencias');
+    const integrantesFuente = document.querySelectorAll('#integrantesLicenciaFuente [data-nombre]');
+    let opcionActiva = -1;
+
+    if (integranteInput && sugerencias) {
+        const ocultarSugerencias = () => { sugerencias.hidden = true; sugerencias.replaceChildren(); opcionActiva = -1; };
+        const seleccionarIntegrante = (integrante) => {
+            const duplicados = Array.from(integrantesFuente).filter(item => item.dataset.nombre.toLocaleLowerCase() === integrante.dataset.nombre.toLocaleLowerCase()).length > 1;
+            integranteInput.value = duplicados ? `${integrante.dataset.nombre} <${integrante.dataset.correo}>` : integrante.dataset.nombre;
+            ocultarSugerencias();
+            integranteInput.focus();
+        };
+        const actualizarSugerencias = () => {
+            const consulta = integranteInput.value.trim().toLocaleLowerCase();
+            sugerencias.replaceChildren();
+            opcionActiva = -1;
+            if (consulta.length < 1) { sugerencias.hidden = true; return; }
+            const coincidencias = Array.from(integrantesFuente).filter(item =>
+                item.dataset.nombre.toLocaleLowerCase().includes(consulta) || item.dataset.correo.toLocaleLowerCase().includes(consulta)
+            ).slice(0, 30);
+            coincidencias.forEach((integrante) => {
+                const boton = document.createElement('button');
+                boton.type = 'button';
+                boton.className = 'licencia-integrante-opcion';
+                boton.setAttribute('role', 'option');
+                const nombre = document.createElement('span');
+                nombre.textContent = integrante.dataset.nombre;
+                const compania = document.createElement('small');
+                compania.textContent = integrante.dataset.compania || '';
+                boton.append(nombre, compania);
+                boton.addEventListener('mousedown', event => event.preventDefault());
+                boton.addEventListener('click', () => seleccionarIntegrante(integrante));
+                sugerencias.appendChild(boton);
+            });
+            sugerencias.hidden = coincidencias.length === 0;
+        };
+        integranteInput.addEventListener('input', actualizarSugerencias);
+        integranteInput.addEventListener('keydown', event => {
+            const opciones = sugerencias.querySelectorAll('.licencia-integrante-opcion');
+            if (event.key === 'Escape') { ocultarSugerencias(); return; }
+            if (!opciones.length) return;
+            if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+                event.preventDefault();
+                const direccion = event.key === 'ArrowDown' ? 1 : -1;
+                opcionActiva = (opcionActiva + direccion + opciones.length) % opciones.length;
+                opciones.forEach((opcion, indice) => opcion.classList.toggle('active', indice === opcionActiva));
+            } else if (event.key === 'Enter' && opcionActiva >= 0) {
+                event.preventDefault();
+                opciones[opcionActiva].click();
+            }
+        });
+        document.addEventListener('click', event => {
+            if (!event.target.closest('.licencia-integrante-wrap')) ocultarSugerencias();
+        });
+    }
+
     const botones = document.querySelectorAll('[data-novedades-panel]');
     const paneles = {
         licencias: document.getElementById('novedadesLicencias'),

@@ -250,6 +250,10 @@ class IntegrantePorNombreField(forms.ModelChoiceField):
             return None
         texto = str(value).strip().casefold()
         integrantes = list(self.queryset)
+        for integrante in integrantes:
+            valor_con_correo = f'{integrante.get_full_name()} <{integrante.email}>'.casefold()
+            if texto == valor_con_correo:
+                return integrante
         por_nombre = [integrante for integrante in integrantes if integrante.get_full_name().strip().casefold() == texto]
         if len(por_nombre) == 1:
             return por_nombre[0]
@@ -267,9 +271,9 @@ class LicenciaMedicaForm(forms.ModelForm):
         label='Integrante',
         widget=forms.TextInput(attrs={
             'class': 'form-control',
-            'list': 'integrantes-licencia-sugerencias',
             'placeholder': 'Escribe el nombre del integrante',
             'autocomplete': 'off',
+            'data-integrante-autocomplete': 'true',
         }),
     )
 
