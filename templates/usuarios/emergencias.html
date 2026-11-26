@@ -61,52 +61,30 @@
     <div class="collapse d-md-block" id="emFilterCollapse">
     <div class="card shadow-sm mb-4">
         <div class="card-body">
-            <form method="get" class="row g-3 align-items-end" id="operacionesFilterForm">
-                <input type="hidden" name="vista" value="{% if request.GET.vista %}{{ request.GET.vista }}{% elif puede_ver_emergencias %}emergencias{% else %}salidas{% endif %}">
-                <div class="col-lg-2">
-                    <label for="q" class="form-label">Buscar por dirección...</label>
-                    <input type="text" name="q" id="emSearchInput" class="form-control" value="{{ request.GET.q|default:'' }}" onchange="this.form.submit()">
-                </div>
-                <div class="col-lg-2">
-                    <label for="tipo" class="form-label">Tipo</label>
-                    <select name="tipo" id="emTypeFilter" class="form-select" onchange="this.form.submit()">
-                        <option value="">Todos</option>
-                        {% if puede_ver_emergencias %}{% for value, text in form.fields.tipo.choices %}<option value="{{ value }}" {% if request.GET.tipo == value %}selected{% endif %}>{{ text }}</option>{% endfor %}{% endif %}
-                        {% if puede_ver_salidas %}<option value="salida_terreno" {% if request.GET.tipo == 'salida_terreno' %}selected{% endif %}>Salidas a Terreno</option>{% endif %}
-                    </select>
-                </div>
-                <div class="col-lg-2">
-                    <label for="fecha_inicio" class="form-label">Desde</label>
-                    <input type="date" name="fecha_inicio" id="emFechaInicioFilter" class="form-control" value="{{ request.GET.fecha_inicio }}" onchange="this.form.submit()">
-                </div>
-                <div class="col-lg-2">
-                    <label for="fecha_fin" class="form-label">Hasta</label>
-                    <input type="date" name="fecha_fin" id="emFechaFinFilter" class="form-control" value="{{ request.GET.fecha_fin }}" onchange="this.form.submit()">
-                </div>
-                <div class="col-lg-2">
-                    <label for="usuario" class="form-label">Oficial a Cargo</label>
-                    <select name="usuario" id="emUserFilter" class="form-select" onchange="this.form.submit()">
-                        <option value="">Todos</option>
-                        {% for user in usuarios_con_emergencias %}<option value="{{ user.id }}" {% if request.GET.usuario == user.id|stringformat:"s" %}selected{% endif %}>{{ user.get_full_name }}</option>{% endfor %}
-                    </select>
-                </div>
-                {% if request.user.es_programador %}
-                <div class="col-lg-2">
-                    <label for="nombre_personal" class="form-label">Buscar participante</label>
-                    <input type="search" name="nombre_personal" id="nombre_personal" class="form-control" value="{{ nombre_personal_filtro }}" placeholder="Nombre o apellido" onchange="this.form.submit()">
-                </div>
-                {% endif %}
-                <div class="col-lg-2">
-                    <label for="ordenar_por" class="form-label">Ordenar por</label>
-                    <select name="ordenar_por" id="ordenar_por" class="form-select" onchange="this.form.submit()">
-                        <option value="-fecha_hora_alarma" {% if request.GET.ordenar_por == '-fecha_hora_alarma' %}selected{% endif %}>Más nuevas</option>
-                        <option value="fecha_hora_alarma" {% if request.GET.ordenar_por == 'fecha_hora_alarma' %}selected{% endif %}>Más antiguas</option>
-                    </select>
-                </div>
-                <div class="col-lg-2">
-                    <button type="submit" class="btn btn-danger w-100"><i class="bi bi-funnel me-1"></i>Filtrar</button>
-                </div>
+            {% if puede_ver_emergencias %}
+            <form method="get" class="row g-3 align-items-end" id="emergenciasFilterForm" {% if vista_actual != 'emergencias' %}hidden{% endif %}>
+                <input type="hidden" name="vista" value="emergencias">
+                <div class="col-lg-2"><label for="em_q" class="form-label">Buscar por dirección...</label><input type="text" name="em_q" id="em_q" class="form-control" value="{{ request.GET.em_q|default:'' }}"></div>
+                <div class="col-lg-2"><label for="em_tipo" class="form-label">Tipo de emergencia</label><select name="em_tipo" id="em_tipo" class="form-select"><option value="">Todos</option>{% for value, text in form.fields.tipo.choices %}<option value="{{ value }}" {% if request.GET.em_tipo == value %}selected{% endif %}>{{ text }}</option>{% endfor %}</select></div>
+                <div class="col-lg-2"><label for="em_fecha_inicio" class="form-label">Desde</label><input type="date" name="em_fecha_inicio" id="em_fecha_inicio" class="form-control" value="{{ request.GET.em_fecha_inicio }}"></div>
+                <div class="col-lg-2"><label for="em_fecha_fin" class="form-label">Hasta</label><input type="date" name="em_fecha_fin" id="em_fecha_fin" class="form-control" value="{{ request.GET.em_fecha_fin }}"></div>
+                <div class="col-lg-2"><label for="em_usuario" class="form-label">Oficial a cargo</label><select name="em_usuario" id="em_usuario" class="form-select"><option value="">Todos</option>{% for user in usuarios_con_emergencias %}<option value="{{ user.id }}" {% if request.GET.em_usuario == user.id|stringformat:"s" %}selected{% endif %}>{{ user.get_full_name }}</option>{% endfor %}</select></div>
+                {% if request.user.es_programador %}<div class="col-lg-2"><label for="nombre_personal" class="form-label">Buscar participante</label><input type="search" name="nombre_personal" id="nombre_personal" class="form-control" value="{{ nombre_personal_filtro }}" placeholder="Nombre o apellido"></div>{% endif %}
+                <div class="col-lg-2"><label for="em_ordenar_por" class="form-label">Ordenar por</label><select name="em_ordenar_por" id="em_ordenar_por" class="form-select"><option value="-fecha_hora_alarma" {% if request.GET.em_ordenar_por == '-fecha_hora_alarma' or not request.GET.em_ordenar_por %}selected{% endif %}>Más nuevas</option><option value="fecha_hora_alarma" {% if request.GET.em_ordenar_por == 'fecha_hora_alarma' %}selected{% endif %}>Más antiguas</option></select></div>
+                <div class="col-lg-2"><button type="submit" class="btn btn-danger w-100"><i class="bi bi-funnel me-1"></i>Filtrar emergencias</button></div>
             </form>
+            {% endif %}
+            {% if puede_ver_salidas %}
+            <form method="get" class="row g-3 align-items-end" id="salidasFilterForm" {% if vista_actual != 'salidas' %}hidden{% endif %}>
+                <input type="hidden" name="vista" value="salidas">
+                <div class="col-lg-3"><label for="sal_q" class="form-label">Buscar motivo, dirección o carro</label><input type="search" name="sal_q" id="sal_q" class="form-control" value="{{ request.GET.sal_q|default:'' }}"></div>
+                <div class="col-lg-2"><label for="sal_fecha_inicio" class="form-label">Desde</label><input type="date" name="sal_fecha_inicio" id="sal_fecha_inicio" class="form-control" value="{{ request.GET.sal_fecha_inicio }}"></div>
+                <div class="col-lg-2"><label for="sal_fecha_fin" class="form-label">Hasta</label><input type="date" name="sal_fecha_fin" id="sal_fecha_fin" class="form-control" value="{{ request.GET.sal_fecha_fin }}"></div>
+                <div class="col-lg-3"><label for="sal_usuario" class="form-label">Personal a cargo</label><select name="sal_usuario" id="sal_usuario" class="form-select"><option value="">Todos</option>{% for user in usuarios_con_emergencias %}<option value="{{ user.id }}" {% if request.GET.sal_usuario == user.id|stringformat:"s" %}selected{% endif %}>{{ user.get_full_name }}</option>{% endfor %}</select></div>
+                <div class="col-lg-2"><label for="sal_ordenar_por" class="form-label">Ordenar por</label><select name="sal_ordenar_por" id="sal_ordenar_por" class="form-select"><option value="-fecha_hora_salida" {% if request.GET.sal_ordenar_por == '-fecha_hora_salida' or not request.GET.sal_ordenar_por %}selected{% endif %}>Más nuevas</option><option value="fecha_hora_salida" {% if request.GET.sal_ordenar_por == 'fecha_hora_salida' %}selected{% endif %}>Más antiguas</option></select></div>
+                <div class="col-lg-2"><button type="submit" class="btn btn-danger w-100"><i class="bi bi-funnel me-1"></i>Filtrar salidas</button></div>
+            </form>
+            {% endif %}
         </div>
     </div>
     </div>
@@ -374,18 +352,41 @@
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const buttons = document.querySelectorAll('[data-operaciones-section]');
-    const vistaFilter = document.querySelector('#operacionesFilterForm [name="vista"]');
     const panels = {
         emergencias: document.getElementById('emergenciasPanel'),
         salidas: document.getElementById('salidasPanel')
     };
+    const filters = {
+        emergencias: document.getElementById('emergenciasFilterForm'),
+        salidas: document.getElementById('salidasFilterForm')
+    };
+
+    Object.entries(filters).forEach(([section, form]) => {
+        if (!form) return;
+        form.addEventListener('submit', function () {
+            form.querySelectorAll('[data-preserved-filter="true"]').forEach((input) => input.remove());
+            const otherForm = filters[section === 'emergencias' ? 'salidas' : 'emergencias'];
+            if (!otherForm) return;
+            new FormData(otherForm).forEach((value, name) => {
+                if (name === 'vista') return;
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = name;
+                input.value = value;
+                input.dataset.preservedFilter = 'true';
+                form.appendChild(input);
+            });
+        });
+    });
 
     buttons.forEach((button) => {
         button.addEventListener('click', function () {
             const selected = button.dataset.operacionesSection;
-            if (vistaFilter) vistaFilter.value = selected;
             Object.entries(panels).forEach(([section, panel]) => {
                 if (panel) panel.hidden = section !== selected;
+            });
+            Object.entries(filters).forEach(([section, filter]) => {
+                if (filter) filter.hidden = section !== selected;
             });
             buttons.forEach((item) => {
                 const active = item === button;
@@ -400,7 +401,7 @@ document.addEventListener('DOMContentLoaded', function () {
         link.addEventListener('click', function (event) {
             event.preventDefault();
             const params = new URLSearchParams(window.location.search);
-            if (vistaFilter) params.set('vista', 'salidas');
+            params.set('vista', 'salidas');
             params.set('salida_page', link.dataset.salidaPage);
             window.location.search = params.toString();
         });

@@ -2565,13 +2565,18 @@ def emergencias_view(request):
         salida_form = SalidaTerrenoForm(user=request.user)
 
     # --- Lógica de Búsqueda y Filtros ---
-    query = request.GET.get('q')
-    tipo_emergencia = request.GET.get('tipo')
-    fecha_inicio = request.GET.get('fecha_inicio')
-    fecha_fin = request.GET.get('fecha_fin')
-    usuario_id = request.GET.get('usuario')
+    query_emergencias = request.GET.get('em_q')
+    tipo_emergencia = request.GET.get('em_tipo')
+    fecha_inicio_emergencias = request.GET.get('em_fecha_inicio')
+    fecha_fin_emergencias = request.GET.get('em_fecha_fin')
+    usuario_emergencias_id = request.GET.get('em_usuario')
+    query_salidas = request.GET.get('sal_q')
+    fecha_inicio_salidas = request.GET.get('sal_fecha_inicio')
+    fecha_fin_salidas = request.GET.get('sal_fecha_fin')
+    usuario_salidas_id = request.GET.get('sal_usuario')
     nombre_personal = request.GET.get('nombre_personal', '').strip() if request.user.es_programador else ''
-    ordenar_por = request.GET.get('ordenar_por', '-fecha_hora_alarma')
+    ordenar_emergencias = request.GET.get('em_ordenar_por', '-fecha_hora_alarma')
+    ordenar_salidas = request.GET.get('sal_ordenar_por', '-fecha_hora_salida')
 
     emergencias = Emergencia.objects.select_related('oficial_a_cargo').prefetch_related(
         'asistentes',
@@ -2589,11 +2594,11 @@ def emergencias_view(request):
         ),
     ).all() if puede_ver_salidas else SalidaTerreno.objects.none()
 
-    if query:
+    if query_emergencias:
         emergencias = emergencias.filter(
-            Q(direccion__icontains=query) |
-            Q(descripcion__icontains=query) |
-            Q(unidades_despachadas__icontains=query)
+            Q(direccion__icontains=query_emergencias) |
+            Q(descripcion__icontains=query_emergencias) |
+            Q(unidades_despachadas__icontains=query_emergencias)
         )
     
     if tipo_emergencia == 'salida_terreno':
@@ -2601,30 +2606,30 @@ def emergencias_view(request):
     elif tipo_emergencia:
         emergencias = emergencias.filter(tipo=tipo_emergencia)
     
-    if fecha_inicio:
-        emergencias = emergencias.filter(fecha_hora_alarma__gte=fecha_inicio)
+    if fecha_inicio_emergencias:
+        emergencias = emergencias.filter(fecha_hora_alarma__gte=fecha_inicio_emergencias)
         
-    if fecha_fin:
-        emergencias = emergencias.filter(fecha_hora_alarma__lte=f"{fecha_fin} 23:59:59")
+    if fecha_fin_emergencias:
+        emergencias = emergencias.filter(fecha_hora_alarma__lte=f"{fecha_fin_emergencias} 23:59:59")
 
-    if query:
+    if query_salidas:
         salidas = salidas.filter(
-            Q(motivo__icontains=query) | Q(direccion__icontains=query) |
-            Q(unidades_involucradas__icontains=query) | Q(unidades__nombre__icontains=query) |
-            Q(descripcion__icontains=query) | Q(personal_a_cargo__nombre__icontains=query) |
-            Q(personal_a_cargo__apellido__icontains=query)
+            Q(motivo__icontains=query_salidas) | Q(direccion__icontains=query_salidas) |
+            Q(unidades_involucradas__icontains=query_salidas) | Q(unidades__nombre__icontains=query_salidas) |
+            Q(descripcion__icontains=query_salidas) | Q(personal_a_cargo__nombre__icontains=query_salidas) |
+            Q(personal_a_cargo__apellido__icontains=query_salidas)
         ).distinct()
     if tipo_emergencia and tipo_emergencia != 'salida_terreno':
         salidas = SalidaTerreno.objects.none()
-    if fecha_inicio:
-        salidas = salidas.filter(fecha_hora_salida__gte=fecha_inicio)
-    if fecha_fin:
-        salidas = salidas.filter(fecha_hora_salida__lte=f"{fecha_fin} 23:59:59")
-    if usuario_id:
-        salidas = salidas.filter(personal_a_cargo__id=usuario_id)
+    if fecha_inicio_salidas:
+        salidas = salidas.filter(fecha_hora_salida__gte=fecha_inicio_salidas)
+    if fecha_fin_salidas:
+        salidas = salidas.filter(fecha_hora_salida__lte=f"{fecha_fin_salidas} 23:59:59")
+    if usuario_salidas_id:
+        salidas = salidas.filter(personal_a_cargo__id=usuario_salidas_id)
 
-    if usuario_id:
-        emergencias = emergencias.filter(oficial_a_cargo__id=usuario_id)
+    if usuario_emergencias_id:
+        emergencias = emergencias.filter(oficial_a_cargo__id=usuario_emergencias_id)
 
     if nombre_personal:
         emergencias = emergencias.alias(
@@ -2638,8 +2643,8 @@ def emergencias_view(request):
         ).distinct()
 
     valid_sorts = ['-fecha_hora_alarma', 'fecha_hora_alarma', 'tipo', '-tipo']
-    if ordenar_por in valid_sorts:
-        emergencias = emergencias.order_by(ordenar_por)
+    if ordenar_emergencias in valid_sorts:
+        emergencias = emergencias.order_by(ordenar_emergencias)
 
     usuarios_con_emergencias = Usuario.objects.filter(
         Q(compania__isnull=False, emergencias_a_cargo__isnull=False) |
@@ -2684,7 +2689,9 @@ def emergencias_view(request):
         for detalle in salida.detalles_asistencia:
             detalle.asistentes_visibles = [usuario for usuario in detalle.asistentes.all() if usuario.compania_id]
 
-    salidas_page = Paginator(salidas.order_by('-fecha_hora_salida'), 10).get_page(request.GET.get('salida_page'))
+    if ordenar_salidas not in {'-fecha_hora_salida', 'fecha_hora_salida'}:
+        ordenar_salidas = '-fecha_hora_salida'
+    salidas_page = Paginator(salidas.order_by(ordenar_salidas), 10).get_page(request.GET.get('salida_page'))
 
     unidades_seleccionadas = form['unidades'].value() or []
     unidades_seleccionadas = [str(getattr(unidad, 'pk', unidad)) for unidad in unidades_seleccionadas]
@@ -2707,6 +2714,7 @@ def emergencias_view(request):
         'salidas_page': salidas_page,
         'usuarios_con_emergencias': usuarios_con_emergencias,
         'nombre_personal_filtro': nombre_personal,
+        'vista_actual': request.GET.get('vista') if request.GET.get('vista') in {'emergencias', 'salidas'} else ('emergencias' if puede_ver_emergencias else 'salidas'),
         'unidades_seleccionadas': unidades_seleccionadas,
         'salida_unidades_seleccionadas': salida_unidades_seleccionadas,
         'usuarios_asistencia': usuarios_asistencia,
