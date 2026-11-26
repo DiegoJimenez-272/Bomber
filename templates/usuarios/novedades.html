@@ -1,0 +1,60 @@
+{% extends 'base_con_condicion.html' %}
+
+{% block title %}Novedades - {{ block.super }}{% endblock %}
+
+{% block content %}
+<header class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-3 pb-3 mb-4 border-bottom">
+    <div><h1 class="h2 mb-1">Novedades</h1><p class="text-muted mb-0">Licencias médicas y estado operativo de los carros.</p></div>
+    <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Volver al inicio</a>
+</header>
+
+{% if messages %}{% for message in messages %}<div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">{{ message }}<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button></div>{% endfor %}{% endif %}
+
+<div class="row g-4">
+    <div class="col-12 col-xl-6">
+        <section class="card shadow-sm h-100">
+            <div class="card-header bg-danger text-white fw-semibold"><i class="bi bi-heart-pulse-fill me-2"></i>Licencias médicas</div>
+            <div class="card-body">
+                {% if puede_editar_novedades %}
+                <form method="post" class="row g-3 mb-4 pb-4 border-bottom">
+                    {% csrf_token %}
+                    <div class="col-12"><label class="form-label" for="{{ form.integrante.id_for_label }}">Integrante</label>{{ form.integrante }}{{ form.integrante.errors }}</div>
+                    <div class="col-6"><label class="form-label" for="{{ form.fecha_inicio.id_for_label }}">Desde</label>{{ form.fecha_inicio }}{{ form.fecha_inicio.errors }}</div>
+                    <div class="col-6"><label class="form-label" for="{{ form.fecha_termino.id_for_label }}">Hasta</label>{{ form.fecha_termino }}{{ form.fecha_termino.errors }}</div>
+                    <div class="col-12"><button class="btn btn-danger" type="submit"><i class="bi bi-plus-lg me-1"></i>Registrar licencia</button></div>
+                </form>
+                {% endif %}
+                <div class="table-responsive"><table class="table table-hover align-middle mb-0">
+                    <thead><tr><th>Integrante</th><th>Compañía</th><th>Vigencia</th><th>Estado</th>{% if puede_editar_novedades %}<th></th>{% endif %}</tr></thead>
+                    <tbody>
+                        {% for licencia in licencias %}
+                        <tr>
+                            <td>{{ licencia.integrante.get_full_name }}</td><td>{{ licencia.compania.nombre }}</td>
+                            <td>{{ licencia.fecha_inicio|date:'d/m/Y' }} — {{ licencia.fecha_termino|date:'d/m/Y' }}</td>
+                            <td>{% if licencia.fecha_inicio <= hoy and licencia.fecha_termino >= hoy %}<span class="badge bg-danger">Activa</span>{% elif licencia.fecha_inicio > hoy %}<span class="badge bg-info text-dark">Próxima</span>{% else %}<span class="badge bg-secondary">Finalizada</span>{% endif %}</td>
+                            {% if puede_editar_novedades %}<td><form method="post" onsubmit="return confirm('¿Eliminar este registro de licencia?');">{% csrf_token %}<input type="hidden" name="accion" value="eliminar"><input type="hidden" name="licencia_id" value="{{ licencia.id }}"><button class="btn btn-sm btn-outline-danger" type="submit" aria-label="Eliminar licencia"><i class="bi bi-trash"></i></button></form></td>{% endif %}
+                        </tr>
+                        {% empty %}<tr><td colspan="{% if puede_editar_novedades %}5{% else %}4{% endif %}" class="text-center text-muted py-4">No hay licencias registradas.</td></tr>{% endfor %}
+                    </tbody>
+                </table></div>
+                <p class="form-text mt-3 mb-0">El registro solo solicita integrante y fechas; no almacena diagnóstico médico.</p>
+            </div>
+        </section>
+    </div>
+    <div class="col-12 col-xl-6">
+        <section class="card shadow-sm h-100">
+            <div class="card-header bg-dark text-white fw-semibold"><i class="bi bi-truck-front-fill me-2"></i>Estado de los carros</div>
+            <div class="table-responsive"><table class="table table-hover align-middle mb-0">
+                <thead><tr><th>Carro</th><th>Compañía</th><th>Estado</th></tr></thead>
+                <tbody>
+                    {% for vehiculo in vehiculos %}
+                    <tr><td>{{ vehiculo.nombre }} <span class="text-muted small">{{ vehiculo.patente }}</span></td><td>{{ vehiculo.compania.nombre }}</td><td>
+                        {% if vehiculo.estado == 'Disponible' or vehiculo.estado == 'En Servicio' %}<span class="badge bg-success">{{ vehiculo.get_estado_display }}</span>{% elif vehiculo.estado == 'En Taller' %}<span class="badge bg-warning text-dark">{{ vehiculo.get_estado_display }}</span>{% else %}<span class="badge bg-danger">{{ vehiculo.get_estado_display|default:'Sin estado' }}</span>{% endif %}
+                    </td></tr>
+                    {% empty %}<tr><td colspan="3" class="text-center text-muted py-4">No hay carros disponibles para mostrar.</td></tr>{% endfor %}
+                </tbody>
+            </table></div>
+        </section>
+    </div>
+</div>
+{% endblock %}

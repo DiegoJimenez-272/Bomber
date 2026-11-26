@@ -30,6 +30,7 @@ class Rol(models.Model):
     ver_caja_chica = models.BooleanField(default=False, verbose_name="Caja Chica")
     ver_avisos = models.BooleanField(default=False, verbose_name="Avisos")
     ver_inspectores = models.BooleanField(default=False, verbose_name="Inspectores")
+    ver_novedades = models.BooleanField(default=False, verbose_name="Novedades")
 
     # --- Permisos de Edición / Creación / Eliminación ---
     editar_documentacion = models.BooleanField(default=False, verbose_name="Editar Documentación")
@@ -48,6 +49,7 @@ class Rol(models.Model):
     editar_caja_chica = models.BooleanField(default=False, verbose_name="Editar Caja Chica")
     editar_avisos = models.BooleanField(default=False, verbose_name="Editar Avisos")
     editar_inspectores = models.BooleanField(default=False, verbose_name="Editar Inspectores")
+    editar_novedades = models.BooleanField(default=False, verbose_name="Editar Novedades")
 
     def __str__(self):
         return self.nombre
@@ -538,6 +540,32 @@ class Vehiculo(models.Model):
 
     def __str__(self):
         return f"{self.nombre} ({self.compania.nombre})"
+
+
+class LicenciaMedica(models.Model):
+    integrante = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='licencias_medicas',
+    )
+    compania = models.ForeignKey(Compania, on_delete=models.CASCADE, related_name='licencias_medicas')
+    fecha_inicio = models.DateField(verbose_name='Fecha de inicio')
+    fecha_termino = models.DateField(verbose_name='Fecha de término')
+    registrado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='licencias_medicas_registradas',
+    )
+    creado_en = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['fecha_termino', 'integrante__apellido', 'integrante__nombre']
+        verbose_name = 'Licencia médica'
+        verbose_name_plural = 'Licencias médicas'
+
+    def __str__(self):
+        return f'{self.integrante.get_full_name()} · {self.fecha_inicio} a {self.fecha_termino}'
 
 
 class RondaVehiculo(models.Model):

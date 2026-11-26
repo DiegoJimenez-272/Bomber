@@ -308,6 +308,10 @@
             </div>
             <ul class="nav nav-pills flex-column mb-auto mt-2">
                 <li class="nav-item"><a href="{% url 'dashboard' %}" class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}"><i class="bi bi-grid-1x2-fill"></i>Inicio</a></li>
+
+                {% if request.user.is_superuser or request.user.rol.ver_novedades %}
+                <li class="nav-item"><a href="{% url 'novedades' %}" class="nav-link {% if request.resolver_match.url_name == 'novedades' %}active{% endif %}"><i class="bi bi-megaphone-fill"></i>Novedades</a></li>
+                {% endif %}
                 
                 {% if request.user.is_superuser or request.user.rol.ver_resumen_general %}
                 <li class="nav-item"><a href="{% url 'dashboard_summary' %}" class="nav-link {% if request.resolver_match.url_name == 'dashboard_summary' %}active{% endif %}"><i class="bi bi-bar-chart-line-fill"></i>Resumen General</a></li>

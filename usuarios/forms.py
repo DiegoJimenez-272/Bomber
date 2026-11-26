@@ -5,7 +5,7 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import Sum, Case, When, DecimalField, F, Q
 from django.utils import timezone
-from .models import Usuario, Compania, Rol, Proyecto, Documento, Carpeta, SalidaTerreno, SalidaTerrenoUnidad, Emergencia, EmergenciaUnidad, Capacitacion, Mantenimiento, Inventario, CajaChica, Aviso, PasswordResetCode, Vehiculo, RondaVehiculo
+from .models import Usuario, Compania, Rol, Proyecto, Documento, Carpeta, SalidaTerreno, SalidaTerrenoUnidad, Emergencia, EmergenciaUnidad, Capacitacion, Mantenimiento, Inventario, CajaChica, Aviso, PasswordResetCode, Vehiculo, RondaVehiculo, LicenciaMedica
 from .validators import validar_rut_chileno, formatear_rut, validar_extension_imagen, validar_extension_archivo
 from .inventory_permissions import puede_gestionar_inventario_global
 
@@ -199,8 +199,8 @@ class RolForm(forms.ModelForm):
             'nombre', 'descripcion',
             'ver_resumen_general', 'ver_estadisticas_operativas', 'ver_documentacion', 'ver_escanear_qr', 'ver_inventario',
             'ver_salidas_terreno', 'ver_emergencias', 'ver_capacitaciones', 'ver_malla_curricular', 'ver_mantenimientos', 'ver_proyectos', 'ver_caja_chica',
-            'ver_avisos', 'ver_inspectores', 'editar_documentacion', 'editar_inventario', 'gestionar_inventario_todas_companias', 'editar_salidas_terreno',
-            'editar_emergencias', 'editar_capacitaciones', 'editar_malla_curricular', 'editar_mantenimientos', 'editar_proyectos', 'editar_caja_chica', 'editar_avisos', 'editar_inspectores'
+            'ver_avisos', 'ver_inspectores', 'ver_novedades', 'editar_documentacion', 'editar_inventario', 'gestionar_inventario_todas_companias', 'editar_salidas_terreno',
+            'editar_emergencias', 'editar_capacitaciones', 'editar_malla_curricular', 'editar_mantenimientos', 'editar_proyectos', 'editar_caja_chica', 'editar_avisos', 'editar_inspectores', 'editar_novedades'
         ]
         widgets = {
             'nombre': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej: Capitán', 'list': 'roles-sugeridos'}),
@@ -213,14 +213,16 @@ class RolForm(forms.ModelForm):
         permisos_fields = [
             'ver_resumen_general', 'ver_estadisticas_operativas', 'ver_documentacion', 'ver_escanear_qr', 'ver_inventario',
             'ver_salidas_terreno', 'ver_emergencias', 'ver_capacitaciones', 'ver_malla_curricular', 'ver_mantenimientos', 'ver_proyectos', 'ver_caja_chica',
-            'ver_avisos', 'ver_inspectores', 'editar_documentacion', 'editar_inventario', 'gestionar_inventario_todas_companias', 'editar_salidas_terreno',
-            'editar_emergencias', 'editar_capacitaciones', 'editar_malla_curricular', 'editar_mantenimientos', 'editar_proyectos', 'editar_caja_chica', 'editar_avisos', 'editar_inspectores'
+            'ver_avisos', 'ver_inspectores', 'ver_novedades', 'editar_documentacion', 'editar_inventario', 'gestionar_inventario_todas_companias', 'editar_salidas_terreno',
+            'editar_emergencias', 'editar_capacitaciones', 'editar_malla_curricular', 'editar_mantenimientos', 'editar_proyectos', 'editar_caja_chica', 'editar_avisos', 'editar_inspectores', 'editar_novedades'
         ]
         for field in permisos_fields:
             self.fields[field].widget.attrs.update({'class': 'form-check-input'})
 
     def clean(self):
         cleaned_data = super().clean()
+        if cleaned_data.get('editar_novedades') and not cleaned_data.get('ver_novedades'):
+            self.add_error('editar_novedades', 'Activa también Ver Novedades para permitir su edición.')
         if cleaned_data.get('gestionar_inventario_todas_companias'):
             if not cleaned_data.get('editar_inventario'):
                 self.add_error('gestionar_inventario_todas_companias', 'Activa también Editar Inventario para usar el alcance global.')
@@ -228,6 +230,25 @@ class RolForm(forms.ModelForm):
                 self.add_error('gestionar_inventario_todas_companias', 'Activa también Ver Inventario para usar el alcance global.')
         if cleaned_data.get('editar_malla_curricular') and not cleaned_data.get('ver_malla_curricular'):
             self.add_error('editar_malla_curricular', 'Activa también Ver Malla Curricular para permitir su edición.')
+        return cleaned_data
+
+
+class LicenciaMedicaForm(forms.ModelForm):
+    class Meta:
+        model = LicenciaMedica
+        fields = ['integrante', 'fecha_inicio', 'fecha_termino']
+        widgets = {
+            'integrante': forms.Select(attrs={'class': 'form-select'}),
+            'fecha_inicio': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'fecha_termino': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+        }
+
+    def clean(self):
+        cleaned_data = super().clean()
+        inicio = cleaned_data.get('fecha_inicio')
+        termino = cleaned_data.get('fecha_termino')
+        if inicio and termino and termino < inicio:
+            self.add_error('fecha_termino', 'La fecha de término no puede ser anterior al inicio.')
         return cleaned_data
 
 class CompaniaForm(forms.ModelForm):

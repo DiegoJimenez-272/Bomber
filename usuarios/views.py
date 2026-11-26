@@ -30,8 +30,8 @@ from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter
 import openpyxl
 from reportlab.lib.units import inch
-from .forms import RegistroForm, LoginForm, ProyectoForm, ArchivoProyectoForm, DocumentoForm, CarpetaForm, SalidaTerrenoForm, EmergenciaForm, PerfilForm, PasswordChangeForm, CapacitacionForm, ReunionForm, MantenimientoForm, ArchivoMantenimientoForm, InventarioForm, DevolucionInventarioForm, CajaChicaForm, AdminUserCreationForm, AdminUserChangeForm, RolForm, CompaniaForm, InventarioEditForm, InventarioGroupEditForm, AvisoForm, ReporteErrorForm, PasswordResetRequestForm, PasswordResetVerifyForm, PasswordResetNewPasswordForm, VehiculoForm, VehiculoHojaVidaForm, VehiculoDocumentacionForm, RondaVehiculoForm
-from .models import Rol, Compania, Proyecto, ArchivoProyecto, Documento, Carpeta, SalidaTerreno, SalidaTerrenoUnidad, Emergencia, EmergenciaUnidad, Usuario, Capacitacion, CursoMalla, Mantenimiento, ArchivoMantenimiento, Inventario, DevolucionInventario, DevolucionInventarioFoto, CajaChica, CuotaVoluntario, Notificacion, Aviso, AvisoDestinatario, ReporteError, PasswordResetCode, RegistroPendiente, Vehiculo, RondaVehiculo
+from .forms import RegistroForm, LoginForm, ProyectoForm, ArchivoProyectoForm, DocumentoForm, CarpetaForm, SalidaTerrenoForm, EmergenciaForm, PerfilForm, PasswordChangeForm, CapacitacionForm, ReunionForm, MantenimientoForm, ArchivoMantenimientoForm, InventarioForm, DevolucionInventarioForm, CajaChicaForm, AdminUserCreationForm, AdminUserChangeForm, RolForm, CompaniaForm, InventarioEditForm, InventarioGroupEditForm, AvisoForm, ReporteErrorForm, PasswordResetRequestForm, PasswordResetVerifyForm, PasswordResetNewPasswordForm, VehiculoForm, VehiculoHojaVidaForm, VehiculoDocumentacionForm, RondaVehiculoForm, LicenciaMedicaForm
+from .models import Rol, Compania, Proyecto, ArchivoProyecto, Documento, Carpeta, SalidaTerreno, SalidaTerrenoUnidad, Emergencia, EmergenciaUnidad, Usuario, Capacitacion, CursoMalla, Mantenimiento, ArchivoMantenimiento, Inventario, DevolucionInventario, DevolucionInventarioFoto, CajaChica, CuotaVoluntario, Notificacion, Aviso, AvisoDestinatario, ReporteError, PasswordResetCode, RegistroPendiente, Vehiculo, RondaVehiculo, LicenciaMedica
 from .decorators import admin_required, permiso_requerido, pertenencia_compania
 from .inventory_permissions import (
     puede_acceder_inventario_compania,
@@ -353,6 +353,7 @@ def dashboard_view(request):
     
     modules = [
         {'id': 'dashboard_summary', 'url_name': 'dashboard_summary', 'icon': 'bi-bar-chart-line-fill', 'title': 'Ver Resumen General', 'desc': 'Visualiza KPIs, gráficos y actividad reciente del sistema.'},
+        {'id': 'novedades', 'url_name': 'novedades', 'icon': 'bi-megaphone-fill', 'title': 'Novedades', 'desc': 'Licencias médicas activas y estado operativo de los carros.'},
         {'id': 'documentos', 'url_name': 'documentos', 'icon': 'bi-file-earmark-text-fill', 'title': 'Documentos', 'desc': 'Gestión de documentos e informes'},
         {'id': 'inventario', 'url_name': 'inventario', 'icon': 'bi-box-seam-fill', 'title': 'Inventario', 'desc': 'Control de equipos y herramientas'},
         {'id': 'emergencias', 'url_name': 'emergencias', 'icon': 'bi-exclamation-octagon-fill', 'title': 'Emergencias', 'desc': 'Gestión de emergencias y salidas a terreno'},
@@ -388,6 +389,7 @@ def dashboard_view(request):
             # Módulos controlados mediante los permisos configurados en el Rol
             if rol:
                 if m['id'] == 'dashboard_summary' and rol.ver_resumen_general: filtered_modules.append(m)
+                elif m['id'] == 'novedades' and rol.ver_novedades: filtered_modules.append(m)
                 elif m['id'] == 'documentos' and rol.ver_documentacion: filtered_modules.append(m)
                 elif m['id'] == 'inventario' and rol.ver_inventario: filtered_modules.append(m)
                 elif m['id'] == 'emergencias' and (rol.ver_emergencias or rol.ver_salidas_terreno): filtered_modules.append(m)
@@ -426,6 +428,59 @@ def dashboard_view(request):
         'avisos_usuario': avisos_usuario,
     }
     return render(request, 'usuarios/inicio.html', context)
+
+
+@login_required
+def novedades_view(request):
+    rol = getattr(request.user, 'rol', None)
+    puede_ver = request.user.is_superuser or bool(rol and rol.ver_novedades)
+    puede_editar = request.user.is_superuser or bool(rol and rol.editar_novedades)
+    if not puede_ver:
+        messages.error(request, 'No tienes permiso para acceder a Novedades.')
+        return redirect('dashboard')
+
+    nombre_rol = (getattr(rol, 'nombre', '') or '').strip().casefold()
+    acceso_global = request.user.is_superuser or nombre_rol in {'admin', 'administrador'}
+    integrantes = Usuario.objects.miembros_activos().select_related('compania').order_by('compania__nombre', 'apellido', 'nombre')
+    vehiculos = Vehiculo.objects.select_related('compania').order_by('compania__nombre', 'nombre')
+    licencias = LicenciaMedica.objects.select_related('integrante', 'compania', 'registrado_por')
+    if not acceso_global:
+        if request.user.compania_id:
+            integrantes = integrantes.filter(compania_id=request.user.compania_id)
+            vehiculos = vehiculos.filter(compania_id=request.user.compania_id)
+            licencias = licencias.filter(compania_id=request.user.compania_id)
+        else:
+            integrantes = integrantes.none()
+            vehiculos = vehiculos.none()
+            licencias = licencias.none()
+
+    form = LicenciaMedicaForm(request.POST or None)
+    form.fields['integrante'].queryset = integrantes
+    if request.method == 'POST':
+        if not puede_editar:
+            messages.error(request, 'No tienes permiso para modificar Novedades.')
+            return redirect('novedades')
+        if request.POST.get('accion') == 'eliminar':
+            licencia = get_object_or_404(licencias, pk=request.POST.get('licencia_id'))
+            licencia.delete()
+            messages.success(request, 'Registro de licencia eliminado.')
+            return redirect('novedades')
+        if form.is_valid():
+            licencia = form.save(commit=False)
+            licencia.compania = licencia.integrante.compania
+            licencia.registrado_por = request.user
+            licencia.save()
+            messages.success(request, 'Licencia médica registrada.')
+            return redirect('novedades')
+
+    hoy = timezone.localdate()
+    return render(request, 'usuarios/novedades.html', {
+        'form': form,
+        'puede_editar_novedades': puede_editar,
+        'licencias': licencias.order_by('-fecha_inicio'),
+        'vehiculos': vehiculos,
+        'hoy': hoy,
+    })
 
 @login_required
 def dashboard_summary_view(request):
