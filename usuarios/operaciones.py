@@ -465,7 +465,35 @@ def registro_operativo_view(request):
                 messages.success(request, f'{registro.get_tipo_display()} registrado correctamente.')
                 return redirect(reverse('registro_operativo'))
 
-    registros = RegistroOperativo.objects.select_related('vehiculo', 'maquinista', 'creado_por', 'emergencia', 'salida_terreno').prefetch_related('asistentes')[:30]
+    registros = RegistroOperativo.objects.select_related(
+        'vehiculo', 'maquinista', 'creado_por', 'emergencia', 'salida_terreno'
+    ).prefetch_related('asistentes')
+
+    tipos_emergencia = TIPOS_EMERGENCIA | {'llegada_cuartel'}
+    tipos_visibles = []
+    if request.user.is_superuser or (rol and rol.ver_emergencias):
+        tipos_visibles.extend(tipos_emergencia)
+    if request.user.is_superuser or (rol and rol.ver_salidas_terreno):
+        tipos_visibles.extend(
+            tipo for tipo, _etiqueta in RegistroOperativo.TIPO_CHOICES
+            if tipo not in tipos_emergencia
+        )
+    registros = registros.filter(tipo__in=tipos_visibles)
+
+    rol_nombre = getattr(rol, 'nombre', '').strip().casefold()
+    puede_ver_todas_companias = request.user.is_superuser or rol_nombre in {'admin', 'administrador'}
+    if not puede_ver_todas_companias:
+        if request.user.compania_id:
+            compania_id = request.user.compania_id
+            registros = registros.filter(
+                Q(vehiculo__compania_id=compania_id)
+                | Q(emergencia__unidades_asistencia__unidad__compania_id=compania_id)
+                | Q(salida_terreno__unidades__compania_id=compania_id)
+            ).distinct()
+        else:
+            registros = registros.none()
+
+    registros = registros.order_by('-fecha_inicio', '-creado_en')[:30]
     return render(request, 'usuarios/registro_operativo.html', {
         'form': form,
         'registros': registros,
