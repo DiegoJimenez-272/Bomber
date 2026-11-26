@@ -71,7 +71,6 @@
                 <div class="col-lg-2"><label for="em_usuario" class="form-label">Oficial a cargo</label><select name="em_usuario" id="em_usuario" class="form-select"><option value="">Todos</option>{% for user in usuarios_con_emergencias %}<option value="{{ user.id }}" {% if request.GET.em_usuario == user.id|stringformat:"s" %}selected{% endif %}>{{ user.get_full_name }}</option>{% endfor %}</select></div>
                 {% if request.user.es_programador %}<div class="col-lg-2"><label for="nombre_personal" class="form-label">Buscar participante</label><input type="search" name="nombre_personal" id="nombre_personal" class="form-control" value="{{ nombre_personal_filtro }}" placeholder="Nombre o apellido"></div>{% endif %}
                 <div class="col-lg-2"><label for="em_ordenar_por" class="form-label">Ordenar por</label><select name="em_ordenar_por" id="em_ordenar_por" class="form-select"><option value="-fecha_hora_alarma" {% if request.GET.em_ordenar_por == '-fecha_hora_alarma' or not request.GET.em_ordenar_por %}selected{% endif %}>Más nuevas</option><option value="fecha_hora_alarma" {% if request.GET.em_ordenar_por == 'fecha_hora_alarma' %}selected{% endif %}>Más antiguas</option></select></div>
-                <div class="col-lg-2"><button type="submit" class="btn btn-danger w-100"><i class="bi bi-funnel me-1"></i>Filtrar emergencias</button></div>
             </form>
             {% endif %}
             {% if puede_ver_salidas %}
@@ -82,7 +81,6 @@
                 <div class="col-lg-2"><label for="sal_fecha_fin" class="form-label">Hasta</label><input type="date" name="sal_fecha_fin" id="sal_fecha_fin" class="form-control" value="{{ request.GET.sal_fecha_fin }}"></div>
                 <div class="col-lg-3"><label for="sal_usuario" class="form-label">Personal a cargo</label><select name="sal_usuario" id="sal_usuario" class="form-select"><option value="">Todos</option>{% for user in usuarios_con_emergencias %}<option value="{{ user.id }}" {% if request.GET.sal_usuario == user.id|stringformat:"s" %}selected{% endif %}>{{ user.get_full_name }}</option>{% endfor %}</select></div>
                 <div class="col-lg-2"><label for="sal_ordenar_por" class="form-label">Ordenar por</label><select name="sal_ordenar_por" id="sal_ordenar_por" class="form-select"><option value="-fecha_hora_salida" {% if request.GET.sal_ordenar_por == '-fecha_hora_salida' or not request.GET.sal_ordenar_por %}selected{% endif %}>Más nuevas</option><option value="fecha_hora_salida" {% if request.GET.sal_ordenar_por == 'fecha_hora_salida' %}selected{% endif %}>Más antiguas</option></select></div>
-                <div class="col-lg-2"><button type="submit" class="btn btn-danger w-100"><i class="bi bi-funnel me-1"></i>Filtrar salidas</button></div>
             </form>
             {% endif %}
         </div>
@@ -363,6 +361,16 @@ document.addEventListener('DOMContentLoaded', function () {
 
     Object.entries(filters).forEach(([section, form]) => {
         if (!form) return;
+        let searchTimer;
+        form.querySelectorAll('input[type="text"], input[type="search"]').forEach((input) => {
+            input.addEventListener('input', function () {
+                window.clearTimeout(searchTimer);
+                searchTimer = window.setTimeout(() => form.requestSubmit(), 350);
+            });
+        });
+        form.querySelectorAll('select, input[type="date"]').forEach((input) => {
+            input.addEventListener('change', () => form.requestSubmit());
+        });
         form.addEventListener('submit', function () {
             form.querySelectorAll('[data-preserved-filter="true"]').forEach((input) => input.remove());
             const otherForm = filters[section === 'emergencias' ? 'salidas' : 'emergencias'];
