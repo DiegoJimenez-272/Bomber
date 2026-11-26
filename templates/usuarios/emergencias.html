@@ -359,32 +359,79 @@ document.addEventListener('DOMContentLoaded', function () {
         salidas: document.getElementById('salidasFilterForm')
     };
 
+    const activeRequests = {};
+    async function updateTable(section, page) {
+        const form = filters[section];
+        if (!form) return;
+        const params = new URLSearchParams(new FormData(form));
+        const otherForm = filters[section === 'emergencias' ? 'salidas' : 'emergencias'];
+        if (otherForm) new FormData(otherForm).forEach((value, name) => {
+            if (name !== 'vista') params.set(name, value);
+        });
+        if (section === 'salidas') params.set('salida_page', String(page || 1));
+        params.set('vista', section);
+
+        activeRequests[section]?.abort();
+        const controller = new AbortController();
+        activeRequests[section] = controller;
+        try {
+            const response = await fetch(`${window.location.pathname}?${params}`, {
+                headers: {'X-Requested-With': 'XMLHttpRequest'},
+                signal: controller.signal
+            });
+            if (!response.ok) throw new Error('No se pudieron actualizar los registros.');
+            const documentActualizado = new DOMParser().parseFromString(await response.text(), 'text/html');
+            if (section === 'emergencias') {
+                const tbody = document.getElementById('emergenciasTableBody');
+                const nuevoTbody = documentActualizado.getElementById('emergenciasTableBody');
+                const mobile = document.getElementById('emergenciasMobileList');
+                const nuevoMobile = documentActualizado.getElementById('emergenciasMobileList');
+                if (tbody && nuevoTbody) tbody.innerHTML = nuevoTbody.innerHTML;
+                if (mobile && nuevoMobile) mobile.innerHTML = nuevoMobile.innerHTML;
+                window.refrescarPaginacionEmergencias?.();
+            } else {
+                const panel = document.getElementById('salidasPanel');
+                const nuevoPanel = documentActualizado.getElementById('salidasPanel');
+                const tbody = panel?.querySelector('tbody');
+                const nuevoTbody = nuevoPanel?.querySelector('tbody');
+                const paginacion = panel?.querySelector('.system-pagination');
+                const nuevaPaginacion = nuevoPanel?.querySelector('.system-pagination');
+                if (tbody && nuevoTbody) tbody.innerHTML = nuevoTbody.innerHTML;
+                if (paginacion && nuevaPaginacion) paginacion.innerHTML = nuevaPaginacion.innerHTML;
+                else if (paginacion && !nuevaPaginacion) paginacion.remove();
+                else if (!paginacion && nuevaPaginacion) panel?.querySelector('.card-body')?.appendChild(nuevaPaginacion.cloneNode(true));
+            }
+            const url = new URL(window.location.href);
+            url.search = params.toString();
+            history.replaceState(null, '', url);
+        } catch (error) {
+            if (error.name !== 'AbortError') console.error(error);
+        }
+    }
+
     Object.entries(filters).forEach(([section, form]) => {
         if (!form) return;
         let searchTimer;
-        form.querySelectorAll('input[type="text"], input[type="search"]').forEach((input) => {
-            input.addEventListener('input', function () {
+        form.addEventListener('submit', event => {
+            event.preventDefault();
+            updateTable(section, 1);
+        });
+        form.querySelectorAll('input[type="text"], input[type="search"]').forEach(input => {
+            input.addEventListener('input', () => {
                 window.clearTimeout(searchTimer);
-                searchTimer = window.setTimeout(() => form.requestSubmit(), 350);
+                searchTimer = window.setTimeout(() => updateTable(section, 1), 250);
             });
         });
-        form.querySelectorAll('select, input[type="date"]').forEach((input) => {
-            input.addEventListener('change', () => form.requestSubmit());
+        form.querySelectorAll('select, input[type="date"]').forEach(input => {
+            input.addEventListener('change', () => updateTable(section, 1));
         });
-        form.addEventListener('submit', function () {
-            form.querySelectorAll('[data-preserved-filter="true"]').forEach((input) => input.remove());
-            const otherForm = filters[section === 'emergencias' ? 'salidas' : 'emergencias'];
-            if (!otherForm) return;
-            new FormData(otherForm).forEach((value, name) => {
-                if (name === 'vista') return;
-                const input = document.createElement('input');
-                input.type = 'hidden';
-                input.name = name;
-                input.value = value;
-                input.dataset.preservedFilter = 'true';
-                form.appendChild(input);
-            });
-        });
+    });
+
+    document.addEventListener('click', event => {
+        const pageLink = event.target.closest('[data-salida-page]');
+        if (!pageLink) return;
+        event.preventDefault();
+        updateTable('salidas', pageLink.dataset.salidaPage);
     });
 
     buttons.forEach((button) => {
@@ -402,16 +449,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 item.classList.toggle('btn-outline-danger', !active);
                 item.setAttribute('aria-pressed', active ? 'true' : 'false');
             });
-        });
-    });
-
-    document.querySelectorAll('[data-salida-page]').forEach((link) => {
-        link.addEventListener('click', function (event) {
-            event.preventDefault();
-            const params = new URLSearchParams(window.location.search);
-            params.set('vista', 'salidas');
-            params.set('salida_page', link.dataset.salidaPage);
-            window.location.search = params.toString();
         });
     });
 
@@ -1178,8 +1215,8 @@ document.addEventListener('DOMContentLoaded', function () {
         if (resetPage) emCurrentPage = 1;
         const searchText = (emSearchInput?.value || '').toLowerCase();
         const selectedType = (emTypeFilter?.value || '').toLowerCase();
-        const isUserSelected = emUserFilter.value !== "";
-        const selectedUserText = emUserFilter.options[emUserFilter.selectedIndex].text.toLowerCase();
+        const isUserSelected = Boolean(emUserFilter && emUserFilter.value !== "");
+        const selectedUserText = emUserFilter?.options[emUserFilter.selectedIndex]?.text.toLowerCase() || '';
 
         const rows = Array.from(emsTableBody.querySelectorAll('tr:not(#no-ems-found)'))
             .filter(row => !(row.children.length === 1 && row.textContent.includes('No hay emergencias registradas todavía')));
@@ -1218,9 +1255,10 @@ document.addEventListener('DOMContentLoaded', function () {
         renderEmPagination(totalPages);
     }
 
-    if (emSearchInput) emSearchInput.addEventListener('input', filterEms);
-    if (emTypeFilter) emTypeFilter.addEventListener('change', filterEms);
-    if (emUserFilter) emUserFilter.addEventListener('change', filterEms);
+    window.refrescarPaginacionEmergencias = function () {
+        emCurrentPage = 1;
+        filterEms(false);
+    };
     filterEms();
 });
 </script>
