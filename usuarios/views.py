@@ -346,10 +346,59 @@ def verificar_recordatorios_mantenimiento():
                     
     cache.set('maintenance_reminders_last_run', today_date, 60*60*12)
 
+
+def verificar_recordatorios_documentacion_vehiculos():
+    from django.core.cache import cache
+    from django.urls import reverse
+
+    hoy = timezone.localdate()
+    cache_key = 'vehicle_document_reminders_last_run'
+    if cache.get(cache_key) == hoy:
+        return
+
+    documentos = [
+        ('revision_tecnica_vencimiento', 'Revisión técnica'),
+        ('permiso_circulacion_vencimiento', 'Permiso de circulación'),
+        ('soap_vencimiento', 'SOAP'),
+        ('seguro_vencimiento', 'Seguro'),
+    ]
+    hitos = (7, 14, 21, 30)
+    vehiculos = Vehiculo.objects.filter(
+        responsable_documentacion__isnull=False
+    ).select_related('responsable_documentacion')
+
+    for vehiculo in vehiculos:
+        responsable = vehiculo.responsable_documentacion
+        for campo_fecha, nombre_documento in documentos:
+            vencimiento = getattr(vehiculo, campo_fecha)
+            if not vencimiento:
+                continue
+            dias_restantes = (vencimiento - hoy).days
+            if dias_restantes < 0:
+                mensaje = f'{vehiculo.nombre} ({vehiculo.patente}): {nombre_documento} está vencido desde el {vencimiento:%d/%m/%Y}.'
+            elif dias_restantes == 0:
+                mensaje = f'{vehiculo.nombre} ({vehiculo.patente}): {nombre_documento} vence hoy ({vencimiento:%d/%m/%Y}).'
+            else:
+                hito = next((dias for dias in hitos if dias_restantes <= dias), None)
+                if hito is None:
+                    continue
+                mensaje = f'{vehiculo.nombre} ({vehiculo.patente}): aviso de {hito} días para {nombre_documento}; vence el {vencimiento:%d/%m/%Y}.'
+
+            if Notificacion.objects.filter(usuario=responsable, mensaje=mensaje).exists():
+                continue
+            Notificacion.objects.create(
+                usuario=responsable,
+                mensaje=mensaje[:255],
+                link=reverse('vehiculo_hoja_vida', kwargs={'vehiculo_id': vehiculo.pk}) + '?tab=documentacion',
+            )
+
+    cache.set(cache_key, hoy, 60 * 60 * 24)
+
 @login_required
 def dashboard_view(request):
     # Ejecutar la verificación de recordatorios (silencioso y cacheados)
     verificar_recordatorios_mantenimiento()
+    verificar_recordatorios_documentacion_vehiculos()
     
     modules = [
         {'id': 'dashboard_summary', 'url_name': 'dashboard_summary', 'icon': 'bi-bar-chart-line-fill', 'title': 'Ver Resumen General', 'desc': 'Visualiza KPIs, gráficos y actividad reciente del sistema.'},

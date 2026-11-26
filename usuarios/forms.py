@@ -999,13 +999,14 @@ class VehiculoForm(forms.ModelForm):
 
     class Meta:
         model = Vehiculo
-        fields = ['nombre', 'compania', 'patente', 'descripcion', 'marca', 'modelo', 'anio_fabricacion', 'anio_puesta_servicio', 'estado']
+        fields = ['nombre', 'compania', 'patente', 'descripcion', 'marca', 'modelo', 'anio_fabricacion', 'anio_puesta_servicio', 'estado', 'responsable_documentacion']
         widgets = {
             'nombre': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej: B-1, RX-2'}),
             'compania': forms.Select(attrs={'class': 'form-select'}),
             'patente': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej: AB-CD-12'}),
             'descripcion': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Descripción del vehículo (marca, función, etc.)'}),
             'estado': forms.Select(attrs={'class': 'form-select'}),
+            'responsable_documentacion': forms.Select(attrs={'class': 'form-select'}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -1018,6 +1019,19 @@ class VehiculoForm(forms.ModelForm):
         if self.user and not puede_gestionar_inventario_global(self.user):
             if 'compania' in self.fields:
                 del self.fields['compania']
+        self.fields['responsable_documentacion'].label = 'Responsable de documentación (recibe avisos)'
+        self.fields['responsable_documentacion'].required = False
+        compania_id = self.instance.compania_id if self.instance and self.instance.pk else None
+        if self.data.get('compania'):
+            compania_id = self.data.get('compania')
+        if not compania_id and self.user:
+            compania_id = self.user.compania_id
+        responsables = Usuario.objects.miembros_activos().order_by('apellido', 'nombre')
+        if compania_id:
+            responsables = responsables.filter(compania_id=compania_id)
+        else:
+            responsables = responsables.none()
+        self.fields['responsable_documentacion'].queryset = responsables
 
     def clean(self):
         cleaned_data = super().clean()

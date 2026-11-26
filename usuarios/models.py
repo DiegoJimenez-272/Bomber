@@ -500,6 +500,14 @@ class Vehiculo(models.Model):
     nombre = models.CharField(max_length=80, verbose_name="Nombre / Código del Carro")
     compania = models.ForeignKey(Compania, on_delete=models.CASCADE, related_name='vehiculos', verbose_name="Compañía")
     patente = models.CharField(max_length=15, verbose_name="Patente")
+    responsable_documentacion = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='vehiculos_responsable_documentacion',
+        verbose_name='Responsable de documentación',
+    )
     descripcion = models.TextField(max_length=500, null=True, blank=True, verbose_name="Descripción")
     marca = models.CharField(max_length=80, default='', verbose_name="Marca")
     modelo = models.CharField(max_length=80, default='', verbose_name="Modelo")
