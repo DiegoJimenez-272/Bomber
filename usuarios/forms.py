@@ -1070,6 +1070,7 @@ class VehiculoDocumentacionForm(forms.ModelForm):
             'revision_tecnica_vencimiento', 'revision_tecnica_archivo',
             'permiso_circulacion_vencimiento', 'permiso_circulacion_archivo',
             'soap_vencimiento', 'seguro_numero_poliza', 'seguro_vencimiento',
+            'responsable_documentacion',
         ]
         widgets = {
             'revision_tecnica_vencimiento': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
@@ -1079,10 +1080,19 @@ class VehiculoDocumentacionForm(forms.ModelForm):
             'soap_vencimiento': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
             'seguro_numero_poliza': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Número de póliza'}),
             'seguro_vencimiento': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'responsable_documentacion': forms.Select(attrs={'class': 'form-select'}),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.fields['responsable_documentacion'].label = 'Persona responsable que recibirá las notificaciones'
+        self.fields['responsable_documentacion'].required = True
+        if self.instance and self.instance.compania_id:
+            self.fields['responsable_documentacion'].queryset = Usuario.objects.miembros_activos().filter(
+                compania_id=self.instance.compania_id
+            ).order_by('apellido', 'nombre')
+        else:
+            self.fields['responsable_documentacion'].queryset = Usuario.objects.none()
         for name in ('revision_tecnica_archivo', 'permiso_circulacion_archivo'):
             widget = self.fields[name].widget
             widget.initial_text = 'Archivo guardado'
