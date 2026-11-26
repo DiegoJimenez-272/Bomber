@@ -233,7 +233,46 @@ class RolForm(forms.ModelForm):
         return cleaned_data
 
 
+class IntegrantePorNombreField(forms.ModelChoiceField):
+    def prepare_value(self, value):
+        if hasattr(value, 'get_full_name'):
+            return value.get_full_name()
+        if value:
+            integrante = self.queryset.filter(pk=value).first()
+            if integrante:
+                return integrante.get_full_name()
+        return value
+
+    def to_python(self, value):
+        if value in self.empty_values:
+            if self.required:
+                raise ValidationError(self.error_messages['required'], code='required')
+            return None
+        texto = str(value).strip().casefold()
+        integrantes = list(self.queryset)
+        por_nombre = [integrante for integrante in integrantes if integrante.get_full_name().strip().casefold() == texto]
+        if len(por_nombre) == 1:
+            return por_nombre[0]
+        if len(por_nombre) > 1:
+            raise ValidationError('Hay integrantes con ese mismo nombre. Escribe el correo para distinguirlos.', code='ambiguous')
+        por_correo = [integrante for integrante in integrantes if integrante.email.casefold() == texto]
+        if len(por_correo) == 1:
+            return por_correo[0]
+        raise ValidationError('Selecciona o escribe el nombre de un integrante de la lista.', code='invalid_choice')
+
+
 class LicenciaMedicaForm(forms.ModelForm):
+    integrante = IntegrantePorNombreField(
+        queryset=Usuario.objects.none(),
+        label='Integrante',
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'list': 'integrantes-licencia-sugerencias',
+            'placeholder': 'Escribe el nombre del integrante',
+            'autocomplete': 'off',
+        }),
+    )
+
     class Meta:
         model = LicenciaMedica
         fields = ['integrante', 'fecha_inicio', 'fecha_termino']

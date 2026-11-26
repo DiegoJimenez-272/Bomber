@@ -10,15 +10,19 @@
 
 {% if messages %}{% for message in messages %}<div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">{{ message }}<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button></div>{% endfor %}{% endif %}
 
-<div class="row g-4">
-    <div class="col-12 col-xl-6">
-        <section class="card shadow-sm h-100">
+<div class="d-flex flex-wrap gap-2 mb-4" role="group" aria-label="Secciones de novedades">
+    <button type="button" class="btn btn-danger px-4 py-2" data-novedades-panel="licencias" aria-pressed="true"><i class="bi bi-heart-pulse-fill me-2"></i>Licencias médicas</button>
+    <button type="button" class="btn btn-outline-danger px-4 py-2" data-novedades-panel="carros" aria-pressed="false"><i class="bi bi-truck-front-fill me-2"></i>Estado de los carros</button>
+</div>
+
+<section id="novedadesLicencias" role="tabpanel">
+    <div class="card shadow-sm">
             <div class="card-header bg-danger text-white fw-semibold"><i class="bi bi-heart-pulse-fill me-2"></i>Licencias médicas</div>
             <div class="card-body">
                 {% if puede_editar_novedades %}
                 <form method="post" class="row g-3 mb-4 pb-4 border-bottom">
                     {% csrf_token %}
-                    <div class="col-12"><label class="form-label" for="{{ form.integrante.id_for_label }}">Integrante</label>{{ form.integrante }}{{ form.integrante.errors }}</div>
+                    <div class="col-12"><label class="form-label" for="{{ form.integrante.id_for_label }}">Integrante</label>{{ form.integrante }}<datalist id="integrantes-licencia-sugerencias">{% for integrante in form.fields.integrante.queryset %}<option value="{{ integrante.get_full_name }}" label="{{ integrante.compania.nombre }}"></option>{% endfor %}</datalist>{{ form.integrante.errors }}</div>
                     <div class="col-6"><label class="form-label" for="{{ form.fecha_inicio.id_for_label }}">Desde</label>{{ form.fecha_inicio }}{{ form.fecha_inicio.errors }}</div>
                     <div class="col-6"><label class="form-label" for="{{ form.fecha_termino.id_for_label }}">Hasta</label>{{ form.fecha_termino }}{{ form.fecha_termino.errors }}</div>
                     <div class="col-12"><button class="btn btn-danger" type="submit"><i class="bi bi-plus-lg me-1"></i>Registrar licencia</button></div>
@@ -39,10 +43,10 @@
                 </table></div>
                 <p class="form-text mt-3 mb-0">El registro solo solicita integrante y fechas; no almacena diagnóstico médico.</p>
             </div>
-        </section>
     </div>
-    <div class="col-12 col-xl-6">
-        <section class="card shadow-sm h-100">
+</section>
+<section id="novedadesCarros" role="tabpanel" hidden>
+    <div class="card shadow-sm">
             <div class="card-header bg-dark text-white fw-semibold"><i class="bi bi-truck-front-fill me-2"></i>Estado de los carros</div>
             <div class="table-responsive"><table class="table table-hover align-middle mb-0">
                 <thead><tr><th>Carro</th><th>Compañía</th><th>Estado</th></tr></thead>
@@ -54,7 +58,28 @@
                     {% empty %}<tr><td colspan="3" class="text-center text-muted py-4">No hay carros disponibles para mostrar.</td></tr>{% endfor %}
                 </tbody>
             </table></div>
-        </section>
     </div>
-</div>
+</section>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const botones = document.querySelectorAll('[data-novedades-panel]');
+    const paneles = {
+        licencias: document.getElementById('novedadesLicencias'),
+        carros: document.getElementById('novedadesCarros')
+    };
+    botones.forEach((boton) => boton.addEventListener('click', function () {
+        const seleccionado = boton.dataset.novedadesPanel;
+        Object.entries(paneles).forEach(([nombre, panel]) => {
+            if (panel) panel.hidden = nombre !== seleccionado;
+        });
+        botones.forEach((item) => {
+            const activo = item === boton;
+            item.classList.toggle('btn-danger', activo);
+            item.classList.toggle('btn-outline-danger', !activo);
+            item.setAttribute('aria-pressed', activo ? 'true' : 'false');
+        });
+    }));
+});
+</script>
 {% endblock %}
