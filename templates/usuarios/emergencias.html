@@ -134,7 +134,7 @@
                                         {% with asistentes_unidad=detalle.asistentes_visibles %}
                                         {% if asistentes_unidad %}
                                             <details class="em-attendance-details" {% if nombre_personal_filtro %}open{% endif %}>
-                                                <summary>{{ detalle.unidad.nombre }} · {{ asistentes_unidad|length }} asistentes</summary>
+                                                <summary><span class="em-attendance-unit">{{ detalle.unidad.nombre }}</span><span class="em-attendance-count">{{ asistentes_unidad|length }} asistentes</span></summary>
                                                 <div class="em-attendance-names">
                                                     {% for usuario in asistentes_unidad %}
                                                         {{ usuario.nombre_operativo }}{% if not forloop.last %}, {% endif %}
@@ -867,6 +867,23 @@ document.addEventListener('DOMContentLoaded', function () {
         color: #495057;
         font-size: .9rem;
         font-weight: 600;
+    }
+    .em-attendance-unit { font-weight: 700; }
+    .em-attendance-count {
+        display: inline-block;
+        margin-left: .25rem;
+        padding: .1rem .45rem;
+        border-radius: 999px;
+        background: #f8d7da;
+        color: #842029;
+        font-size: .78rem;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+    body.dark-mode .emergency-history-table .em-attendance-details > summary { color: #f1f3f5; }
+    body.dark-mode .emergency-history-table .em-attendance-count {
+        background: rgba(220, 53, 69, .22);
+        color: #ff9aa4;
     }
     .em-attendance-names {
         max-height: 160px;
