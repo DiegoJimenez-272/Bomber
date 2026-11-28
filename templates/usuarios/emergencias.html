@@ -520,16 +520,20 @@ document.addEventListener('DOMContentLoaded', function () {
                 {% if choice.0 %}<option value="{{ choice.0 }}">{{ choice.1 }}</option>{% endif %}
             {% endfor %}
         </select>
-        <div class="mt-3" data-em-asistencia-panel hidden>
-            <label class="form-label fw-semibold" data-em-asistencia-titulo>Asistencia</label>
+        <dialog class="em-asistencia-dialog" data-em-asistencia-panel aria-label="Asistencia por carro">
+            <div class="d-flex justify-content-between align-items-center gap-3 mb-3">
+                <h2 class="h5 mb-0" data-em-asistencia-titulo>Asistencia</h2>
+                <button type="button" class="btn-close" data-em-close-asistencia aria-label="Cerrar asistencia"></button>
+            </div>
             <input type="search" class="form-control form-control-sm mb-2" data-em-asistencia-search placeholder="Buscar bombero...">
             <div class="em-unidad-asistencia-list border rounded p-2 overflow-auto" data-em-asistencia-list style="max-height: 220px;"></div>
-            <div class="text-end mt-2">
+            <div class="d-flex justify-content-between align-items-center gap-2 mt-3">
+                <span class="small text-muted">La asistencia se guarda junto con el registro.</span>
                 <button type="button" class="btn btn-sm btn-danger attendance-action-button" data-em-save-asistencia>
                     <i class="bi bi-check-lg me-1"></i>Guardar asistencia
                 </button>
             </div>
-        </div>
+        </dialog>
         <div class="d-flex justify-content-between align-items-center gap-2 mt-2" data-em-asistencia-summary hidden>
             <small class="text-success" data-em-asistencia-resumen></small>
             <button type="button" class="btn btn-sm btn-outline-secondary attendance-action-button" data-em-edit-asistencia>
@@ -549,12 +553,18 @@ document.addEventListener('DOMContentLoaded', function () {
             <option value="">Seleccionar carro</option>
             {% for choice in salida_form.unidades.field.choices %}{% if choice.0 %}<option value="{{ choice.0 }}">{{ choice.1 }}</option>{% endif %}{% endfor %}
         </select>
-        <div class="mt-3" data-em-asistencia-panel hidden>
-            <label class="form-label fw-semibold" data-em-asistencia-titulo>Asistencia</label>
+        <dialog class="em-asistencia-dialog" data-em-asistencia-panel aria-label="Asistencia por carro">
+            <div class="d-flex justify-content-between align-items-center gap-3 mb-3">
+                <h2 class="h5 mb-0" data-em-asistencia-titulo>Asistencia</h2>
+                <button type="button" class="btn-close" data-em-close-asistencia aria-label="Cerrar asistencia"></button>
+            </div>
             <input type="search" class="form-control form-control-sm mb-2" data-em-asistencia-search placeholder="Buscar bombero...">
             <div class="em-unidad-asistencia-list border rounded p-2 overflow-auto" data-em-asistencia-list style="max-height:220px"></div>
-            <div class="text-end mt-2"><button type="button" class="btn btn-sm btn-danger attendance-action-button" data-em-save-asistencia><i class="bi bi-check-lg me-1"></i>Guardar asistencia</button></div>
-        </div>
+            <div class="d-flex justify-content-between align-items-center gap-2 mt-3">
+                <span class="small text-muted">La asistencia se guarda junto con el registro.</span>
+                <button type="button" class="btn btn-sm btn-danger attendance-action-button" data-em-save-asistencia><i class="bi bi-check-lg me-1"></i>Guardar asistencia</button>
+            </div>
+        </dialog>
         <div class="d-flex justify-content-between align-items-center gap-2 mt-2" data-em-asistencia-summary hidden>
             <small class="text-success" data-em-asistencia-resumen></small>
             <button type="button" class="btn btn-sm btn-outline-secondary attendance-action-button" data-em-edit-asistencia><i class="bi bi-pencil me-1"></i>Editar asistencia</button>
@@ -623,7 +633,7 @@ document.addEventListener('DOMContentLoaded', function () {
                             {% for error in form.asistencia_unidades.errors %}
                                 <div class="invalid-feedback d-block">{{ error }}</div>
                             {% endfor %}
-                            <div class="form-text">Al elegir cada carro se abrirá su lista para marcar quién asistió en esa unidad.</div>
+                            <div class="form-text">Al seleccionar cada carro se abrirá una ventana para marcar su asistencia.</div>
                         </div>
                         <div class="col-md-6">
                             <label for="{{ form.oficial_a_cargo.id_for_label }}" class="form-label">Oficial a Cargo</label>
@@ -779,7 +789,7 @@ document.addEventListener('DOMContentLoaded', function () {
                             <button type="button" class="btn btn-sm btn-outline-danger" data-em-add-unidad="editEmergenciaUnitGroups">
                                 <i class="bi bi-plus-lg me-1"></i>Agregar otro carro
                             </button>
-                            <div class="form-text">Al elegir cada carro se abrirá su lista para marcar quién asistió en esa unidad.</div>
+                            <div class="form-text">Al seleccionar cada carro se abrirá una ventana para marcar su asistencia.</div>
                         </div>
                         <div class="col-md-6">
                             <label for="edit_oficial_a_cargo" class="form-label">Oficial a Cargo</label>
@@ -877,6 +887,17 @@ document.addEventListener('DOMContentLoaded', function () {
         width: 171px;
         justify-content: center;
     }
+    .em-asistencia-dialog {
+        width: min(560px, calc(100vw - 2rem));
+        max-height: min(80vh, 720px);
+        padding: 1.25rem;
+        border: 0;
+        border-radius: .75rem;
+        color: var(--bs-body-color);
+        background: var(--bs-body-bg);
+        box-shadow: 0 1rem 3rem rgba(0, 0, 0, .28);
+    }
+    .em-asistencia-dialog::backdrop { background: rgba(15, 18, 22, .62); }
 </style>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
@@ -972,7 +993,7 @@ document.addEventListener('DOMContentLoaded', function () {
         list.replaceChildren();
         group.querySelector('[data-em-asistencia-summary]').hidden = true;
         if (!unidadId) {
-            panel.hidden = true;
+            if (panel.open) panel.close();
             actualizarDisponibilidad(container);
             actualizarAsistentes(container);
             syncAsistencia(container);
@@ -981,7 +1002,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         const option = select.options[select.selectedIndex];
         group.querySelector('[data-em-asistencia-titulo]').textContent = 'Asistencia en ' + option.textContent.trim();
-        panel.hidden = false;
+        if (!contraer && !panel.open) panel.showModal();
         const unitInput = document.createElement('input');
         unitInput.type = 'hidden';
         unitInput.name = 'unidades';
@@ -1017,7 +1038,7 @@ document.addEventListener('DOMContentLoaded', function () {
         actualizarAsistentes(container);
         syncAsistencia(container);
         if (contraer) {
-            panel.hidden = true;
+            if (panel.open) panel.close();
             actualizarResumen(group);
         }
     }
@@ -1034,13 +1055,23 @@ document.addEventListener('DOMContentLoaded', function () {
         select.addEventListener('change', function () { poblarAsistencia(group, []); });
         group.querySelector('[data-em-save-asistencia]').addEventListener('click', function () {
             syncAsistencia(container);
-            group.querySelector('[data-em-asistencia-panel]').hidden = true;
+            const panel = group.querySelector('[data-em-asistencia-panel]');
+            if (panel.open) panel.close();
             actualizarResumen(group);
         });
         group.querySelector('[data-em-edit-asistencia]').addEventListener('click', function () {
             group.querySelector('[data-em-asistencia-summary]').hidden = true;
-            group.querySelector('[data-em-asistencia-panel]').hidden = false;
+            const panel = group.querySelector('[data-em-asistencia-panel]');
+            if (!panel.open) panel.showModal();
             group.querySelector('[data-em-asistencia-search]').focus();
+        });
+        group.querySelector('[data-em-close-asistencia]').addEventListener('click', function () {
+            const panel = group.querySelector('[data-em-asistencia-panel]');
+            if (panel.open) panel.close();
+        });
+        group.querySelector('[data-em-asistencia-panel]').addEventListener('close', function () {
+            if (group.querySelector('[data-em-unidad-select]').value) actualizarResumen(group);
+            else group.querySelector('[data-em-asistencia-summary]').hidden = true;
         });
         group.querySelector('[data-em-remove-unidad]').addEventListener('click', function () {
             group.remove();
@@ -1065,7 +1096,7 @@ document.addEventListener('DOMContentLoaded', function () {
     try { createAttendance = JSON.parse(createAttendanceValue || '{}'); } catch (error) { createAttendance = {}; }
     const createUnitIds = createUnitGroups.dataset.initialUnits.split(',').filter(Boolean);
     if (createUnitIds.length) {
-        createUnitIds.forEach(function (unitId) { agregarUnidad(createUnitGroups, unitId, createAttendance[unitId] || []); });
+        createUnitIds.forEach(function (unitId) { agregarUnidad(createUnitGroups, unitId, createAttendance[unitId] || [], true); });
     } else {
         agregarUnidad(createUnitGroups);
     }
@@ -1077,7 +1108,7 @@ document.addEventListener('DOMContentLoaded', function () {
         try { salidaAttendance = JSON.parse(salidaAttendanceInput.value || '{}'); } catch (error) { salidaAttendance = {}; }
         const salidaUnitIds = createSalidaUnitGroups.dataset.initialUnits.split(',').filter(Boolean);
         if (salidaUnitIds.length) {
-            salidaUnitIds.forEach(function (unitId) { agregarUnidad(createSalidaUnitGroups, unitId, salidaAttendance[unitId] || []); });
+            salidaUnitIds.forEach(function (unitId) { agregarUnidad(createSalidaUnitGroups, unitId, salidaAttendance[unitId] || [], true); });
         } else {
             agregarUnidad(createSalidaUnitGroups);
         }
