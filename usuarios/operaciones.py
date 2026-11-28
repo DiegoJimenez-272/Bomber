@@ -118,12 +118,37 @@ class RegistroOperativoForm(forms.ModelForm):
 
     CODIGOS = {
         'emergencia': [
-            ('10-0-1', '10-0-1 — Llamado estructural'), ('10-0-2', '10-0-2 — Llamado a vehículo'),
-            ('10-1', '10-1 — Incendio forestal'), ('10-2', '10-2 — Rescate vehicular'),
-            ('10-3', '10-3 — Rescate de personas'),
-            ('10-7', '10-7 — Eléctrico'), ('10-8', '10-8 — Otros servicios'), ('otro', 'Otro'),
+            ('10-0-1', '10-0-1 — Incendio estructural'),
+            ('10-0-15', '10-0-15 — Incendio rural'),
+            ('10-0-7', '10-0-7 — Inflamación de ducto'),
+            ('10-1-1', '10-1-1 — Incendio vehicular menor'),
+            ('10-1-2', '10-1-2 — Incendio de camión'),
+            ('10-1-5', '10-1-5 — Incendio de maquinaria forestal'),
+            ('10-2-1', '10-2-1 — Incendio de pastizal urbano'),
+            ('10-2-2', '10-2-2 — Incendio de pastizal rural'),
+            ('10-2-3', '10-2-3 — Incendio agrícola'),
+            ('10-2-4', '10-2-4 — Incendio de microbasural'),
+            ('10-3', '10-3 — Rescate de persona'),
+            ('10-4', '10-4 — Rescate vehicular'),
+            ('10-6', '10-6 — Emanación de gas'),
+            ('10-7', '10-7 — Riesgo eléctrico'),
+            ('10-8', '10-8 — Llamado no clasificado'),
+            ('10-8-8', '10-8-8 — Rastreo de persona'),
+            ('10-8-10', '10-8-10 — Rastreo en aguas abiertas'),
+            ('10-8-11', '10-8-11 — Recuperación de cadáver'),
+            ('10-8-13', '10-8-13 — Caída de árbol'),
+            ('10-8-14', '10-8-14 — Voladuras de techo'),
+            ('10-8-15', '10-8-15 — Inundación'),
+            ('10-8-16', '10-8-16 — Rescate de animal'),
+            ('10-8-18', '10-8-18 — Derrame'),
+            ('10-9-7', '10-9-7 — Inspección'),
+            ('9-3', '9-3 — Acuartelamiento general'),
+            ('10-12', '10-12 — Apoyo a otro Cuerpo'),
+            ('10-10', '10-10 — Rebrote de fuego'),
+            ('9-4', '9-4 — Acuartelamiento preventivo'),
+            ('otro', 'Otro'),
         ],
-        'emergencia_vehicular': [(f'10-4-{n}', f'10-4-{n}') for n in range(1, 6)],
+        'emergencia_vehicular': [('10-4', '10-4 — Rescate vehicular')],
         'servicio_especial': [
             ('reunion_superintendencia', 'Reunión de Superintendencia'),
             ('reunion_comandancia', 'Reunión de Comandancia'),
@@ -152,7 +177,11 @@ class RegistroOperativoForm(forms.ModelForm):
         if tipos_disponibles and not self.is_bound:
             self.fields['tipo'].initial = tipos_disponibles[0][0]
         tipo = (self.data.get('tipo') if self.is_bound else self.initial.get('tipo')) or 'emergencia'
-        self.fields['codigo'].choices = [('', 'Seleccionar')] + self.CODIGOS.get(tipo, [])
+        codigos = list(self.CODIGOS.get(tipo, []))
+        codigo_actual = getattr(self.instance, 'codigo', '')
+        if self.instance.pk and codigo_actual and all(valor != codigo_actual for valor, _ in codigos):
+            codigos.append((codigo_actual, f'{codigo_actual} — Código histórico'))
+        self.fields['codigo'].choices = [('', 'Seleccionar')] + codigos
         self.fields['vehiculo'].queryset = Vehiculo.objects.select_related('compania').order_by('compania__nombre', 'nombre')
         self.fields['maquinista'].queryset = Usuario.objects.miembros_activos().order_by('nombre', 'apellido')
         self.fields['instructor'].queryset = Usuario.objects.miembros_activos().order_by('nombre', 'apellido')

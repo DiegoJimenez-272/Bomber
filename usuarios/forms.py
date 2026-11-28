@@ -687,6 +687,10 @@ class SalidaTerrenoForm(forms.ModelForm):
         return salida
 
 class EmergenciaForm(forms.ModelForm):
+    CODIGOS_HISTORICOS = {
+        '10-0-2', '10-1', '10-2', '10-4-1', '10-4-2', '10-4-3', '10-4-4', '10-4-5',
+    }
+
     unidades = forms.ModelMultipleChoiceField(
         queryset=Vehiculo.objects.none(),
         required=False,
@@ -710,6 +714,11 @@ class EmergenciaForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
+        tipo_actual = self.instance.tipo if self.instance.pk else None
+        self.fields['tipo'].choices = [
+            choice for choice in Emergencia.TIPO_EMERGENCIA_CHOICES
+            if choice[0] not in self.CODIGOS_HISTORICOS or choice[0] == tipo_actual
+        ]
         unidades = Vehiculo.objects.select_related('compania').order_by('compania__nombre', 'nombre')
         self.fields['unidades'].queryset = unidades
         self.fields['unidades'].label_from_instance = lambda unidad: f"{unidad.nombre} — {unidad.compania.nombre}"
