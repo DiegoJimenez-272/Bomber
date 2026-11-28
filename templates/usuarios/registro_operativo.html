@@ -82,8 +82,13 @@
                 <div class="col-12" data-operacion-field="emergencia_activa"><label class="form-label">Emergencia activa / código <span class="text-danger">*</span></label>{{ form.emergencia_activa }}{{ form.emergencia_activa.errors }}</div>
                 <div class="col-12" data-operacion-field="asistentes">
                     <label class="form-label fw-semibold">Toma de asistencia</label>
-                    <p class="form-text">Selecciona el carro para abrir la asistencia de esa unidad.</p>
-                    <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 g-2 p-2 border rounded attendance-list">{{ form.asistentes }}</div>
+                    <p class="form-text mb-2">La asistencia queda asociada al carro seleccionado.</p>
+                    <div class="d-flex flex-wrap align-items-center gap-2">
+                        <button type="button" id="abrirAsistenciaOperativa" class="btn btn-outline-danger" disabled>
+                            <i class="bi bi-people-fill me-1"></i>Selecciona un carro
+                        </button>
+                        <span id="resumenAsistenciaOperativa" class="small text-muted">Sin asistentes seleccionados</span>
+                    </div>
                     {{ form.asistentes.errors }}
                 </div>
 
@@ -99,6 +104,24 @@
                 <a href="{% url 'emergencias' %}" class="btn btn-outline-secondary">Cancelar</a>
                 <button type="submit" class="btn btn-danger"><i class="bi bi-check-lg me-1"></i>Guardar registro</button>
             </div>
+            <dialog id="asistenciaOperativaDialog" class="asistencia-operativa-dialog" aria-labelledby="asistenciaOperativaTitulo">
+                <div class="d-flex justify-content-between align-items-center gap-3 mb-3">
+                    <div>
+                        <h2 class="h5 mb-1" id="asistenciaOperativaTitulo">Toma de asistencia</h2>
+                        <p class="small text-muted mb-0">Carro: <span id="asistenciaOperativaVehiculo">—</span></p>
+                    </div>
+                    <button type="button" class="btn-close" id="cerrarAsistenciaOperativa" aria-label="Cerrar asistencia"></button>
+                </div>
+                <label for="buscarAsistenteOperativo" class="form-label">Buscar voluntario</label>
+                <input type="search" id="buscarAsistenteOperativo" class="form-control mb-3" placeholder="Nombre o clave radial">
+                <div id="listaAsistenciaOperativa" class="asistencia-operativa-list border rounded p-2">
+                    {{ form.asistentes }}
+                </div>
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mt-3">
+                    <span id="contadorAsistenciaOperativa" class="small text-muted">0 seleccionados</span>
+                    <button type="button" class="btn btn-danger" id="guardarAsistenciaOperativa"><i class="bi bi-check-lg me-1"></i>Guardar asistencia</button>
+                </div>
+            </dialog>
         </form>
     </div>
 </section>
@@ -119,6 +142,30 @@
 
 {{ codigos_por_tipo|json_script:'registro-codigos' }}
 {{ rondas_checklist|json_script:'registro-checklist' }}
+<style>
+    .asistencia-operativa-dialog {
+        width: min(600px, calc(100vw - 2rem));
+        max-height: min(82vh, 760px);
+        padding: 1.25rem;
+        border: 0;
+        border-radius: .75rem;
+        color: var(--bs-body-color);
+        background: var(--bs-body-bg);
+        box-shadow: 0 1rem 3rem rgba(0, 0, 0, .3);
+    }
+    .asistencia-operativa-dialog[open] {
+        position: fixed;
+        inset: 50% auto auto 50%;
+        z-index: 2000;
+        margin: 0;
+        transform: translate(-50%, -50%);
+        overflow: auto;
+    }
+    .asistencia-operativa-dialog::backdrop { background: rgba(15, 18, 22, .65); }
+    .asistencia-operativa-list { max-height: min(52vh, 480px); overflow-y: auto; }
+    .asistencia-operativa-list .form-check-input:checked { background-color: #dc3545; border-color: #dc3545; }
+    .asistencia-operativa-list .form-check-label { width: 100%; padding: .25rem .15rem; }
+</style>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const form = document.getElementById('registroOperativoForm');
@@ -126,6 +173,14 @@ document.addEventListener('DOMContentLoaded', function () {
     const codigo = document.getElementById('id_codigo');
     const codigos = JSON.parse(document.getElementById('registro-codigos').textContent);
     const checklist = JSON.parse(document.getElementById('registro-checklist').textContent);
+    const asistenciaDialog = document.getElementById('asistenciaOperativaDialog');
+    const asistenciaButton = document.getElementById('abrirAsistenciaOperativa');
+    const asistenciaLista = document.getElementById('listaAsistenciaOperativa');
+    const asistenciaBusqueda = document.getElementById('buscarAsistenteOperativo');
+    const asistenciaResumen = document.getElementById('resumenAsistenciaOperativa');
+    const asistenciaVehiculo = document.getElementById('asistenciaOperativaVehiculo');
+    const asistenciaInputs = Array.from(asistenciaLista.querySelectorAll('input[type="checkbox"]'));
+    let vehiculoAsistenciaActual = document.getElementById('id_vehiculo')?.value || '';
     const visibleByType = {
         codigo: ['emergencia','emergencia_vehicular','servicio_especial','practica_maquinista','rodaje_6_13','combustible_6_14'],
         fecha_inicio: ['emergencia','emergencia_vehicular','servicio_especial','practica_maquinista','rodaje_6_13','combustible_6_14','llegada_cuartel','ronda_maquinistas'],
@@ -170,6 +225,17 @@ document.addEventListener('DOMContentLoaded', function () {
                 input.required = isShown && (requiredByType[selected] || []).includes(name);
             });
         });
+        const campoAsistencia = document.querySelector('[data-operacion-field="asistentes"]');
+        const asistenciaVisible = campoAsistencia && !campoAsistencia.hidden;
+        asistenciaButton.disabled = !asistenciaVisible;
+        if (asistenciaVisible) {
+            const opcionCarro = document.getElementById('id_vehiculo')?.selectedOptions[0];
+            const llegada = selected === 'llegada_cuartel';
+            asistenciaButton.innerHTML = `<i class="bi bi-people-fill me-1"></i>${llegada ? 'Tomar asistencia' : 'Asistencia del carro'}`;
+            asistenciaButton.disabled = !llegada && !document.getElementById('id_vehiculo')?.value;
+            if (!llegada && !document.getElementById('id_vehiculo')?.value) asistenciaButton.textContent = 'Selecciona un carro';
+            asistenciaVehiculo.textContent = llegada ? 'Llegada al cuartel' : (opcionCarro?.textContent.trim() || '—');
+        }
         document.querySelectorAll('[data-section-for]').forEach((heading) => {
             const key = heading.dataset.sectionFor;
             const types = key === 'vehicular' ? ['emergencia_vehicular'] : key === 'informe' ? ['emergencia_vehicular','servicio_especial','rodaje_6_13'] : [key];
@@ -254,7 +320,44 @@ document.addEventListener('DOMContentLoaded', function () {
     try { JSON.parse(involvedField?.value || '[]').forEach(addInvolucrado); } catch (e) {}
     document.getElementById('addInvolucrado')?.addEventListener('click', () => addInvolucrado());
     tipo.addEventListener('change', updateForm);
-    document.getElementById('id_vehiculo')?.addEventListener('change', updateForm);
+    const vehiculoSelect = document.getElementById('id_vehiculo');
+    vehiculoSelect?.addEventListener('change', () => {
+        const nuevoVehiculo = vehiculoSelect.value;
+        if (vehiculoAsistenciaActual && nuevoVehiculo !== vehiculoAsistenciaActual) {
+            asistenciaInputs.forEach((input) => { input.checked = false; });
+            actualizarResumenAsistencia();
+        }
+        vehiculoAsistenciaActual = nuevoVehiculo;
+        updateForm();
+        if (nuevoVehiculo && !document.querySelector('[data-operacion-field="asistentes"]').hidden) abrirAsistencia();
+    });
+    function actualizarResumenAsistencia() {
+        const seleccionados = asistenciaInputs.filter((input) => input.checked).length;
+        const texto = seleccionados ? `${seleccionados} voluntario${seleccionados === 1 ? '' : 's'} seleccionado${seleccionados === 1 ? '' : 's'}` : 'Sin asistentes seleccionados';
+        asistenciaResumen.textContent = texto;
+        document.getElementById('contadorAsistenciaOperativa').textContent = `${seleccionados} seleccionado${seleccionados === 1 ? '' : 's'}`;
+    }
+    function abrirAsistencia() {
+        if (!asistenciaDialog.open) asistenciaDialog.showModal();
+        asistenciaBusqueda.value = '';
+        filtrarAsistencia();
+        asistenciaBusqueda.focus();
+    }
+    function filtrarAsistencia() {
+        const consulta = asistenciaBusqueda.value.toLocaleLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        asistenciaInputs.forEach((input) => {
+            const fila = input.closest('label') || input.parentElement;
+            const texto = (fila?.textContent || '').toLocaleLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+            fila.hidden = !texto.includes(consulta);
+        });
+    }
+    asistenciaButton.addEventListener('click', abrirAsistencia);
+    document.getElementById('cerrarAsistenciaOperativa').addEventListener('click', () => asistenciaDialog.close());
+    document.getElementById('guardarAsistenciaOperativa').addEventListener('click', () => asistenciaDialog.close());
+    asistenciaBusqueda.addEventListener('input', filtrarAsistencia);
+    asistenciaInputs.forEach((input) => input.addEventListener('change', actualizarResumenAsistencia));
+    asistenciaDialog.addEventListener('close', actualizarResumenAsistencia);
+    actualizarResumenAsistencia();
     document.getElementById('id_estacion_servicio')?.addEventListener('change', updateConditionalFields);
     document.querySelectorAll('[name="instituciones_apoyo"]').forEach((input) => input.addEventListener('change', updateConditionalFields));
     ['id_hora_despacho','id_hora_llegada','id_kilometraje_despacho','id_kilometraje_llegada'].forEach((id) => document.getElementById(id)?.addEventListener('input', updatePractice));
