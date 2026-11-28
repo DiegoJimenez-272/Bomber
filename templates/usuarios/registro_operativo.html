@@ -37,7 +37,14 @@
                 <div class="col-12 col-md-6" data-operacion-field="kilometraje_despacho"><label class="form-label">Kilometraje de despacho <span class="text-danger">*</span></label>{{ form.kilometraje_despacho }}{{ form.kilometraje_despacho.errors }}</div>
                 <div class="col-12 col-md-6" data-operacion-field="kilometraje_llegada"><label class="form-label">Kilometraje de llegada <span class="text-danger">*</span></label>{{ form.kilometraje_llegada }}{{ form.kilometraje_llegada.errors }}</div>
                 <div class="col-12 col-md-6" data-operacion-field="direccion"><label class="form-label">Dirección <span class="text-danger">*</span></label>{{ form.direccion }}{{ form.direccion.errors }}</div>
-                <div class="col-12 col-md-6" data-operacion-field="vehiculo"><label class="form-label">Carro / unidad <span class="text-danger">*</span></label>{{ form.vehiculo }}{{ form.vehiculo.errors }}</div>
+                <div class="col-12 col-md-6" data-operacion-field="vehiculo">
+                    <label class="form-label fw-semibold">Carro / unidad <span class="text-danger">*</span></label>
+                    {{ form.vehiculo }}{{ form.asistencia_unidades }}
+                    {{ form.vehiculo.errors }}{{ form.unidades.errors }}{{ form.asistencia_unidades.errors }}
+                    <div id="operationalVehicleGroups" data-initial-units="{{ unidades_iniciales|join:',' }}"></div>
+                    <button type="button" class="btn btn-sm btn-outline-danger mt-2" id="agregarCarroOperativo"><i class="bi bi-plus-lg me-1"></i>Agregar otro carro</button>
+                    <p class="form-text mb-0">Cada carro tiene su propia asistencia. El primero queda como carro principal del registro.</p>
+                </div>
                 <div class="col-12 col-md-6" data-operacion-field="maquinista"><label class="form-label">Maquinista / conductor</label>{{ form.maquinista }}{{ form.maquinista.errors }}</div>
                 <div class="col-12 col-md-6" data-operacion-field="obac"><label class="form-label">OBAC <span class="text-danger">*</span></label>{{ form.obac }}{{ form.obac.errors }}</div>
 
@@ -81,11 +88,11 @@
 
                 <div class="col-12" data-operacion-field="emergencia_activa"><label class="form-label">Emergencia activa / código <span class="text-danger">*</span></label>{{ form.emergencia_activa }}{{ form.emergencia_activa.errors }}</div>
                 <div class="col-12" data-operacion-field="asistentes">
-                    <label class="form-label fw-semibold">Toma de asistencia</label>
-                    <p class="form-text mb-2">La asistencia queda asociada al carro seleccionado.</p>
+                    <label class="form-label fw-semibold">Asistencia de llegada al cuartel</label>
+                    <p class="form-text mb-2">Selecciona los voluntarios que llegaron al cuartel.</p>
                     <div class="d-flex flex-wrap align-items-center gap-2">
                         <button type="button" id="abrirAsistenciaOperativa" class="btn btn-outline-danger" disabled>
-                            <i class="bi bi-people-fill me-1"></i>Selecciona un carro
+                            <i class="bi bi-people-fill me-1"></i>Tomar asistencia
                         </button>
                         <span id="resumenAsistenciaOperativa" class="small text-muted">Sin asistentes seleccionados</span>
                     </div>
@@ -126,6 +133,40 @@
     </div>
 </section>
 
+<template id="operationalVehicleGroupTemplate">
+    <div class="operational-unit-card border rounded p-3 mb-3" data-operational-unit-group>
+        <div class="d-flex justify-content-between align-items-center gap-2 mb-2">
+            <label class="form-label fw-semibold mb-0">Carro / unidad</label>
+            <button type="button" class="btn btn-sm btn-outline-danger" data-remove-operational-unit aria-label="Quitar carro"><i class="bi bi-trash me-1"></i>Quitar</button>
+        </div>
+        <select class="form-select" data-operational-unit-select>
+            <option value="">Seleccionar carro</option>
+            {% for choice in form.unidades.field.choices %}{% if choice.0 %}<option value="{{ choice.0 }}">{{ choice.1 }}</option>{% endif %}{% endfor %}
+        </select>
+        <input type="hidden" name="unidades" data-operational-unit-hidden>
+        <dialog class="asistencia-operativa-dialog asistencia-por-carro-dialog" data-operational-unit-dialog aria-label="Asistencia del carro">
+            <div class="d-flex justify-content-between align-items-center gap-3 mb-3">
+                <div>
+                    <h2 class="h5 mb-1" data-operational-attendance-title>Asistencia por carro</h2>
+                    <p class="small text-muted mb-0">Marca quién participó en esta unidad.</p>
+                </div>
+                <button type="button" class="btn-close" data-close-operational-attendance aria-label="Cerrar asistencia"></button>
+            </div>
+            <label class="form-label">Buscar voluntario</label>
+            <input type="search" class="form-control mb-3" data-operational-attendance-search placeholder="Nombre o clave radial">
+            <div class="asistencia-operativa-list border rounded p-2" data-operational-attendance-list></div>
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mt-3">
+                <span class="small text-muted" data-operational-attendance-count>0 seleccionados</span>
+                <button type="button" class="btn btn-danger" data-save-operational-attendance><i class="bi bi-check-lg me-1"></i>Guardar asistencia</button>
+            </div>
+        </dialog>
+        <div class="d-flex justify-content-between align-items-center gap-2 mt-2" data-operational-attendance-summary hidden>
+            <small class="text-success" data-operational-attendance-summary-text></small>
+            <button type="button" class="btn btn-sm btn-outline-secondary" data-edit-operational-attendance><i class="bi bi-pencil me-1"></i>Editar asistencia</button>
+        </div>
+    </div>
+</template>
+
 {% if registros %}
 <section class="card shadow-sm">
     <div class="card-header bg-danger text-white fw-bold">Registros operativos recientes</div>
@@ -133,7 +174,7 @@
         <thead><tr><th>Fecha</th><th>Tipo</th><th>Carro</th><th>Maquinista</th><th>Detalle / distancia</th></tr></thead>
         <tbody>{% for registro in registros %}<tr>
             <td>{{ registro.fecha_inicio|date:'d/m/Y' }}</td><td>{{ registro.get_tipo_display }}</td>
-            <td>{{ registro.vehiculo.nombre|default:'—' }}</td><td>{{ registro.maquinista.nombre_operativo|default:'—' }}</td>
+            <td>{% for unidad in registro.unidades.all %}<span class="badge bg-light text-dark border me-1">{{ unidad.nombre }}</span>{% empty %}{{ registro.vehiculo.nombre|default:'—' }}{% endfor %}</td><td>{{ registro.maquinista.nombre_operativo|default:'—' }}</td>
             <td>{% if registro.kilometros_recorridos != None %}{{ registro.kilometros_recorridos }} km{% endif %}{% if registro.informe %}<div class="small text-muted">{{ registro.informe|truncatechars:100 }}</div>{% endif %}</td>
         </tr>{% endfor %}</tbody>
     </table></div>
@@ -142,6 +183,7 @@
 
 {{ codigos_por_tipo|json_script:'registro-codigos' }}
 {{ rondas_checklist|json_script:'registro-checklist' }}
+{{ usuarios_asistencia|json_script:'registro-usuarios-asistencia' }}
 <style>
     .asistencia-operativa-dialog {
         width: min(600px, calc(100vw - 2rem));
@@ -180,7 +222,12 @@ document.addEventListener('DOMContentLoaded', function () {
     const asistenciaResumen = document.getElementById('resumenAsistenciaOperativa');
     const asistenciaVehiculo = document.getElementById('asistenciaOperativaVehiculo');
     const asistenciaInputs = Array.from(asistenciaLista.querySelectorAll('input[type="checkbox"]'));
-    let vehiculoAsistenciaActual = document.getElementById('id_vehiculo')?.value || '';
+    const gruposUnidades = document.getElementById('operationalVehicleGroups');
+    const plantillaUnidad = document.getElementById('operationalVehicleGroupTemplate');
+    const botonAgregarUnidad = document.getElementById('agregarCarroOperativo');
+    const vehiculoPrincipalInput = document.getElementById('id_vehiculo');
+    const asistenciaUnidadesInput = document.getElementById('id_asistencia_unidades');
+    const usuariosPorUnidad = JSON.parse(document.getElementById('registro-usuarios-asistencia').textContent);
     const visibleByType = {
         codigo: ['emergencia','emergencia_vehicular','servicio_especial','practica_maquinista','rodaje_6_13','combustible_6_14'],
         fecha_inicio: ['emergencia','emergencia_vehicular','servicio_especial','practica_maquinista','rodaje_6_13','combustible_6_14','llegada_cuartel','ronda_maquinistas'],
@@ -214,28 +261,161 @@ document.addEventListener('DOMContentLoaded', function () {
         ronda_maquinistas: ['vehiculo','maquinista','checklist_json'],
         llegada_cuartel: ['fecha_inicio','direccion','emergencia_activa']
     };
+    function leerAsistenciaUnidades() {
+        try { return JSON.parse(asistenciaUnidadesInput.value || '{}') || {}; } catch (error) { return {}; }
+    }
+    function sincronizarUnidades() {
+        const mapa = {};
+        const grupos = Array.from(gruposUnidades.querySelectorAll('[data-operational-unit-group]'));
+        grupos.forEach((grupo) => {
+            const unidadId = grupo.querySelector('[data-operational-unit-select]').value;
+            grupo.querySelector('[data-operational-unit-hidden]').value = unidadId;
+            if (unidadId) {
+                mapa[unidadId] = Array.from(grupo.querySelectorAll('[data-operational-attendee]:checked')).map((input) => Number(input.value));
+            }
+        });
+        asistenciaUnidadesInput.value = JSON.stringify(mapa);
+        const principal = grupos.map((grupo) => grupo.querySelector('[data-operational-unit-select]').value).find(Boolean) || '';
+        vehiculoPrincipalInput.value = principal;
+        refreshUnitOptions();
+        refreshAttendeeOptions();
+    }
+    function refreshUnitOptions() {
+        const grupos = Array.from(gruposUnidades.querySelectorAll('[data-operational-unit-group]'));
+        const seleccionados = grupos.map((grupo) => grupo.querySelector('[data-operational-unit-select]').value).filter(Boolean);
+        grupos.forEach((grupo) => {
+            const select = grupo.querySelector('[data-operational-unit-select]');
+            Array.from(select.options).forEach((opcion) => {
+                opcion.disabled = Boolean(opcion.value && seleccionados.includes(opcion.value) && select.value !== opcion.value);
+            });
+            grupo.querySelector('[data-remove-operational-unit]').hidden = grupos.length <= 1;
+        });
+        botonAgregarUnidad.hidden = tipo.value === 'combustible_6_14';
+    }
+    function refreshAttendeeOptions() {
+        const grupos = Array.from(gruposUnidades.querySelectorAll('[data-operational-unit-group]'));
+        const asignados = new Map();
+        grupos.forEach((grupo) => {
+            const unidadId = grupo.querySelector('[data-operational-unit-select]').value;
+            grupo.querySelectorAll('[data-operational-attendee]:checked').forEach((input) => {
+                if (unidadId && !asignados.has(input.value)) asignados.set(input.value, unidadId);
+            });
+        });
+        grupos.forEach((grupo) => {
+            const unidadId = grupo.querySelector('[data-operational-unit-select]').value;
+            grupo.querySelectorAll('[data-operational-attendee-row]').forEach((fila) => {
+                const input = fila.querySelector('[data-operational-attendee]');
+                const asignadoEn = asignados.get(input.value);
+                const bloqueado = Boolean(asignadoEn && asignadoEn !== unidadId);
+                if (bloqueado) input.checked = false;
+                input.disabled = bloqueado;
+                fila.dataset.assignedElsewhere = bloqueado ? 'true' : 'false';
+            });
+            filtrarAsistentesUnidad(grupo);
+            actualizarResumenUnidad(grupo);
+        });
+    }
+    function filtrarAsistentesUnidad(grupo) {
+        const consulta = grupo.querySelector('[data-operational-attendance-search]').value.toLocaleLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        const filas = Array.from(grupo.querySelectorAll('[data-operational-attendee-row]'));
+        let visibles = 0;
+        filas.forEach((fila) => {
+            const coincide = fila.dataset.assignedElsewhere !== 'true' && fila.dataset.searchText.includes(consulta);
+            fila.hidden = !coincide;
+            if (coincide) visibles++;
+        });
+        const aviso = grupo.querySelector('[data-operational-no-attendees]');
+        if (aviso) aviso.hidden = visibles > 0;
+    }
+    function actualizarResumenUnidad(grupo) {
+        const cantidad = grupo.querySelectorAll('[data-operational-attendee]:checked').length;
+        const texto = `${cantidad} voluntario${cantidad === 1 ? '' : 's'} seleccionado${cantidad === 1 ? '' : 's'}`;
+        grupo.querySelector('[data-operational-attendance-count]').textContent = texto;
+        grupo.querySelector('[data-operational-attendance-summary-text]').textContent = texto;
+        grupo.querySelector('[data-operational-attendance-summary]').hidden = !grupo.querySelector('[data-operational-unit-select]').value;
+    }
+    function crearGrupoUnidad(unidadId = '', asistentesIds = [], contraer = false) {
+        const grupo = plantillaUnidad.content.firstElementChild.cloneNode(true);
+        gruposUnidades.appendChild(grupo);
+        const selector = grupo.querySelector('[data-operational-unit-select]');
+        if (unidadId) selector.value = String(unidadId);
+        const modal = grupo.querySelector('[data-operational-unit-dialog]');
+        const lista = grupo.querySelector('[data-operational-attendance-list]');
+        const titulo = grupo.querySelector('[data-operational-attendance-title]');
+        const poblar = (seleccionados, abrir) => {
+            lista.replaceChildren();
+            grupo.querySelector('[data-operational-attendance-summary]').hidden = true;
+            if (!selector.value) {
+                if (modal.open) modal.close();
+                sincronizarUnidades();
+                return;
+            }
+            const opcion = selector.selectedOptions[0];
+            titulo.textContent = `Asistencia · ${opcion.textContent.trim()}`;
+            usuariosPorUnidad.forEach((usuario) => {
+                const fila = document.createElement('label');
+                fila.className = 'form-check d-flex align-items-center gap-2 py-1 m-0';
+                fila.dataset.operationalAttendeeRow = '';
+                fila.dataset.searchText = usuario.nombre.toLocaleLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+                const input = document.createElement('input');
+                input.type = 'checkbox';
+                input.className = 'form-check-input mt-0';
+                input.value = usuario.id;
+                input.dataset.operationalAttendee = '';
+                input.checked = seleccionados.includes(Number(usuario.id));
+                input.addEventListener('change', sincronizarUnidades);
+                const nombre = document.createElement('span');
+                nombre.textContent = usuario.nombre;
+                fila.append(input, nombre);
+                lista.appendChild(fila);
+            });
+            const sinResultados = document.createElement('p');
+            sinResultados.className = 'small text-muted mb-0 p-2';
+            sinResultados.textContent = 'No hay voluntarios disponibles.';
+            sinResultados.dataset.operationalNoAttendees = '';
+            lista.appendChild(sinResultados);
+            grupo.querySelector('[data-operational-attendance-search]').value = '';
+            if (abrir && !modal.open) modal.showModal();
+            sincronizarUnidades();
+            if (contraer) actualizarResumenUnidad(grupo);
+        };
+        selector.addEventListener('change', () => poblar([], true));
+        grupo.querySelector('[data-operational-attendance-search]').addEventListener('input', () => filtrarAsistentesUnidad(grupo));
+        grupo.querySelector('[data-save-operational-attendance]').addEventListener('click', () => modal.close());
+        grupo.querySelector('[data-close-operational-attendance]').addEventListener('click', () => modal.close());
+        grupo.querySelector('[data-edit-operational-attendance]').addEventListener('click', () => {
+            if (!modal.open) modal.showModal();
+            grupo.querySelector('[data-operational-attendance-search]').focus();
+        });
+        modal.addEventListener('close', () => actualizarResumenUnidad(grupo));
+        grupo.querySelector('[data-remove-operational-unit]').addEventListener('click', () => {
+            grupo.remove();
+            if (!gruposUnidades.querySelector('[data-operational-unit-group]')) crearGrupoUnidad();
+            sincronizarUnidades();
+        });
+        poblar(asistentesIds.map(Number), !contraer);
+    }
+    botonAgregarUnidad.addEventListener('click', () => crearGrupoUnidad());
     function updateForm() {
         const selected = tipo.value;
         document.querySelectorAll('[data-operacion-field]').forEach((wrapper) => {
             const name = wrapper.dataset.operacionField;
             let isShown = name === 'tipo' || (visibleByType[name] || []).includes(selected);
-            if (name === 'asistentes' && selected !== 'llegada_cuartel') isShown = isShown && Boolean(document.getElementById('id_vehiculo')?.value);
+            if (name === 'asistentes') isShown = selected === 'llegada_cuartel';
             wrapper.hidden = !isShown;
             wrapper.querySelectorAll('input,select,textarea').forEach((input) => {
-                input.required = isShown && (requiredByType[selected] || []).includes(name);
+                if (input.type !== 'hidden') input.required = isShown && (requiredByType[selected] || []).includes(name);
             });
         });
         const campoAsistencia = document.querySelector('[data-operacion-field="asistentes"]');
         const asistenciaVisible = campoAsistencia && !campoAsistencia.hidden;
         asistenciaButton.disabled = !asistenciaVisible;
         if (asistenciaVisible) {
-            const opcionCarro = document.getElementById('id_vehiculo')?.selectedOptions[0];
-            const llegada = selected === 'llegada_cuartel';
-            asistenciaButton.innerHTML = `<i class="bi bi-people-fill me-1"></i>${llegada ? 'Tomar asistencia' : 'Asistencia del carro'}`;
-            asistenciaButton.disabled = !llegada && !document.getElementById('id_vehiculo')?.value;
-            if (!llegada && !document.getElementById('id_vehiculo')?.value) asistenciaButton.textContent = 'Selecciona un carro';
-            asistenciaVehiculo.textContent = llegada ? 'Llegada al cuartel' : (opcionCarro?.textContent.trim() || '—');
+            asistenciaButton.innerHTML = '<i class="bi bi-people-fill me-1"></i>Tomar asistencia';
+            asistenciaButton.disabled = false;
+            asistenciaVehiculo.textContent = 'Llegada al cuartel';
         }
+        botonAgregarUnidad.hidden = selected === 'combustible_6_14';
         document.querySelectorAll('[data-section-for]').forEach((heading) => {
             const key = heading.dataset.sectionFor;
             const types = key === 'vehicular' ? ['emergencia_vehicular'] : key === 'informe' ? ['emergencia_vehicular','servicio_especial','rodaje_6_13'] : [key];
@@ -319,18 +499,26 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     try { JSON.parse(involvedField?.value || '[]').forEach(addInvolucrado); } catch (e) {}
     document.getElementById('addInvolucrado')?.addEventListener('click', () => addInvolucrado());
-    tipo.addEventListener('change', updateForm);
-    const vehiculoSelect = document.getElementById('id_vehiculo');
-    vehiculoSelect?.addEventListener('change', () => {
-        const nuevoVehiculo = vehiculoSelect.value;
-        if (vehiculoAsistenciaActual && nuevoVehiculo !== vehiculoAsistenciaActual) {
-            asistenciaInputs.forEach((input) => { input.checked = false; });
-            actualizarResumenAsistencia();
+    tipo.addEventListener('change', () => {
+        if (tipo.value === 'llegada_cuartel') {
+            gruposUnidades.replaceChildren();
+            vehiculoPrincipalInput.value = '';
+            asistenciaUnidadesInput.value = '{}';
+            crearGrupoUnidad();
         }
-        vehiculoAsistenciaActual = nuevoVehiculo;
         updateForm();
-        if (nuevoVehiculo && !document.querySelector('[data-operacion-field="asistentes"]').hidden) abrirAsistencia();
     });
+    const asistenciaUnidadesInicial = leerAsistenciaUnidades();
+    const unidadesIniciales = gruposUnidades.dataset.initialUnits.split(',').filter(Boolean);
+    if (tipo.value !== 'llegada_cuartel' && unidadesIniciales.length) {
+        unidadesIniciales.forEach((unidadId) => crearGrupoUnidad(
+            unidadId,
+            asistenciaUnidadesInicial[unidadId] || [],
+            true,
+        ));
+    } else {
+        crearGrupoUnidad();
+    }
     function actualizarResumenAsistencia() {
         const seleccionados = asistenciaInputs.filter((input) => input.checked).length;
         const texto = seleccionados ? `${seleccionados} voluntario${seleccionados === 1 ? '' : 's'} seleccionado${seleccionados === 1 ? '' : 's'}` : 'Sin asistentes seleccionados';
@@ -361,7 +549,7 @@ document.addEventListener('DOMContentLoaded', function () {
     document.getElementById('id_estacion_servicio')?.addEventListener('change', updateConditionalFields);
     document.querySelectorAll('[name="instituciones_apoyo"]').forEach((input) => input.addEventListener('change', updateConditionalFields));
     ['id_hora_despacho','id_hora_llegada','id_kilometraje_despacho','id_kilometraje_llegada'].forEach((id) => document.getElementById(id)?.addEventListener('input', updatePractice));
-    form.addEventListener('submit', () => { writeChecklist(); saveInvolucrados(); });
+    form.addEventListener('submit', () => { writeChecklist(); saveInvolucrados(); sincronizarUnidades(); });
     updateForm();
 });
 </script>

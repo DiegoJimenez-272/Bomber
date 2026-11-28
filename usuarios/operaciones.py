@@ -17,6 +17,7 @@ from .models import (
     Emergencia,
     EmergenciaUnidad,
     RegistroOperativo,
+    RegistroOperativoUnidad,
     RondaVehiculo,
     SalidaTerreno,
     SalidaTerrenoUnidad,
@@ -79,6 +80,11 @@ class RegistroOperativoForm(forms.ModelForm):
         label='Voluntarios asistentes', queryset=Usuario.objects.none(), required=False,
         widget=forms.CheckboxSelectMultiple,
     )
+    unidades = forms.ModelMultipleChoiceField(
+        label='Carros / unidades', queryset=Vehiculo.objects.none(), required=False,
+        widget=forms.MultipleHiddenInput,
+    )
+    asistencia_unidades = forms.CharField(required=False, widget=forms.HiddenInput())
 
     class Meta:
         model = RegistroOperativo
@@ -88,7 +94,7 @@ class RegistroOperativoForm(forms.ModelForm):
             'estacion_detalle', 'vehiculo', 'maquinista', 'obac', 'apoyo_otro_cuerpo',
             'instituciones_apoyo', 'apoyo_otros', 'informe', 'novedades_unidad', 'lesionados_externos',
             'aspirante_nombre', 'aspirante_clave', 'instructor', 'combustible_tipo',
-            'monto_combustible', 'autorizaciones', 'asistentes',
+            'monto_combustible', 'autorizaciones', 'asistentes', 'unidades', 'asistencia_unidades',
         ]
         widgets = {
             'tipo': forms.Select(attrs={'class': 'form-select', 'id': 'id_tipo_operativo'}),
@@ -101,7 +107,7 @@ class RegistroOperativoForm(forms.ModelForm):
             'direccion': forms.TextInput(attrs={'class': 'form-control'}),
             'estacion_servicio': forms.Select(attrs={'class': 'form-select', 'id': 'id_estacion_servicio'}),
             'estacion_detalle': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Nombre de la estación'}),
-            'vehiculo': forms.Select(attrs={'class': 'form-select'}),
+            'vehiculo': forms.HiddenInput(),
             'maquinista': forms.Select(attrs={'class': 'form-select'}),
             'obac': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Nombre del oficial o voluntario'}),
             'apoyo_otro_cuerpo': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Nombre del Cuerpo de Bomberos'}),
@@ -183,6 +189,7 @@ class RegistroOperativoForm(forms.ModelForm):
             codigos.append((codigo_actual, f'{codigo_actual} — Código histórico'))
         self.fields['codigo'].choices = [('', 'Seleccionar')] + codigos
         self.fields['vehiculo'].queryset = Vehiculo.objects.select_related('compania').order_by('compania__nombre', 'nombre')
+        self.fields['unidades'].queryset = self.fields['vehiculo'].queryset
         self.fields['maquinista'].queryset = Usuario.objects.miembros_activos().order_by('apellido', 'nombre')
         self.fields['instructor'].queryset = Usuario.objects.miembros_activos().order_by('apellido', 'nombre')
         self.fields['asistentes'].queryset = Usuario.objects.miembros_activos().order_by('apellido', 'nombre')
@@ -235,6 +242,64 @@ class RegistroOperativoForm(forms.ModelForm):
         tipo = data.get('tipo')
         if not tipo:
             return data
+
+        unidades_limpias = list(data.get('unidades') or [])
+        if not unidades_limpias and data.get('vehiculo'):
+            unidades_limpias = [data['vehiculo']]
+        unidades_por_id = {str(unidad.pk): unidad for unidad in unidades_limpias}
+        ids_publicados = self.data.getlist('unidades') if self.is_bound else []
+        unidades_ordenadas = [
+            unidades_por_id[unidad_id]
+            for unidad_id in ids_publicados
+            if unidad_id in unidades_por_id
+        ]
+        if not unidades_ordenadas:
+            unidades_ordenadas = unidades_limpias
+        data['unidades'] = unidades_ordenadas
+
+        vehiculo_principal = data.get('vehiculo')
+        if unidades_ordenadas:
+            if vehiculo_principal not in unidades_ordenadas:
+                vehiculo_principal = unidades_ordenadas[0]
+                data['vehiculo'] = vehiculo_principal
+        elif tipo != 'llegada_cuartel':
+            vehiculo_principal = None
+            data['vehiculo'] = None
+
+        try:
+            asistencia_raw = self.data.get('asistencia_unidades') or '{}' if self.is_bound else '{}'
+            asistencia_parseada = json.loads(asistencia_raw)
+            if not isinstance(asistencia_parseada, dict):
+                raise ValueError
+            asistencia_normalizada = {}
+            for unidad_id, asistentes_ids in asistencia_parseada.items():
+                unidad_id = str(int(unidad_id))
+                if not isinstance(asistentes_ids, list):
+                    raise ValueError
+                asistencia_normalizada[unidad_id] = list(dict.fromkeys(int(pk) for pk in asistentes_ids))
+        except (TypeError, ValueError, json.JSONDecodeError):
+            asistencia_normalizada = {}
+            self.add_error('asistencia_unidades', 'No se pudo leer la asistencia de los carros seleccionados.')
+
+        ids_unidades_seleccionadas = {str(unidad.pk) for unidad in unidades_ordenadas}
+        if tipo == 'llegada_cuartel' and asistencia_normalizada:
+            self.add_error('asistencia_unidades', 'La llegada al cuartel no utiliza asistencia por carro.')
+        elif set(asistencia_normalizada) - ids_unidades_seleccionadas:
+            self.add_error('asistencia_unidades', 'La asistencia incluye un carro que no está seleccionado.')
+        asistentes_por_unidad = [pk for ids in asistencia_normalizada.values() for pk in ids]
+        if len(asistentes_por_unidad) != len(set(asistentes_por_unidad)):
+            self.add_error('asistencia_unidades', 'Un voluntario no puede quedar asignado a más de un carro en el mismo registro.')
+        ids_asistentes_validos = set(self.fields['asistentes'].queryset.values_list('pk', flat=True))
+        if set(asistentes_por_unidad) - ids_asistentes_validos:
+            self.add_error('asistencia_unidades', 'La lista incluye voluntarios inactivos o fuera de tu compañía.')
+        if tipo != 'llegada_cuartel' and 'asistentes' not in self.errors:
+            data['asistentes'] = self.fields['asistentes'].queryset.filter(pk__in=asistentes_por_unidad)
+            data['asistencia_unidades_limpia'] = {
+                str(unidad.pk): asistencia_normalizada.get(str(unidad.pk), [])
+                for unidad in unidades_ordenadas
+            }
+        if tipo == 'combustible_6_14' and len(unidades_ordenadas) > 1:
+            self.add_error('unidades', 'Registra cada carga de combustible para un solo carro.')
 
         if tipo == 'llegada_cuartel':
             if not data.get('fecha_inicio'):
@@ -361,6 +426,8 @@ def _guardar_registro(form, user):
     tipo = form.cleaned_data['tipo']
     registro = form.save(commit=False)
     registro.creado_por = user
+    unidades = list(form.cleaned_data.get('unidades') or [])
+    asistencia_unidades = form.cleaned_data.get('asistencia_unidades_limpia', {})
     if tipo == 'llegada_cuartel':
         registro.emergencia = form.cleaned_data['emergencia_activa']
         registro.codigo = registro.emergencia.tipo
@@ -391,20 +458,32 @@ def _guardar_registro(form, user):
         registro.save()
         form.save_m2m()
 
+        for unidad in unidades:
+            detalle_registro, _ = RegistroOperativoUnidad.objects.get_or_create(
+                registro=registro,
+                unidad=unidad,
+            )
+            detalle_registro.asistentes.set(asistencia_unidades.get(str(unidad.pk), []))
+
         if tipo in TIPOS_EMERGENCIA:
             alarma = _momento(registro.fecha_inicio, registro.hora_despacho)
+            nombres_unidades = ', '.join(unidad.nombre for unidad in unidades)
             emergencia = Emergencia.objects.create(
                 tipo=registro.codigo,
                 direccion=registro.direccion,
                 fecha_hora_alarma=alarma,
                 descripcion='\n'.join(filter(None, [registro.informe, f'OBAC: {registro.obac}', f'Apoyos: {", ".join(registro.instituciones_apoyo)}', registro.novedades_unidad])),
-                unidades_despachadas=registro.vehiculo.nombre,
+                unidades_despachadas=nombres_unidades[:100],
                 estado='Finalizada',
                 creado_por=user,
                 registro_completado=True,
             )
-            detalle = EmergenciaUnidad.objects.create(emergencia=emergencia, unidad=registro.vehiculo)
-            detalle.asistentes.set(registro.asistentes.all())
+            # Emergencia stores dispatched vehicles and per-vehicle attendance
+            # through EmergenciaUnidad (it has no direct unidades M2M field).
+            emergencia.asistentes.set(registro.asistentes.all())
+            for unidad in unidades:
+                detalle = EmergenciaUnidad.objects.create(emergencia=emergencia, unidad=unidad)
+                detalle.asistentes.set(asistencia_unidades.get(str(unidad.pk), []))
             registro.emergencia = emergencia
             registro.save(update_fields=['emergencia'])
         elif tipo == 'llegada_cuartel':
@@ -417,20 +496,22 @@ def _guardar_registro(form, user):
                 respuesta = item['respuesta']
                 detalle_texto = str(item.get('observacion', '')).strip()
                 if RegistroOperativoForm._es_hallazgo(respuesta):
-                    hallazgos.append(f'{label}: {respuesta}. {detalle_texto}')
+                    hallazgos.append((label, respuesta, detalle_texto))
+            for unidad in unidades:
+                for label, respuesta, detalle_texto in hallazgos:
                     RondaVehiculo.objects.create(
-                        vehiculo=registro.vehiculo,
+                        vehiculo=unidad,
                         registrado_por=registro.maquinista,
                         tipo_hallazgo='Falla',
                         detalle=f'{label}: {respuesta}. {detalle_texto}',
                     )
-            if not hallazgos:
-                RondaVehiculo.objects.create(
-                    vehiculo=registro.vehiculo,
-                    registrado_por=registro.maquinista,
-                    tipo_hallazgo='Sin novedad',
-                    detalle='Ronda preventiva completada sin novedades.',
-                )
+                if not hallazgos:
+                    RondaVehiculo.objects.create(
+                        vehiculo=unidad,
+                        registrado_por=registro.maquinista,
+                        tipo_hallazgo='Sin novedad',
+                        detalle='Ronda preventiva completada sin novedades.',
+                    )
         else:
             inicio = _momento(registro.fecha_inicio, registro.hora_despacho)
             fin = None if tipo == 'combustible_6_14' else _momento(registro.fecha_termino or registro.fecha_inicio, registro.hora_llegada)
@@ -441,16 +522,17 @@ def _guardar_registro(form, user):
                 direccion=registro.estacion_detalle if tipo == 'combustible_6_14' and registro.estacion_servicio == 'otra' else (registro.get_estacion_servicio_display() if tipo == 'combustible_6_14' else registro.direccion),
                 fecha_hora_salida=inicio,
                 fecha_hora_regreso=fin,
-                unidades_involucradas=registro.vehiculo.nombre,
+                unidades_involucradas=', '.join(unidad.nombre for unidad in unidades)[:200],
                 kilometraje_salida=registro.kilometraje_despacho or 0,
                 kilometraje_regreso=registro.kilometraje_llegada,
                 personal_a_cargo=registro.maquinista,
                 descripcion=descripcion,
                 creado_por=user,
             )
-            salida.unidades.set([registro.vehiculo])
-            detalle = SalidaTerrenoUnidad.objects.create(salida=salida, unidad=registro.vehiculo)
-            detalle.asistentes.set(registro.asistentes.all())
+            salida.unidades.set(unidades)
+            for unidad in unidades:
+                detalle = SalidaTerrenoUnidad.objects.create(salida=salida, unidad=unidad)
+                detalle.asistentes.set(asistencia_unidades.get(str(unidad.pk), []))
             registro.salida_terreno = salida
             registro.save(update_fields=['salida_terreno'])
 
@@ -499,7 +581,7 @@ def registro_operativo_view(request):
 
     registros = RegistroOperativo.objects.select_related(
         'vehiculo', 'maquinista', 'creado_por', 'emergencia', 'salida_terreno'
-    ).prefetch_related('asistentes')
+    ).prefetch_related('asistentes', 'unidades')
 
     tipos_emergencia = TIPOS_EMERGENCIA | {'llegada_cuartel'}
     tipos_visibles = []
@@ -519,6 +601,7 @@ def registro_operativo_view(request):
             compania_id = request.user.compania_id
             registros = registros.filter(
                 Q(vehiculo__compania_id=compania_id)
+                | Q(unidades__compania_id=compania_id)
                 | Q(emergencia__unidades_asistencia__unidad__compania_id=compania_id)
                 | Q(salida_terreno__unidades__compania_id=compania_id)
             ).distinct()
@@ -526,6 +609,15 @@ def registro_operativo_view(request):
             registros = registros.none()
 
     registros = registros.order_by('-fecha_inicio', '-creado_en')[:30]
+    unidades_iniciales = request.POST.getlist('unidades') if request.method == 'POST' else []
+    if request.method != 'POST' and request.GET.get('vehiculo'):
+        unidades_iniciales = [request.GET.get('vehiculo')]
+    if request.method == 'POST' and not unidades_iniciales and request.POST.get('vehiculo'):
+        unidades_iniciales = [request.POST.get('vehiculo')]
+    usuarios_asistencia = [
+        {'id': voluntario.pk, 'nombre': voluntario.nombre_operativo}
+        for voluntario in form.fields['asistentes'].queryset
+    ]
     return render(request, 'usuarios/registro_operativo.html', {
         'form': form,
         'registros': registros,
@@ -533,4 +625,6 @@ def registro_operativo_view(request):
         'codigos_por_tipo': RegistroOperativoForm.CODIGOS,
         'puede_registrar_emergencias': puede_registrar_emergencias,
         'puede_registrar_salidas': puede_registrar_salidas,
+        'unidades_iniciales': unidades_iniciales,
+        'usuarios_asistencia': usuarios_asistencia,
     })

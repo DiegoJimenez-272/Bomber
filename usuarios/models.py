@@ -700,6 +700,10 @@ class RegistroOperativo(models.Model):
     salida_terreno = models.ForeignKey('SalidaTerreno', on_delete=models.SET_NULL, null=True, blank=True, related_name='registros_operativos')
     movimiento_caja = models.OneToOneField('CajaChica', on_delete=models.SET_NULL, null=True, blank=True, related_name='registro_operativo')
     asistentes = models.ManyToManyField(settings.AUTH_USER_MODEL, blank=True, related_name='asistencias_registros_operativos')
+    unidades = models.ManyToManyField(
+        'Vehiculo', through='RegistroOperativoUnidad', blank=True,
+        related_name='registros_operativos_asignados',
+    )
     creado_por = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='registros_operativos_creados')
     creado_en = models.DateTimeField(auto_now_add=True)
 
@@ -726,6 +730,21 @@ class RegistroOperativo(models.Model):
 
     def __str__(self):
         return f'{self.get_tipo_display()} — {self.fecha_inicio:%d/%m/%Y}'
+
+
+class RegistroOperativoUnidad(models.Model):
+    registro = models.ForeignKey(RegistroOperativo, on_delete=models.CASCADE, related_name='unidades_asignadas')
+    unidad = models.ForeignKey(Vehiculo, on_delete=models.CASCADE, related_name='detalles_registros_operativos')
+    asistentes = models.ManyToManyField(settings.AUTH_USER_MODEL, blank=True, related_name='asistencias_por_unidad_operativa')
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['registro', 'unidad'], name='unique_unidad_por_registro_operativo'),
+        ]
+        ordering = ['unidad__nombre']
+
+    def __str__(self):
+        return f'{self.unidad.nombre} — {self.registro}'
 
 class Inventario(models.Model):
     ESTADO_CHOICES = [
