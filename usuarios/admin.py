@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import ComandoChatbot, EspecialidadVoluntario, GuiaChatbot
+from .models import ComandoChatbot, EspecialidadVoluntario, FacilitadorCapacitacion, GuiaChatbot
 
 
 @admin.register(EspecialidadVoluntario)
@@ -8,6 +8,14 @@ class EspecialidadVoluntarioAdmin(admin.ModelAdmin):
     list_filter = ('activa',)
     search_fields = ('nombre', 'slug')
     ordering = ('orden', 'nombre')
+
+
+@admin.register(FacilitadorCapacitacion)
+class FacilitadorCapacitacionAdmin(admin.ModelAdmin):
+    list_display = ('nombre', 'tipo', 'activo')
+    list_filter = ('tipo', 'activo')
+    search_fields = ('nombre',)
+    ordering = ('tipo', 'nombre')
 
 
 @admin.register(GuiaChatbot)

@@ -78,9 +78,10 @@
                             {% for error in field.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
                         </div>
                         {% else %}
-                        <div class="col-md-6">
+                        <div class="col-md-6" {% if field.name == 'clave_citacion_curso' or field.name == 'curso_malla' %}data-editar-solo-curso{% if capacitacion.tipo_actividad != 'Curso' %} hidden{% endif %}{% elif field.name == 'facilitador_otro' %}id="facilitadorOtroEdicion"{% if form.facilitador_seleccionado.value != '__otro__' %} hidden{% endif %}{% endif %}>
                             <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
                             {{ field }}
+                            {% if field.name == 'curso_malla' %}<div class="form-text text-secondary">Al vincular un curso oficial, se conserva la relación con la Malla Curricular.</div>{% endif %}
                             {% if field.help_text %}<div class="form-text text-secondary">{{ field.help_text }}</div>{% endif %}
                             {% for error in field.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
                         </div>
@@ -109,6 +110,21 @@ document.addEventListener('DOMContentLoaded', function () {
             audience.hidden = !this.checked;
         });
     }
+    const typeSelect = document.getElementById('{{ form.tipo_actividad.id_for_label }}');
+    const courseFields = document.querySelectorAll('[data-editar-solo-curso]');
+    const facilitatorSelect = document.getElementById('{{ form.facilitador_seleccionado.id_for_label }}');
+    const facilitatorOther = document.getElementById('facilitadorOtroEdicion');
+    function updateCourseFields() {
+        const isCourse = typeSelect && typeSelect.value === 'Curso';
+        courseFields.forEach(function (container) {
+            container.hidden = !isCourse;
+            container.querySelectorAll('select').forEach(function (control) { control.disabled = !isCourse; });
+        });
+        if (facilitatorOther) facilitatorOther.hidden = !facilitatorSelect || facilitatorSelect.value !== '__otro__';
+    }
+    if (typeSelect) typeSelect.addEventListener('change', updateCourseFields);
+    if (facilitatorSelect) facilitatorSelect.addEventListener('change', updateCourseFields);
+    updateCourseFields();
 });
 </script>
 {% endblock %}

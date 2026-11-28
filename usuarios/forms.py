@@ -5,7 +5,7 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import Sum, Case, When, DecimalField, F, Q
 from django.utils import timezone
-from .models import Usuario, Compania, Rol, EspecialidadVoluntario, Proyecto, Documento, Carpeta, SalidaTerreno, SalidaTerrenoUnidad, Emergencia, EmergenciaUnidad, Capacitacion, Mantenimiento, Inventario, CajaChica, Aviso, PasswordResetCode, Vehiculo, RondaVehiculo, LicenciaMedica
+from .models import Usuario, Compania, Rol, EspecialidadVoluntario, Proyecto, Documento, Carpeta, SalidaTerreno, SalidaTerrenoUnidad, Emergencia, EmergenciaUnidad, Capacitacion, CursoMalla, FacilitadorCapacitacion, Mantenimiento, Inventario, CajaChica, Aviso, PasswordResetCode, Vehiculo, RondaVehiculo, LicenciaMedica
 from .validators import validar_rut_chileno, formatear_rut, validar_extension_imagen, validar_extension_archivo
 from .inventory_permissions import puede_gestionar_inventario_global
 
@@ -847,6 +847,14 @@ class ReunionForm(forms.ModelForm):
         return instance
 
 class CapacitacionForm(forms.ModelForm):
+    facilitador_seleccionado = forms.ChoiceField(
+        label='Instructor o entidad externa', required=False,
+        widget=forms.Select(attrs={'class': 'form-select'}),
+    )
+    facilitador_otro = forms.CharField(
+        label='Especifica instructor o entidad', required=False, max_length=150,
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Escribe el nombre'}),
+    )
     enviar_invitacion = forms.BooleanField(
         label="Enviar invitación como notificación",
         required=False,
@@ -866,16 +874,17 @@ class CapacitacionForm(forms.ModelForm):
 
     class Meta:
         model = Capacitacion
-        fields = ['nombre', 'tipo_actividad', 'malla', 'descripcion', 'fecha_inicio', 'fecha_fin', 'lugar', 'instructor', 'cupos', 'companias_invitadas', 'asistentes']
+        fields = ['nombre', 'tipo_actividad', 'clave_citacion_curso', 'malla', 'curso_malla', 'descripcion', 'fecha_inicio', 'fecha_fin', 'lugar', 'cupos', 'companias_invitadas', 'asistentes']
         widgets = {
             'nombre': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej: Curso de Rescate Vehicular Nivel I'}),
             'tipo_actividad': forms.Select(attrs={'class': 'form-select'}),
+            'clave_citacion_curso': forms.Select(attrs={'class': 'form-select'}),
             'malla': forms.Select(attrs={'class': 'form-select'}),
+            'curso_malla': forms.Select(attrs={'class': 'form-select'}),
             'descripcion': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Objetivos, temas a tratar, etc.'}),
             'fecha_inicio': forms.DateTimeInput(format='%Y-%m-%dT%H:%M', attrs={'class': 'form-control', 'type': 'datetime-local'}),
             'fecha_fin': forms.DateTimeInput(format='%Y-%m-%dT%H:%M', attrs={'class': 'form-control', 'type': 'datetime-local'}),
             'lugar': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej: Cuartel General, Campo de entrenamiento'}),
-            'instructor': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Nombre del instructor o entidad'}),
             'cupos': forms.NumberInput(attrs={'class': 'form-control'}),
             'asistentes': forms.CheckboxSelectMultiple(attrs={'class': 'form-check-input'}),
             'companias_invitadas': forms.CheckboxSelectMultiple(attrs={'class': 'form-check-input comp-filter-cb'}),
@@ -890,26 +899,83 @@ class CapacitacionForm(forms.ModelForm):
         self.fields['companias_invitadas'].required = False
         self.fields['fecha_fin'].required = False
         self.fields['cupos'].required = False
+        self.fields['nombre'].required = False
+        self.fields['curso_malla'].queryset = CursoMalla.objects.all().order_by('nivel', 'orden', 'nombre')
+        self.fields['curso_malla'].required = False
+        self.fields['curso_malla'].empty_label = 'No vincular a un curso oficial'
+        self.fields['clave_citacion_curso'].required = False
+        self.fields['clave_citacion_curso'].choices = [('', 'Seleccionar citación o curso')] + Capacitacion.CLAVES_CITACION_CURSO
+        facilitadores = FacilitadorCapacitacion.objects.filter(activo=True)
+        if self.instance.pk and self.instance.facilitador_id:
+            facilitadores = FacilitadorCapacitacion.objects.filter(Q(activo=True) | Q(pk=self.instance.facilitador_id)).distinct()
+        opciones_facilitador = [('', 'Seleccionar instructor o entidad')] + [
+            (str(item.pk), f'{item.nombre} ({item.get_tipo_display()})')
+            for item in facilitadores.order_by('tipo', 'nombre')
+        ] + [('__otro__', 'Otro')]
+        self.fields['facilitador_seleccionado'].choices = opciones_facilitador
+        if self.instance.pk:
+            if self.instance.facilitador_id:
+                self.initial['facilitador_seleccionado'] = str(self.instance.facilitador_id)
+            elif self.instance.instructor and self.instance.instructor != 'No especificado':
+                self.initial['facilitador_seleccionado'] = '__otro__'
+                self.initial['facilitador_otro'] = self.instance.instructor
 
         tipo_actividad = self.data.get('tipo_actividad') if self.is_bound else getattr(self.instance, 'tipo_actividad', 'Curso')
+        if tipo_actividad == 'Curso' and not self.instance.pk:
+            self.fields['clave_citacion_curso'].required = True
         if tipo_actividad == 'Reunión':
-            for field_name in ('malla', 'lugar', 'instructor'):
+            for field_name in ('malla', 'lugar', 'facilitador_seleccionado', 'facilitador_otro'):
                 self.fields[field_name].required = False
 
         # Agregar clases a los radios
         for _, radio in self.fields['audiencia'].choices:
-            pass # Radios se manejan en la plantilla
-
+            pass  # Radios se manejan en la plantilla
         for field_name, field in self.fields.items():
             if self.errors.get(field_name):
-                field.widget.attrs['class'] += ' is-invalid'
+                field.widget.attrs['class'] = f"{field.widget.attrs.get('class', '')} is-invalid".strip()
+
+    def clean(self):
+        cleaned_data = super().clean()
+        tipo_actividad = cleaned_data.get('tipo_actividad')
+        seleccionado = cleaned_data.get('facilitador_seleccionado')
+        otro = (cleaned_data.get('facilitador_otro') or '').strip()
+        if tipo_actividad == 'Curso' and not seleccionado:
+            self.add_error('facilitador_seleccionado', 'Selecciona un instructor o entidad, o elige “Otro”.')
+        if not cleaned_data.get('nombre'):
+            curso_oficial = cleaned_data.get('curso_malla')
+            if tipo_actividad == 'Curso' and curso_oficial:
+                cleaned_data['nombre'] = curso_oficial.nombre
+            else:
+                self.add_error('nombre', 'Ingresa el nombre de la actividad.')
+        if seleccionado == '__otro__' and tipo_actividad != 'Reunión' and not otro:
+            self.add_error('facilitador_otro', 'Escribe el nombre del instructor o entidad externa.')
+        if tipo_actividad != 'Curso' and cleaned_data.get('curso_malla'):
+            self.add_error('curso_malla', 'Solo puedes vincular un curso oficial cuando el tipo es “Curso”.')
+        return cleaned_data
 
     def save(self, commit=True):
         instance = super().save(commit=False)
+        facilitador_seleccionado = self.cleaned_data.get('facilitador_seleccionado')
+        if facilitador_seleccionado == '__otro__':
+            instance.facilitador = None
+            instance.instructor = (self.cleaned_data.get('facilitador_otro') or '').strip() or 'No especificado'
+        elif facilitador_seleccionado:
+            instance.facilitador = FacilitadorCapacitacion.objects.get(pk=facilitador_seleccionado)
+            instance.instructor = instance.facilitador.nombre
+        elif instance.tipo_actividad != 'Reunión':
+            instance.facilitador = None
+            instance.instructor = 'No especificado'
+        if instance.curso_malla_id and instance.tipo_actividad == 'Curso':
+            instance.malla = instance.curso_malla.nivel
+            if not instance.nombre.strip():
+                instance.nombre = instance.curso_malla.nombre
+        else:
+            instance.curso_malla = None
         if instance.tipo_actividad == 'Reunión':
             instance.malla = 'Otros'
             instance.lugar = 'No especificado'
             instance.instructor = 'No especificado'
+            instance.facilitador = None
             instance.fecha_fin = None
             instance.cupos = None
         if commit:

@@ -121,7 +121,8 @@
                                 </div>
                                 <div>
                                     <h5 class="card-title mb-1">{{ cap.nombre }}</h5>
-                                    <p class="mb-1"><span class="badge bg-primary">{{ cap.malla }}</span></p>
+                                    <p class="mb-1"><span class="badge bg-primary">{{ cap.malla }}</span>{% if cap.clave_citacion_curso %} <span class="badge bg-danger">{{ cap.clave_citacion_curso }}</span>{% endif %}</p>
+                                    {% if cap.curso_malla %}<div class="small text-muted mb-1">Malla oficial: {{ cap.curso_malla.nombre }}</div>{% endif %}
                                     <p class="card-text text-muted small">
                                         <i class="bi bi-person-fill me-1"></i> Creado por: {{ cap.creado_por.get_full_name|default:"Sistema" }}
                                     </p>
@@ -789,14 +790,27 @@
                             {% for error in form.nombre.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
                         </div>
                         <div class="col-md-3">
-                            <label for="{{ form.tipo_actividad.id_for_label }}" class="form-label">Tipo</label>
+                            <label for="{{ form.tipo_actividad.id_for_label }}" class="form-label">Tipo de actividad</label>
                             {{ form.tipo_actividad }}
                             {% for error in form.tipo_actividad.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
                         </div>
-                        <div class="col-md-3" data-create-activity-field="malla">
+                        <div class="col-md-3" data-create-activity-field="clave_citacion">
+                            <label for="{{ form.clave_citacion_curso.id_for_label }}" class="form-label">Citación o curso</label>
+                            {{ form.clave_citacion_curso }}
+                            {% for error in form.clave_citacion_curso.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                        </div>
+                    </div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6" data-create-activity-field="malla">
                             <label for="{{ form.malla.id_for_label }}" class="form-label">Malla / Nivel</label>
                             {{ form.malla }}
                             {% for error in form.malla.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                        </div>
+                        <div class="col-md-6" data-create-activity-field="curso_malla">
+                            <label for="{{ form.curso_malla.id_for_label }}" class="form-label">Curso oficial de la Malla Curricular</label>
+                            {{ form.curso_malla }}
+                            <div class="form-text">Vincula este registro a un curso oficial para mantener la formación relacionada.</div>
+                            {% for error in form.curso_malla.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
                         </div>
                     </div>
                     <div class="mb-3">
@@ -828,10 +842,17 @@
                             {% for error in form.cupos.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
                         </div>
                     </div>
-                    <div class="mb-3" data-create-activity-field="instructor">
-                        <label for="{{ form.instructor.id_for_label }}" class="form-label">Instructor o Entidad</label>
-                        {{ form.instructor }}
-                        {% for error in form.instructor.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                    <div class="row g-3 mb-3" data-create-activity-field="instructor">
+                        <div class="col-md-6">
+                            <label for="{{ form.facilitador_seleccionado.id_for_label }}" class="form-label">Instructor o entidad externa</label>
+                            {{ form.facilitador_seleccionado }}
+                            {% for error in form.facilitador_seleccionado.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                        </div>
+                        <div class="col-md-6" data-create-activity-field="facilitador_otro" hidden>
+                            <label for="{{ form.facilitador_otro.id_for_label }}" class="form-label">Especifica “Otro”</label>
+                            {{ form.facilitador_otro }}
+                            {% for error in form.facilitador_otro.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                        </div>
                     </div>
                     <div class="mb-3 border rounded p-3 bg-body-tertiary shadow-sm">
                         <label class="form-label fw-bold" id="companySelectionLabel">Compañías participantes</label>
@@ -918,8 +939,8 @@
                             <label for="edit_nombre" class="form-label">Nombre de la Actividad</label>
                             <input type="text" id="edit_nombre" name="nombre" class="form-control">
                         </div>
-                        <div class="col-md-3">
-                            <label for="edit_tipo_actividad" class="form-label">Tipo</label>
+                                <div class="col-md-3">
+                            <label for="edit_tipo_actividad" class="form-label">Tipo de actividad</label>
                             <select id="edit_tipo_actividad" name="tipo_actividad" class="form-select">
                                 {% for choice in form.tipo_actividad.field.choices %}
                                     <option value="{{ choice.0 }}">{{ choice.1 }}</option>
@@ -927,11 +948,26 @@
                             </select>
                         </div>
                         <div class="col-md-3">
+                            <label for="edit_clave_citacion_curso" class="form-label">Citación o curso</label>
+                            <select id="edit_clave_citacion_curso" name="clave_citacion_curso" class="form-select">
+                                {% for choice in form.clave_citacion_curso.field.choices %}<option value="{{ choice.0 }}">{{ choice.1 }}</option>{% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
                             <label for="edit_malla" class="form-label">Malla / Nivel</label>
                             <select id="edit_malla" name="malla" class="form-select">
                                 {% for choice in form.malla.field.choices %}
                                     <option value="{{ choice.0 }}">{{ choice.1 }}</option>
                                 {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="edit_curso_malla" class="form-label">Curso oficial de la Malla Curricular</label>
+                            <select id="edit_curso_malla" name="curso_malla" class="form-select">
+                                <option value="">No vincular a un curso oficial</option>
+                                {% for curso in cursos_malla %}<option value="{{ curso.pk }}">{{ curso.nombre }} — {{ curso.nivel }}</option>{% endfor %}
                             </select>
                         </div>
                     </div>
@@ -959,9 +995,19 @@
                             <input type="number" id="edit_cupos" name="cupos" class="form-control">
                         </div>
                     </div>
-                    <div class="mb-3">
-                        <label for="edit_instructor" class="form-label">Instructor o Entidad</label>
-                        <input type="text" id="edit_instructor" name="instructor" class="form-control">
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label for="edit_facilitador_seleccionado" class="form-label">Instructor o entidad externa</label>
+                            <select id="edit_facilitador_seleccionado" name="facilitador_seleccionado" class="form-select">
+                                <option value="">Seleccionar instructor o entidad</option>
+                                {% for item in facilitadores %}<option value="{{ item.pk }}">{{ item.nombre }} ({{ item.get_tipo_display }})</option>{% endfor %}
+                                <option value="__otro__">Otro</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6" id="editFacilitadorOtroContainer" hidden>
+                            <label for="edit_facilitador_otro" class="form-label">Especifica “Otro”</label>
+                            <input type="text" id="edit_facilitador_otro" name="facilitador_otro" maxlength="150" class="form-control">
+                        </div>
                     </div>
                     <div class="mb-3 border rounded p-3 bg-body-tertiary shadow-sm">
                         <label class="form-label fw-bold">Compañías Invitadas</label>
@@ -1309,6 +1355,9 @@ document.addEventListener('DOMContentLoaded', function () {
     const createModal = document.getElementById('createCapacitacionModal');
     if (createModal) {
         const typeSelect = createModal.querySelector('#id_tipo_actividad');
+        const officialCourseSelect = createModal.querySelector('#id_curso_malla');
+        const facilitatorSelect = createModal.querySelector('#id_facilitador_seleccionado');
+        const facilitatorOther = createModal.querySelector('[data-create-activity-field="facilitador_otro"]');
         const modalTitle = createModal.querySelector('#createCapacitacionModalLabel');
         const submitButton = createModal.querySelector('button[type="submit"]');
         const invitationCheckbox = createModal.querySelector('#{{ form.enviar_invitacion.id_for_label }}');
@@ -1319,9 +1368,17 @@ document.addEventListener('DOMContentLoaded', function () {
 
         function updateCreateActivityFields() {
             const isMeeting = typeSelect && typeSelect.value === 'Reunión';
+            const isCourse = typeSelect && typeSelect.value === 'Curso';
             ['notifications', 'malla', 'fecha_fin', 'lugar', 'cupos', 'instructor'].forEach(function(fieldName) {
                 const field = createModal.querySelector('[data-create-activity-field="' + fieldName + '"]');
                 if (field) field.hidden = isMeeting;
+            });
+            ['clave_citacion', 'curso_malla'].forEach(function(fieldName) {
+                const field = createModal.querySelector('[data-create-activity-field="' + fieldName + '"]');
+                if (field) {
+                    field.hidden = !isCourse;
+                    field.querySelectorAll('select').forEach(control => { control.disabled = !isCourse; });
+                }
             });
 
             // Estos campos son obligatorios para cursos, pero no forman parte
@@ -1347,9 +1404,20 @@ document.addEventListener('DOMContentLoaded', function () {
             if (attendeeLabel) attendeeLabel.textContent = isMeeting ? 'Selección de asistentes' : 'Selección de participantes';
             if (modalTitle) modalTitle.textContent = isMeeting ? 'Registrar Nueva Reunión' : 'Registrar Nueva Actividad';
             if (submitButton) submitButton.textContent = isMeeting ? 'Guardar Reunión' : 'Guardar Actividad';
+            if (facilitatorOther) facilitatorOther.hidden = !facilitatorSelect || facilitatorSelect.value !== '__otro__' || isMeeting;
         }
 
         if (typeSelect) typeSelect.addEventListener('change', updateCreateActivityFields);
+        if (facilitatorSelect) facilitatorSelect.addEventListener('change', updateCreateActivityFields);
+        const nameField = createModal.querySelector('#id_nombre');
+        if (officialCourseSelect && nameField) {
+            officialCourseSelect.addEventListener('change', function () {
+                if (!this.value) return;
+                nameField.value = this.options[this.selectedIndex].text.split(' — ')[0];
+                nameField.dataset.fromMalla = 'true';
+            });
+            nameField.addEventListener('input', function () { this.dataset.fromMalla = 'false'; });
+        }
         createModal.addEventListener('show.bs.modal', updateCreateActivityFields);
         updateCreateActivityFields();
 

@@ -440,13 +440,35 @@ class EmergenciaUnidad(models.Model):
     def __str__(self):
         return f"{self.unidad.nombre} - {self.emergencia.get_tipo_display()}"
 
+class FacilitadorCapacitacion(models.Model):
+    TIPO_CHOICES = [
+        ('instructor', 'Instructor'),
+        ('entidad_externa', 'Entidad externa'),
+        ('sin_clasificar', 'Referencia histórica por clasificar'),
+    ]
+
+    nombre = models.CharField(max_length=150, unique=True)
+    tipo = models.CharField(max_length=24, choices=TIPO_CHOICES, default='instructor')
+    activo = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ['tipo', 'nombre']
+        verbose_name = 'Instructor o entidad externa'
+        verbose_name_plural = 'Instructores y entidades externas'
+
+    def __str__(self):
+        return f'{self.nombre} — {self.get_tipo_display()}'
+
+
 class Capacitacion(models.Model):
+    CLAVES_CITACION_CURSO = [(f'10-{numero}', f'10-{numero}') for numero in range(20, 31)]
     MALLA_CHOICES = [
         ('Nivel postulante', 'Nivel postulante'),
         ('Nivel inicial', 'Nivel inicial'),
         ('Nivel operativo', 'Nivel operativo'),
         ('Nivel profesional', 'Nivel profesional'),
         ('Nivel especialidad', 'Nivel especialidad'),
+        ('Cursos complementarios', 'Cursos complementarios'),
         ('Otros', 'Otros'),
     ]
     
@@ -461,13 +483,25 @@ class Capacitacion(models.Model):
     ]
 
     nombre = models.CharField(max_length=200)
+    clave_citacion_curso = models.CharField(
+        max_length=5, choices=CLAVES_CITACION_CURSO, blank=True, default='',
+        verbose_name='Citación o curso',
+    )
     tipo_actividad = models.CharField(max_length=50, choices=TIPO_ACTIVIDAD_CHOICES, default='Curso', verbose_name='Tipo de Actividad')
     malla = models.CharField(max_length=50, choices=MALLA_CHOICES, default='Otros', verbose_name='Malla/Curso')
+    curso_malla = models.ForeignKey(
+        'CursoMalla', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='capacitaciones_registradas', verbose_name='Curso oficial de la Malla Curricular',
+    )
     descripcion = models.TextField()
     fecha_inicio = models.DateTimeField()
     fecha_fin = models.DateTimeField(null=True, blank=True)
     lugar = models.CharField(max_length=255)
     instructor = models.CharField(max_length=150)
+    facilitador = models.ForeignKey(
+        FacilitadorCapacitacion, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='capacitaciones', verbose_name='Instructor o entidad externa',
+    )
     cupos = models.PositiveIntegerField(null=True, blank=True, help_text="Dejar en blanco si no hay límite")
     asistentes = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name='capacitaciones_asistidas', blank=True)
     companias_invitadas = models.ManyToManyField(Compania, related_name='capacitaciones_invitadas', blank=True)

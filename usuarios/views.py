@@ -31,7 +31,7 @@ from reportlab.lib.pagesizes import letter
 import openpyxl
 from reportlab.lib.units import inch
 from .forms import RegistroForm, LoginForm, ProyectoForm, ArchivoProyectoForm, DocumentoForm, CarpetaForm, SalidaTerrenoForm, EmergenciaForm, PerfilForm, PasswordChangeForm, CapacitacionForm, ReunionForm, MantenimientoForm, ArchivoMantenimientoForm, InventarioForm, DevolucionInventarioForm, CajaChicaForm, AdminUserCreationForm, AdminUserChangeForm, RolForm, CompaniaForm, InventarioEditForm, InventarioGroupEditForm, AvisoForm, ReporteErrorForm, PasswordResetRequestForm, PasswordResetVerifyForm, PasswordResetNewPasswordForm, VehiculoForm, VehiculoHojaVidaForm, VehiculoDocumentacionForm, RondaVehiculoForm, LicenciaMedicaForm
-from .models import Rol, Compania, Proyecto, ArchivoProyecto, Documento, Carpeta, SalidaTerreno, SalidaTerrenoUnidad, Emergencia, EmergenciaUnidad, Usuario, Capacitacion, CursoMalla, Mantenimiento, ArchivoMantenimiento, Inventario, DevolucionInventario, DevolucionInventarioFoto, CajaChica, CuotaVoluntario, Notificacion, Aviso, AvisoDestinatario, ReporteError, PasswordResetCode, RegistroPendiente, Vehiculo, RondaVehiculo, LicenciaMedica
+from .models import Rol, Compania, Proyecto, ArchivoProyecto, Documento, Carpeta, SalidaTerreno, SalidaTerrenoUnidad, Emergencia, EmergenciaUnidad, Usuario, Capacitacion, CursoMalla, FacilitadorCapacitacion, Mantenimiento, ArchivoMantenimiento, Inventario, DevolucionInventario, DevolucionInventarioFoto, CajaChica, CuotaVoluntario, Notificacion, Aviso, AvisoDestinatario, ReporteError, PasswordResetCode, RegistroPendiente, Vehiculo, RondaVehiculo, LicenciaMedica
 from .decorators import admin_required, permiso_requerido, pertenencia_compania
 from .inventory_permissions import (
     puede_acceder_inventario_compania,
@@ -1047,7 +1047,7 @@ def generar_reporte_anual_pdf(request):
     # 7. Cursos
     if 'cursos' in modulos:
         story.append(Paragraph("Resumen de Cursos", styles['HeaderStyle']))
-        capacitaciones = Capacitacion.objects.all()
+        capacitaciones = Capacitacion.objects.select_related('curso_malla', 'facilitador').all()
         cursos_data = [['Nombre', 'Lugar', 'Fecha Inicio', 'Asistentes']]
         for c in capacitaciones:
             cursos_data.append([c.nombre, c.lugar, c.fecha_inicio.strftime('%d/%m/%Y'), str(c.asistentes.count())])
@@ -3098,7 +3098,7 @@ def capacitaciones_view(request):
                 Q(creado_por=request.user) | Q(asistentes=request.user)
             ).distinct()
 
-    capacitaciones = capacitaciones.prefetch_related(
+    capacitaciones = capacitaciones.select_related('curso_malla', 'facilitador').prefetch_related(
         Prefetch(
             'asistentes',
             queryset=Usuario.objects.filter(compania__isnull=False).select_related('compania'),
@@ -3220,6 +3220,8 @@ def capacitaciones_view(request):
         'actividades_internas': actividades_internas,
         'reuniones': reuniones,
         'companias': companias,
+        'cursos_malla': CursoMalla.objects.all().order_by('nivel', 'orden', 'nombre'),
+        'facilitadores': FacilitadorCapacitacion.objects.filter(activo=True).order_by('tipo', 'nombre'),
         'usuarios_companias_json': json.dumps(usuarios_companias),
         'lista_abono': lista_abono,
         'fecha_inicio_filtro': fecha_inicio_filtro,
@@ -3282,6 +3284,8 @@ def capacitacion_edit_view(request, capacitacion_id):
     return render(request, 'usuarios/capacitacion_editar.html', {
         'form': form,
         'capacitacion': capacitacion,
+        'cursos_malla': CursoMalla.objects.all().order_by('nivel', 'orden', 'nombre'),
+        'facilitadores': FacilitadorCapacitacion.objects.filter(activo=True).order_by('tipo', 'nombre'),
     })
 
 @login_required
