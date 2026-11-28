@@ -87,7 +87,7 @@
                     <label for="usuario" class="form-label">Personal a Cargo</label>
                     <select name="usuario" id="salidaUserFilter" class="form-select" onchange="this.form.submit()">
                         <option value="">Todos</option>
-                        {% for user in usuarios_con_salidas %}<option value="{{ user.id }}" {% if request.GET.usuario == user.id|stringformat:"s" %}selected{% endif %}>{{ user.get_full_name }}</option>{% endfor %}
+                        {% for user in usuarios_con_salidas %}<option value="{{ user.id }}" {% if request.GET.usuario == user.id|stringformat:"s" %}selected{% endif %}>{{ user.nombre_operativo }}</option>{% endfor %}
                     </select>
                 </div>
                 <div class="col-lg-2">
@@ -147,13 +147,13 @@
                                     {{ salida.kilometros_recorridos }} km
                                 {% else %} - {% endif %}
                             </td>
-                            <td>{{ salida.personal_a_cargo.get_full_name|default:"N/A" }}</td>
+                            <td>{{ salida.personal_a_cargo.nombre_operativo|default:"N/A" }}</td>
                             <td>
                                 {% for detalle in salida.detalles_asistencia %}
                                     <div class="mb-1">
                                         <strong>{{ detalle.unidad.nombre }}:</strong>
                                         {% for usuario in detalle.asistentes_visibles %}
-                                            {{ usuario.get_full_name }}{% if not forloop.last %}, {% endif %}
+                                            {{ usuario.nombre_operativo }}{% if not forloop.last %}, {% endif %}
                                         {% empty %}
                                             <span class="text-muted">Sin asistencia marcada</span>
                                         {% endfor %}
@@ -206,7 +206,7 @@
             </div>
             <div class="salidas-mobile-list d-md-none" id="salidasMobileList">
                 {% for salida in salidas %}
-                <article class="card salida-mobile-card mb-3" data-responsable="{{ salida.personal_a_cargo.get_full_name|default:'N/A'|lower }}">
+                <article class="card salida-mobile-card mb-3" data-responsable="{{ salida.personal_a_cargo.nombre_operativo|default:'N/A'|lower }}">
                     <div class="card-body p-3">
                         <div class="d-flex align-items-start justify-content-between gap-2 mb-2">
                             <div class="min-w-0">
@@ -233,7 +233,7 @@
                             </div>
                             <div class="col-6">
                                 <div class="salida-mobile-label">A cargo</div>
-                                <div class="small fw-semibold">{{ salida.personal_a_cargo.get_full_name|default:"N/A" }}</div>
+                                <div class="small fw-semibold">{{ salida.personal_a_cargo.nombre_operativo|default:"N/A" }}</div>
                             </div>
                         </div>
 
@@ -253,7 +253,7 @@
                             <div class="small mt-2">
                                 {% for detalle in salida.detalles_asistencia %}
                                     <div class="mb-2"><strong>{{ detalle.unidad.nombre }}:</strong>
-                                        {% for usuario in detalle.asistentes_visibles %}{{ usuario.get_full_name }}{% if not forloop.last %}, {% endif %}{% empty %}<span class="text-muted">Sin asistencia marcada</span>{% endfor %}
+                                        {% for usuario in detalle.asistentes_visibles %}{{ usuario.nombre_operativo }}{% if not forloop.last %}, {% endif %}{% empty %}<span class="text-muted">Sin asistencia marcada</span>{% endfor %}
                                     </div>
                                 {% empty %}
                                     <span class="text-muted">Sin detalle de asistencia registrado.</span>

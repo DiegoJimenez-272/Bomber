@@ -44,6 +44,17 @@ import logging
 logger = logging.getLogger('usuarios')
 
 
+def _ordenar_voluntarios(voluntarios):
+    return sorted(
+        voluntarios,
+        key=lambda usuario: (
+            (usuario.apellido or '').casefold(),
+            (usuario.nombre or '').casefold(),
+            (usuario.clave_radial or '').casefold(),
+        ),
+    )
+
+
 def redirect_to_previous_page(request, fallback):
     """Return to the same local screen after a form action, or use its module fallback."""
     previous_page = request.META.get('HTTP_REFERER', '')
@@ -2566,7 +2577,7 @@ def salidas_terreno_view(request):
             'disabled': not salidas_page.has_next(), 'aria_label': 'Página siguiente',
         })
 
-    usuarios_con_salidas = Usuario.objects.filter(compania__isnull=False, salidas_a_cargo__isnull=False).distinct().order_by('nombre')
+    usuarios_con_salidas = Usuario.objects.filter(compania__isnull=False, salidas_a_cargo__isnull=False).distinct().order_by('apellido', 'nombre')
     motivos_unicos = SalidaTerreno.objects.values_list('motivo', flat=True).distinct().order_by('motivo')
     unidades_seleccionadas = form['unidades'].value() or []
     unidades_seleccionadas = [str(getattr(unidad, 'pk', unidad)) for unidad in unidades_seleccionadas]
@@ -2575,12 +2586,12 @@ def salidas_terreno_view(request):
         salida.detalles_asistencia = detalles_asistencia
         asistencia_visible = {}
         for detalle in detalles_asistencia:
-            detalle.asistentes_visibles = [usuario for usuario in detalle.asistentes.all() if usuario.compania_id]
+            detalle.asistentes_visibles = _ordenar_voluntarios(usuario for usuario in detalle.asistentes.all() if usuario.compania_id)
             asistencia_visible[str(detalle.unidad_id)] = [usuario.pk for usuario in detalle.asistentes_visibles]
         salida.asistencia_unidades_json = json.dumps(asistencia_visible)
     usuarios_asistencia = [
-        {'id': usuario.pk, 'nombre': usuario.get_full_name()}
-        for usuario in Usuario.objects.miembros_activos().only('id', 'nombre', 'apellido').order_by('nombre', 'apellido')
+        {'id': usuario.pk, 'nombre': usuario.nombre_operativo}
+        for usuario in Usuario.objects.miembros_activos().only('id', 'nombre', 'apellido', 'clave_radial').order_by('apellido', 'nombre')
     ]
     
     context = {
@@ -2758,7 +2769,7 @@ def emergencias_view(request):
     usuarios_con_emergencias = Usuario.objects.filter(
         Q(compania__isnull=False, emergencias_a_cargo__isnull=False) |
         Q(compania__isnull=False, salidas_a_cargo__isnull=False)
-    ).distinct().order_by('nombre')
+    ).distinct().order_by('apellido', 'nombre')
 
     unidades_disponibles = list(form.fields['unidades'].queryset)
     unidades_por_nombre = {}
@@ -2769,11 +2780,11 @@ def emergencias_view(request):
     for emergencia in emergencias:
         # Asistentes guardados antes de la asistencia por unidad quedan como
         # asistencia histórica sin carro asignado.
-        emergencia.asistencia_anterior = [usuario for usuario in emergencia.asistentes.all() if usuario.compania_id]
+        emergencia.asistencia_anterior = _ordenar_voluntarios(usuario for usuario in emergencia.asistentes.all() if usuario.compania_id)
         detalles = list(emergencia.unidades_asistencia.all())
         emergencia.detalles_unidades = detalles
         for detalle in detalles:
-            detalle.asistentes_visibles = [usuario for usuario in detalle.asistentes.all() if usuario.compania_id]
+            detalle.asistentes_visibles = _ordenar_voluntarios(usuario for usuario in detalle.asistentes.all() if usuario.compania_id)
         asistencia = {
             str(detalle.unidad_id): [usuario.pk for usuario in detalle.asistentes_visibles]
             for detalle in detalles
@@ -2796,7 +2807,7 @@ def emergencias_view(request):
     for salida in salidas:
         salida.detalles_asistencia = list(salida.asistencias_unidades.all())
         for detalle in salida.detalles_asistencia:
-            detalle.asistentes_visibles = [usuario for usuario in detalle.asistentes.all() if usuario.compania_id]
+            detalle.asistentes_visibles = _ordenar_voluntarios(usuario for usuario in detalle.asistentes.all() if usuario.compania_id)
 
     if ordenar_salidas not in {'-fecha_hora_salida', 'fecha_hora_salida'}:
         ordenar_salidas = '-fecha_hora_salida'
@@ -2807,8 +2818,8 @@ def emergencias_view(request):
     salida_unidades_seleccionadas = salida_form['unidades'].value() or []
     salida_unidades_seleccionadas = [str(getattr(unidad, 'pk', unidad)) for unidad in salida_unidades_seleccionadas]
     usuarios_asistencia = [
-        {'id': usuario.pk, 'nombre': usuario.get_full_name()}
-        for usuario in Usuario.objects.miembros_activos().only('id', 'nombre', 'apellido').order_by('nombre', 'apellido')
+        {'id': usuario.pk, 'nombre': usuario.nombre_operativo}
+        for usuario in Usuario.objects.miembros_activos().only('id', 'nombre', 'apellido', 'clave_radial').order_by('apellido', 'nombre')
     ]
 
     context = {
@@ -2971,12 +2982,12 @@ def malla_curricular_view(request):
         return redirect_to_previous_page(request, reverse('malla_curricular'))
 
     usuarios = list(
-        Usuario.objects.all().select_related('compania').order_by('nombre', 'apellido')
+        Usuario.objects.all().select_related('compania').order_by('apellido', 'nombre')
     ) if puede_editar else []
     usuarios_json = [
         {
             'id': usuario.id,
-            'nombre': usuario.get_full_name(),
+            'nombre': usuario.nombre_operativo,
             'compania': usuario.compania.nombre if usuario.compania else 'Sin compañía',
         }
         for usuario in usuarios
@@ -2995,7 +3006,7 @@ def malla_curricular_view(request):
             CursoMalla.objects.filter(nivel=nombre)
             .prefetch_related(Prefetch(
                 'usuarios',
-                queryset=Usuario.objects.select_related('compania').order_by('nombre', 'apellido'),
+                queryset=Usuario.objects.select_related('compania').order_by('apellido', 'nombre'),
             ))
             .order_by('orden', 'nombre')
         )

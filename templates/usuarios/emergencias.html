@@ -68,7 +68,7 @@
                 <div class="col-lg-2"><label for="em_tipo" class="form-label">Tipo de emergencia</label><select name="em_tipo" id="em_tipo" class="form-select"><option value="">Todos</option>{% for value, text in form.fields.tipo.choices %}<option value="{{ value }}" {% if request.GET.em_tipo == value %}selected{% endif %}>{{ text }}</option>{% endfor %}</select></div>
                 <div class="col-lg-2"><label for="em_fecha_inicio" class="form-label">Desde</label><input type="date" name="em_fecha_inicio" id="em_fecha_inicio" class="form-control" value="{{ request.GET.em_fecha_inicio }}"></div>
                 <div class="col-lg-2"><label for="em_fecha_fin" class="form-label">Hasta</label><input type="date" name="em_fecha_fin" id="em_fecha_fin" class="form-control" value="{{ request.GET.em_fecha_fin }}"></div>
-                <div class="col-lg-2"><label for="em_usuario" class="form-label">Oficial a cargo</label><select name="em_usuario" id="em_usuario" class="form-select"><option value="">Todos</option>{% for user in usuarios_con_emergencias %}<option value="{{ user.id }}" {% if request.GET.em_usuario == user.id|stringformat:"s" %}selected{% endif %}>{{ user.get_full_name }}</option>{% endfor %}</select></div>
+                <div class="col-lg-2"><label for="em_usuario" class="form-label">Oficial a cargo</label><select name="em_usuario" id="em_usuario" class="form-select"><option value="">Todos</option>{% for user in usuarios_con_emergencias %}<option value="{{ user.id }}" {% if request.GET.em_usuario == user.id|stringformat:"s" %}selected{% endif %}>{{ user.nombre_operativo }}</option>{% endfor %}</select></div>
                 {% if request.user.es_programador %}<div class="col-lg-2"><label for="nombre_personal" class="form-label">Buscar participante</label><input type="search" name="nombre_personal" id="nombre_personal" class="form-control" value="{{ nombre_personal_filtro }}" placeholder="Nombre o apellido"></div>{% endif %}
                 <div class="col-lg-2"><label for="em_ordenar_por" class="form-label">Ordenar por</label><select name="em_ordenar_por" id="em_ordenar_por" class="form-select"><option value="-fecha_hora_alarma" {% if request.GET.em_ordenar_por == '-fecha_hora_alarma' or not request.GET.em_ordenar_por %}selected{% endif %}>Más nuevas</option><option value="fecha_hora_alarma" {% if request.GET.em_ordenar_por == 'fecha_hora_alarma' %}selected{% endif %}>Más antiguas</option></select></div>
             </form>
@@ -79,7 +79,7 @@
                 <div class="col-lg-3"><label for="sal_q" class="form-label">Buscar motivo, dirección o carro</label><input type="search" name="sal_q" id="sal_q" class="form-control" value="{{ request.GET.sal_q|default:'' }}"></div>
                 <div class="col-lg-2"><label for="sal_fecha_inicio" class="form-label">Desde</label><input type="date" name="sal_fecha_inicio" id="sal_fecha_inicio" class="form-control" value="{{ request.GET.sal_fecha_inicio }}"></div>
                 <div class="col-lg-2"><label for="sal_fecha_fin" class="form-label">Hasta</label><input type="date" name="sal_fecha_fin" id="sal_fecha_fin" class="form-control" value="{{ request.GET.sal_fecha_fin }}"></div>
-                <div class="col-lg-3"><label for="sal_usuario" class="form-label">Personal a cargo</label><select name="sal_usuario" id="sal_usuario" class="form-select"><option value="">Todos</option>{% for user in usuarios_con_emergencias %}<option value="{{ user.id }}" {% if request.GET.sal_usuario == user.id|stringformat:"s" %}selected{% endif %}>{{ user.get_full_name }}</option>{% endfor %}</select></div>
+                <div class="col-lg-3"><label for="sal_usuario" class="form-label">Personal a cargo</label><select name="sal_usuario" id="sal_usuario" class="form-select"><option value="">Todos</option>{% for user in usuarios_con_emergencias %}<option value="{{ user.id }}" {% if request.GET.sal_usuario == user.id|stringformat:"s" %}selected{% endif %}>{{ user.nombre_operativo }}</option>{% endfor %}</select></div>
                 <div class="col-lg-2"><label for="sal_ordenar_por" class="form-label">Ordenar por</label><select name="sal_ordenar_por" id="sal_ordenar_por" class="form-select"><option value="-fecha_hora_salida" {% if request.GET.sal_ordenar_por == '-fecha_hora_salida' or not request.GET.sal_ordenar_por %}selected{% endif %}>Más nuevas</option><option value="fecha_hora_salida" {% if request.GET.sal_ordenar_por == 'fecha_hora_salida' %}selected{% endif %}>Más antiguas</option></select></div>
             </form>
             {% endif %}
@@ -124,7 +124,7 @@
                                         <summary>Asistencia anterior (sin unidad) · {{ emergencia.asistencia_anterior|length }} personas</summary>
                                         <div class="em-attendance-names">
                                             {% for usuario in emergencia.asistencia_anterior %}
-                                                {{ usuario.get_full_name }}{% if not forloop.last %}, {% endif %}
+                                                {{ usuario.nombre_operativo }}{% if not forloop.last %}, {% endif %}
                                             {% endfor %}
                                         </div>
                                     </details>
@@ -137,7 +137,7 @@
                                                 <summary>{{ detalle.unidad.nombre }} · {{ asistentes_unidad|length }} asistentes</summary>
                                                 <div class="em-attendance-names">
                                                     {% for usuario in asistentes_unidad %}
-                                                        {{ usuario.get_full_name }}{% if not forloop.last %}, {% endif %}
+                                                        {{ usuario.nombre_operativo }}{% if not forloop.last %}, {% endif %}
                                                     {% endfor %}
                                                 </div>
                                             </details>
@@ -155,7 +155,7 @@
                                     {% endfor %}
                                 {% endfor %}
                             </td>
-                            <td>{{ emergencia.oficial_a_cargo.get_full_name|default:"N/A" }}</td>
+                            <td>{{ emergencia.oficial_a_cargo.nombre_operativo|default:"N/A" }}</td>
                             <td>
                                 {% if emergencia.estado == 'Activa' %}
                                     <span class="badge bg-danger">{{ emergencia.estado }}</span>
@@ -212,7 +212,7 @@
             </div>
             <div class="emergencias-mobile-list d-md-none" id="emergenciasMobileList">
                 {% for emergencia in emergencias %}
-                <article class="card emergencia-mobile-card mb-3 {% if not emergencia.registro_completado %}border-warning{% endif %}" data-oficial="{{ emergencia.oficial_a_cargo.get_full_name|default:'N/A'|lower }}">
+                <article class="card emergencia-mobile-card mb-3 {% if not emergencia.registro_completado %}border-warning{% endif %}" data-oficial="{{ emergencia.oficial_a_cargo.nombre_operativo|default:'N/A'|lower }}">
                     <div class="card-body p-3">
                         <div class="d-flex align-items-start justify-content-between gap-2">
                             <div class="min-w-0">
@@ -228,16 +228,16 @@
                         </div>
                         <div class="row g-2 mt-2 pt-2 border-top">
                             <div class="col-6"><div class="em-mobile-label">Fecha y hora</div><div class="small fw-semibold">{{ emergencia.fecha_hora_alarma|date:"d/m/Y H:i"|default:"No registrada" }}</div></div>
-                            <div class="col-6"><div class="em-mobile-label">Oficial a cargo</div><div class="small fw-semibold">{{ emergencia.oficial_a_cargo.get_full_name|default:"N/A" }}</div></div>
+                            <div class="col-6"><div class="em-mobile-label">Oficial a cargo</div><div class="small fw-semibold">{{ emergencia.oficial_a_cargo.nombre_operativo|default:"N/A" }}</div></div>
                         </div>
                         <div class="mt-2"><div class="em-mobile-label">Unidades despachadas</div><div class="small fw-semibold">{{ emergencia.unidades_despachadas|default:"Sin unidades registradas" }}</div></div>
                         <details class="mt-3" {% if nombre_personal_filtro %}open{% endif %}>
                             <summary><i class="bi bi-people me-1"></i>Ver asistencia por unidad</summary>
                             <div class="small mt-2">
-                                {% if emergencia.asistencia_anterior %}<div class="mb-2"><strong>Asistencia anterior:</strong> {% for usuario in emergencia.asistencia_anterior %}{{ usuario.get_full_name }}{% if not forloop.last %}, {% endif %}{% endfor %}</div>{% endif %}
+                                {% if emergencia.asistencia_anterior %}<div class="mb-2"><strong>Asistencia anterior:</strong> {% for usuario in emergencia.asistencia_anterior %}{{ usuario.nombre_operativo }}{% if not forloop.last %}, {% endif %}{% endfor %}</div>{% endif %}
                                 {% for detalle in emergencia.detalles_unidades %}
                                 <div class="mb-2"><strong>{{ detalle.unidad.nombre }}:</strong>
-                                    {% for usuario in detalle.asistentes_visibles %}{{ usuario.get_full_name }}{% if not forloop.last %}, {% endif %}{% empty %}<span class="text-muted">Sin asistencia marcada</span>{% endfor %}
+                                    {% for usuario in detalle.asistentes_visibles %}{{ usuario.nombre_operativo }}{% if not forloop.last %}, {% endif %}{% empty %}<span class="text-muted">Sin asistencia marcada</span>{% endfor %}
                                 </div>
                                 {% empty %}
                                     {% for unidad_nombre in emergencia.unidades_sin_asistencia %}<div class="mb-1"><strong>{{ unidad_nombre }}:</strong> <span class="text-muted">Sin asistencia marcada</span></div>{% empty %}{% if not emergencia.asistencia_anterior %}<span class="text-muted">Sin detalle de asistencia</span>{% endif %}{% endfor %}
@@ -288,7 +288,7 @@
                             <td>{{ salida.fecha_hora_regreso|date:"d/m/Y H:i"|default:"En servicio" }}</td>
                             <td>{% for unidad in salida.unidades.all %}<span class="badge bg-light text-dark border me-1">{{ unidad.nombre }}</span>{% empty %}{{ salida.unidades_involucradas|default:"—" }}{% endfor %}</td>
                             <td>{% if salida.kilometraje_regreso != None %}{{ salida.kilometros_recorridos }} km{% else %}Pendiente{% endif %}</td>
-                            <td>{{ salida.personal_a_cargo.get_full_name|default:"N/A" }}</td>
+                            <td>{{ salida.personal_a_cargo.nombre_operativo|default:"N/A" }}</td>
                             {% if puede_editar_salidas %}<td>
                                 <div class="btn-group btn-group-sm" role="group" aria-label="Acciones de salida">
                                     <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#createSalidaModal"

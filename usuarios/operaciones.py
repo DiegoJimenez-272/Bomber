@@ -183,9 +183,12 @@ class RegistroOperativoForm(forms.ModelForm):
             codigos.append((codigo_actual, f'{codigo_actual} — Código histórico'))
         self.fields['codigo'].choices = [('', 'Seleccionar')] + codigos
         self.fields['vehiculo'].queryset = Vehiculo.objects.select_related('compania').order_by('compania__nombre', 'nombre')
-        self.fields['maquinista'].queryset = Usuario.objects.miembros_activos().order_by('nombre', 'apellido')
-        self.fields['instructor'].queryset = Usuario.objects.miembros_activos().order_by('nombre', 'apellido')
-        self.fields['asistentes'].queryset = Usuario.objects.miembros_activos().order_by('nombre', 'apellido')
+        self.fields['maquinista'].queryset = Usuario.objects.miembros_activos().order_by('apellido', 'nombre')
+        self.fields['instructor'].queryset = Usuario.objects.miembros_activos().order_by('apellido', 'nombre')
+        self.fields['asistentes'].queryset = Usuario.objects.miembros_activos().order_by('apellido', 'nombre')
+        self.fields['maquinista'].label_from_instance = lambda usuario: usuario.nombre_operativo
+        self.fields['instructor'].label_from_instance = lambda usuario: usuario.nombre_operativo
+        self.fields['asistentes'].label_from_instance = lambda usuario: usuario.nombre_operativo
         if user and not user.is_superuser and user.compania_id and getattr(getattr(user, 'rol', None), 'nombre', '').strip().casefold() not in {'admin', 'administrador'}:
             self.fields['vehiculo'].queryset = self.fields['vehiculo'].queryset.filter(compania_id=user.compania_id)
             self.fields['maquinista'].queryset = self.fields['maquinista'].queryset.filter(compania_id=user.compania_id)

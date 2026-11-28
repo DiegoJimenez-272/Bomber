@@ -101,10 +101,17 @@ class Usuario(AbstractBaseUser, PermissionsMixin):
     REQUIRED_FIELDS = ['nombre', 'apellido', 'rut']
     
     def __str__(self):
-        return f"{self.nombre} {self.apellido} ({self.email})"
+        return self.nombre_operativo
     
     def get_full_name(self):
         return f"{self.nombre} {self.apellido}"
+
+    @property
+    def nombre_operativo(self):
+        """Identifica al voluntario en listas operativas sin exponer su correo."""
+        nombre = self.get_full_name().strip().title()
+        clave = (self.clave_radial or '').strip() or '—'
+        return f'{clave} · {nombre}' if nombre else clave
     
     def get_short_name(self):
         return self.nombre

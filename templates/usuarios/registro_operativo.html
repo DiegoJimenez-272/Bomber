@@ -110,7 +110,7 @@
         <thead><tr><th>Fecha</th><th>Tipo</th><th>Carro</th><th>Maquinista</th><th>Detalle / distancia</th></tr></thead>
         <tbody>{% for registro in registros %}<tr>
             <td>{{ registro.fecha_inicio|date:'d/m/Y' }}</td><td>{{ registro.get_tipo_display }}</td>
-            <td>{{ registro.vehiculo.nombre|default:'—' }}</td><td>{{ registro.maquinista.get_full_name|default:'—' }}</td>
+            <td>{{ registro.vehiculo.nombre|default:'—' }}</td><td>{{ registro.maquinista.nombre_operativo|default:'—' }}</td>
             <td>{% if registro.kilometros_recorridos != None %}{{ registro.kilometros_recorridos }} km{% endif %}{% if registro.informe %}<div class="small text-muted">{{ registro.informe|truncatechars:100 }}</div>{% endif %}</td>
         </tr>{% endfor %}</tbody>
     </table></div>

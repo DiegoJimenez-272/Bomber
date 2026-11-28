@@ -235,12 +235,12 @@ class RolForm(forms.ModelForm):
 
 class IntegrantePorNombreField(forms.ModelChoiceField):
     def prepare_value(self, value):
-        if hasattr(value, 'get_full_name'):
-            return value.get_full_name()
+        if hasattr(value, 'nombre_operativo'):
+            return value.nombre_operativo
         if value:
             integrante = self.queryset.filter(pk=value).first()
             if integrante:
-                return integrante.get_full_name()
+                return integrante.nombre_operativo
         return value
 
     def to_python(self, value):
@@ -251,17 +251,18 @@ class IntegrantePorNombreField(forms.ModelChoiceField):
         texto = str(value).strip().casefold()
         integrantes = list(self.queryset)
         for integrante in integrantes:
-            valor_con_correo = f'{integrante.get_full_name()} <{integrante.email}>'.casefold()
-            if texto == valor_con_correo:
+            if texto == integrante.nombre_operativo.casefold():
                 return integrante
         por_nombre = [integrante for integrante in integrantes if integrante.get_full_name().strip().casefold() == texto]
         if len(por_nombre) == 1:
             return por_nombre[0]
         if len(por_nombre) > 1:
-            raise ValidationError('Hay integrantes con ese mismo nombre. Escribe el correo para distinguirlos.', code='ambiguous')
-        por_correo = [integrante for integrante in integrantes if integrante.email.casefold() == texto]
-        if len(por_correo) == 1:
-            return por_correo[0]
+            raise ValidationError('Hay integrantes con ese mismo nombre. Usa la clave radial para distinguirlos.', code='ambiguous')
+        por_clave = [integrante for integrante in integrantes if (integrante.clave_radial or '').strip().casefold() == texto]
+        if len(por_clave) == 1:
+            return por_clave[0]
+        if len(por_clave) > 1:
+            raise ValidationError('Hay integrantes con esa clave radial. Selecciona el nombre completo de la lista.', code='ambiguous')
         raise ValidationError('Selecciona o escribe el nombre de un integrante de la lista.', code='invalid_choice')
 
 
@@ -616,9 +617,9 @@ class SalidaTerrenoForm(forms.ModelForm):
         self.fields['unidades'].label_from_instance = lambda unidad: unidad.nombre
         self.fields['kilometraje_salida'].required = True
         self.fields['kilometraje_regreso'].required = True
-        self.fields['personal_a_cargo'].queryset = Usuario.objects.miembros_activos().order_by('nombre')
+        self.fields['personal_a_cargo'].queryset = Usuario.objects.miembros_activos().order_by('apellido', 'nombre')
         self.fields['personal_a_cargo'].empty_label = "Seleccionar responsable"
-        self.fields['personal_a_cargo'].label_from_instance = lambda usuario: usuario.get_full_name()
+        self.fields['personal_a_cargo'].label_from_instance = lambda usuario: usuario.nombre_operativo
         if self.errors:
             for field_name in self.errors:
                 if field_name in self.fields:
@@ -722,8 +723,9 @@ class EmergenciaForm(forms.ModelForm):
         unidades = Vehiculo.objects.select_related('compania').order_by('compania__nombre', 'nombre')
         self.fields['unidades'].queryset = unidades
         self.fields['unidades'].label_from_instance = lambda unidad: f"{unidad.nombre} — {unidad.compania.nombre}"
-        self.fields['oficial_a_cargo'].queryset = Usuario.objects.miembros_activos().order_by('nombre')
+        self.fields['oficial_a_cargo'].queryset = Usuario.objects.miembros_activos().order_by('apellido', 'nombre')
         self.fields['oficial_a_cargo'].empty_label = "Seleccionar oficial a cargo"
+        self.fields['oficial_a_cargo'].label_from_instance = lambda usuario: usuario.nombre_operativo
         self.fields['direccion'].required = False
         self.fields['fecha_hora_alarma'].required = False
         self.fields['descripcion'].required = False
@@ -813,7 +815,8 @@ class ReunionForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['asistentes'].queryset = Usuario.objects.miembros_activos().order_by('nombre')
+        self.fields['asistentes'].queryset = Usuario.objects.miembros_activos().order_by('apellido', 'nombre')
+        self.fields['asistentes'].label_from_instance = lambda usuario: usuario.nombre_operativo
         
     def save(self, commit=True):
         instance = super().save(commit=False)
@@ -863,7 +866,8 @@ class CapacitacionForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['asistentes'].queryset = Usuario.objects.miembros_activos().order_by('nombre')
+        self.fields['asistentes'].queryset = Usuario.objects.miembros_activos().order_by('apellido', 'nombre')
+        self.fields['asistentes'].label_from_instance = lambda usuario: usuario.nombre_operativo
         self.fields['asistentes'].required = False
         self.fields['companias_invitadas'].queryset = Compania.objects.all().order_by('nombre')
         self.fields['companias_invitadas'].required = False
@@ -1326,9 +1330,9 @@ class AvisoForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['usuarios'].queryset = Usuario.objects.select_related('compania').order_by(
-            'compania__nombre', 'nombre', 'apellido'
+            'compania__nombre', 'apellido', 'nombre'
         )
-        self.fields['usuarios'].label_from_instance = lambda usuario: usuario.get_full_name() or 'Usuario sin nombre'
+        self.fields['usuarios'].label_from_instance = lambda usuario: usuario.nombre_operativo or 'Usuario sin nombre'
 
     class Meta:
         model = Aviso

@@ -158,7 +158,7 @@
                                 <h6 class="small fw-bold text-muted mt-3">ASISTENTES</h6>
                                 <ul class="list-unstyled small mb-0">
                                     {% for asistente in cap.asistentes_visibles %}
-                                        <li><i class="bi bi-person-check-fill text-danger me-2"></i>{{ asistente.get_full_name }}</li>
+                                        <li><i class="bi bi-person-check-fill text-danger me-2"></i>{{ asistente.nombre_operativo }}</li>
                                     {% empty %}
                                         <li class="text-muted">No hay asistentes registrados.</li>
                                     {% endfor %}
@@ -312,7 +312,7 @@
                                 <h6 class="small fw-bold text-muted mt-3">ASISTENTES</h6>
                                 <ul class="list-unstyled small mb-0">
                                     {% for asistente in cap.asistentes_visibles %}
-                                        <li><i class="bi bi-person-check-fill text-danger me-2"></i>{{ asistente.get_full_name }}</li>
+                                        <li><i class="bi bi-person-check-fill text-danger me-2"></i>{{ asistente.nombre_operativo }}</li>
                                     {% empty %}
                                         <li class="text-muted">No hay asistentes registrados.</li>
                                     {% endfor %}
@@ -455,7 +455,7 @@
                                 <ul class="list-group list-group-flush">
                                     {% for asistente in item.asistentes_visibles %}
                                     <li class="list-group-item px-0">
-                                        <i class="bi bi-person-check text-success me-2"></i>{{ asistente.get_full_name }}
+                                        <i class="bi bi-person-check text-success me-2"></i>{{ asistente.nombre_operativo }}
                                     </li>
                                     {% empty %}
                                     <li class="list-group-item px-0 text-muted">No hay asistentes registrados.</li>

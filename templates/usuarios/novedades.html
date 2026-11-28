@@ -29,7 +29,7 @@
                 {% if puede_editar_novedades %}
                 <form method="post" class="row g-3 mb-4 pb-4 border-bottom">
                     {% csrf_token %}
-                    <div class="col-12"><label class="form-label" for="{{ form.integrante.id_for_label }}">Integrante</label><div class="licencia-integrante-wrap">{{ form.integrante }}<div class="licencia-integrante-sugerencias" id="integrantesLicenciaSugerencias" role="listbox" hidden></div><div id="integrantesLicenciaFuente" hidden>{% for integrante in form.fields.integrante.queryset %}<span data-nombre="{{ integrante.get_full_name }}" data-correo="{{ integrante.email }}" data-compania="{{ integrante.compania.nombre }}"></span>{% endfor %}</div></div>{{ form.integrante.errors }}</div>
+                    <div class="col-12"><label class="form-label" for="{{ form.integrante.id_for_label }}">Integrante</label><div class="licencia-integrante-wrap">{{ form.integrante }}<div class="licencia-integrante-sugerencias" id="integrantesLicenciaSugerencias" role="listbox" hidden></div><div id="integrantesLicenciaFuente" hidden>{% for integrante in form.fields.integrante.queryset %}<span data-nombre="{{ integrante.get_full_name }}" data-clave="{{ integrante.clave_radial }}" data-display="{{ integrante.nombre_operativo }}" data-compania="{{ integrante.compania.nombre }}"></span>{% endfor %}</div></div>{{ form.integrante.errors }}</div>
                     <div class="col-6"><label class="form-label" for="{{ form.fecha_inicio.id_for_label }}">Desde</label>{{ form.fecha_inicio }}{{ form.fecha_inicio.errors }}</div>
                     <div class="col-6"><label class="form-label" for="{{ form.fecha_termino.id_for_label }}">Hasta</label>{{ form.fecha_termino }}{{ form.fecha_termino.errors }}</div>
                     <div class="col-12"><button class="btn btn-danger" type="submit"><i class="bi bi-plus-lg me-1"></i>Registrar licencia</button></div>
@@ -40,7 +40,7 @@
                     <tbody>
                         {% for licencia in licencias %}
                         <tr>
-                            <td>{{ licencia.integrante.get_full_name }}</td><td>{{ licencia.compania.nombre }}</td>
+                            <td>{{ licencia.integrante.nombre_operativo }}</td><td>{{ licencia.compania.nombre }}</td>
                             <td>{{ licencia.fecha_inicio|date:'d/m/Y' }} — {{ licencia.fecha_termino|date:'d/m/Y' }}</td>
                             <td>{% if licencia.fecha_inicio <= hoy and licencia.fecha_termino >= hoy %}<span class="badge bg-danger">Activa</span>{% elif licencia.fecha_inicio > hoy %}<span class="badge bg-info text-dark">Próxima</span>{% else %}<span class="badge bg-secondary">Finalizada</span>{% endif %}</td>
                             {% if puede_editar_novedades %}<td><form method="post" onsubmit="return confirm('¿Eliminar este registro de licencia?');">{% csrf_token %}<input type="hidden" name="accion" value="eliminar"><input type="hidden" name="licencia_id" value="{{ licencia.id }}"><button class="btn btn-sm btn-outline-danger" type="submit" aria-label="Eliminar licencia"><i class="bi bi-trash"></i></button></form></td>{% endif %}
@@ -78,8 +78,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (integranteInput && sugerencias) {
         const ocultarSugerencias = () => { sugerencias.hidden = true; sugerencias.replaceChildren(); opcionActiva = -1; };
         const seleccionarIntegrante = (integrante) => {
-            const duplicados = Array.from(integrantesFuente).filter(item => item.dataset.nombre.toLocaleLowerCase() === integrante.dataset.nombre.toLocaleLowerCase()).length > 1;
-            integranteInput.value = duplicados ? `${integrante.dataset.nombre} <${integrante.dataset.correo}>` : integrante.dataset.nombre;
+            integranteInput.value = integrante.dataset.display;
             ocultarSugerencias();
             integranteInput.focus();
         };
@@ -89,7 +88,7 @@ document.addEventListener('DOMContentLoaded', function () {
             opcionActiva = -1;
             if (consulta.length < 1) { sugerencias.hidden = true; return; }
             const coincidencias = Array.from(integrantesFuente).filter(item =>
-                item.dataset.nombre.toLocaleLowerCase().includes(consulta) || item.dataset.correo.toLocaleLowerCase().includes(consulta)
+                item.dataset.nombre.toLocaleLowerCase().includes(consulta) || item.dataset.clave.toLocaleLowerCase().includes(consulta)
             ).slice(0, 30);
             coincidencias.forEach((integrante) => {
                 const boton = document.createElement('button');
@@ -97,7 +96,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 boton.className = 'licencia-integrante-opcion';
                 boton.setAttribute('role', 'option');
                 const nombre = document.createElement('span');
-                nombre.textContent = integrante.dataset.nombre;
+                nombre.textContent = integrante.dataset.display;
                 const compania = document.createElement('small');
                 compania.textContent = integrante.dataset.compania || '';
                 boton.append(nombre, compania);
