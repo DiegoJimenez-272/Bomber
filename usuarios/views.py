@@ -1951,9 +1951,14 @@ def vehiculo_edit_view(request, vehiculo_id):
                 vehiculo.compania = request.user.compania
             vehiculo.save()
             messages.success(request, f'Carro "{vehiculo.nombre}" actualizado exitosamente.')
-        else:
-            messages.error(request, 'Error al actualizar el carro. Por favor, verifica los datos.')
-    return redirect_to_previous_page(request, reverse('inventario'))
+            return redirect('vehiculo_hoja_vida', vehiculo_id=vehiculo.id)
+        messages.error(request, 'Error al actualizar el carro. Revisa los campos indicados.')
+    else:
+        form = VehiculoForm(instance=vehiculo, user=request.user)
+    return render(request, 'usuarios/vehiculo_editar.html', {
+        'vehiculo': vehiculo,
+        'form': form,
+    })
 
 
 @login_required

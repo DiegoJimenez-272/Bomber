@@ -1,0 +1,53 @@
+{% extends 'base_con_condicion.html' %}
+
+{% block title %}Editar carro {{ vehiculo.nombre }}{% endblock %}
+
+{% block content %}
+<main class="container-fluid px-0">
+    <header class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-3 mb-4 pb-3 border-bottom">
+        <div>
+            <p class="text-muted mb-1">{{ vehiculo.compania.nombre }}</p>
+            <h1 class="h2 mb-0">Editar carro: {{ vehiculo.nombre }}</h1>
+        </div>
+        <a href="{% url 'vehiculo_hoja_vida' vehiculo.id %}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i>Volver a la hoja de vida
+        </a>
+    </header>
+
+    {% if messages %}
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+        </div>
+        {% endfor %}
+    {% endif %}
+
+    <section class="card shadow-sm" style="max-width: 900px">
+        <div class="card-header bg-transparent">
+            <h2 class="h5 mb-0"><i class="bi bi-truck-front text-danger me-2"></i>Identificación del carro</h2>
+        </div>
+        <form method="post">
+            {% csrf_token %}
+            <div class="card-body">
+                <p class="text-muted">Actualiza los datos de identificación y estado de la unidad.</p>
+                {% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors }}</div>{% endif %}
+                <div class="row g-3">
+                    {% for field in form %}
+                    <div class="col-12 {% if field.name == 'descripcion' %}col-md-12{% else %}col-md-6{% endif %}">
+                        <label for="{{ field.id_for_label }}" class="form-label fw-semibold">{{ field.label }}</label>
+                        {{ field }}
+                        {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+                        {% for error in field.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="card-footer bg-transparent d-flex flex-column flex-sm-row justify-content-end gap-2">
+                <a href="{% url 'vehiculo_hoja_vida' vehiculo.id %}" class="btn btn-outline-secondary">Cancelar</a>
+                <button type="submit" class="btn btn-danger"><i class="bi bi-save me-1"></i>Guardar cambios</button>
+            </div>
+        </form>
+    </section>
+</main>
+{% endblock %}
