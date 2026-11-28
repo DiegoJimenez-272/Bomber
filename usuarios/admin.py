@@ -1,5 +1,13 @@
 from django.contrib import admin
-from .models import ComandoChatbot, GuiaChatbot
+from .models import ComandoChatbot, EspecialidadVoluntario, GuiaChatbot
+
+
+@admin.register(EspecialidadVoluntario)
+class EspecialidadVoluntarioAdmin(admin.ModelAdmin):
+    list_display = ('nombre', 'slug', 'orden', 'activa')
+    list_filter = ('activa',)
+    search_fields = ('nombre', 'slug')
+    ordering = ('orden', 'nombre')
 
 
 @admin.register(GuiaChatbot)

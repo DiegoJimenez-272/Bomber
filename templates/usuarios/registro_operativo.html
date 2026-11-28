@@ -28,6 +28,11 @@
                     <label class="form-label fw-semibold" for="id_codigo">Código / tipo específico</label>
                     {{ form.codigo }}{{ form.codigo.errors }}
                 </div>
+                <div class="col-12 col-lg-6" data-operacion-field="familia_codigo">
+                    <label class="form-label fw-semibold" for="id_familia_codigo">Familia de clave</label>
+                    {{ form.familia_codigo }}{{ form.familia_codigo.errors }}
+                </div>
+                <div class="col-12 col-lg-6" data-operacion-field="detalle_codigo"><label class="form-label" for="id_detalle_codigo">Especifica “Otro” <span class="text-danger">*</span></label>{{ form.detalle_codigo }}{{ form.detalle_codigo.errors }}</div>
 
                 <div class="col-12"><h2 class="h6 fw-bold border-bottom pb-2 mt-2 mb-0">Fecha, unidad y desplazamiento</h2></div>
                 <div class="col-12 col-md-6" data-operacion-field="fecha_inicio"><label class="form-label" id="fechaInicioLabel">Fecha de inicio / carga <span class="text-danger">*</span></label>{{ form.fecha_inicio }}{{ form.fecha_inicio.errors }}</div>
@@ -45,8 +50,8 @@
                     <button type="button" class="btn btn-sm btn-outline-danger mt-2" id="agregarCarroOperativo"><i class="bi bi-plus-lg me-1"></i>Agregar otro carro</button>
                     <p class="form-text mb-0">Cada carro tiene su propia asistencia. El primero queda como carro principal del registro.</p>
                 </div>
-                <div class="col-12 col-md-6" data-operacion-field="maquinista"><label class="form-label">Maquinista / conductor</label>{{ form.maquinista }}{{ form.maquinista.errors }}</div>
-                <div class="col-12 col-md-6" data-operacion-field="obac"><label class="form-label">OBAC <span class="text-danger">*</span></label>{{ form.obac }}{{ form.obac.errors }}</div>
+                <div class="col-12 col-md-6" data-operacion-field="maquinista"><label class="form-label">Maquinista / conductor</label><input type="search" class="form-control form-control-sm mb-2" data-filter-select="id_maquinista" placeholder="Buscar por clave o nombre"><div>{{ form.maquinista }}</div>{{ form.maquinista.errors }}<div class="form-text">Solo voluntarios con especialidad de maquinista habilitado.</div></div>
+                <div class="col-12 col-md-6" data-operacion-field="obac"><label class="form-label">OBAC <span class="text-danger">*</span></label>{{ form.obac }}<input type="search" class="form-control form-control-sm mb-2" data-filter-select="id_obac_voluntario" placeholder="Buscar por clave o nombre">{{ form.obac_voluntario }}{{ form.obac_voluntario.errors }}</div>
 
                 <div class="col-12" data-operacion-field="instituciones_apoyo">
                     <label class="form-label fw-semibold">Apoyo de otras instituciones (opcional)</label>
@@ -70,14 +75,14 @@
                 </div>
 
                 <div class="col-12"><h2 class="h6 fw-bold border-bottom pb-2 mt-2 mb-0" data-section-for="practica_maquinista">Práctica de maquinista</h2></div>
-                <div class="col-12 col-md-6" data-operacion-field="aspirante_nombre"><label class="form-label">Aspirante (opcional)</label>{{ form.aspirante_nombre }}</div>
-                <div class="col-12 col-md-6" data-operacion-field="aspirante_clave"><label class="form-label">Clave radial del aspirante</label>{{ form.aspirante_clave }}</div>
-                <div class="col-12 col-md-6" data-operacion-field="instructor"><label class="form-label">Instructor <span class="text-danger">*</span></label>{{ form.instructor }}{{ form.instructor.errors }}</div>
+                <div class="col-12 col-md-6" data-operacion-field="aspirante_nombre"><label class="form-label">Aspirante (opcional)</label>{{ form.aspirante_nombre }}{{ form.aspirante_clave }}<input type="search" class="form-control form-control-sm mb-2" data-filter-select="id_aspirante_voluntario" placeholder="Buscar por clave o nombre">{{ form.aspirante_voluntario }}{{ form.aspirante_voluntario.errors }}<div class="form-text">Solo voluntarios con especialidad de aspirante a maquinista.</div></div>
+                <div class="col-12 col-md-6" data-operacion-field="instructor"><label class="form-label">Instructor <span class="text-danger">*</span></label><input type="search" class="form-control form-control-sm mb-2" data-filter-select="id_instructor" placeholder="Buscar por clave o nombre">{{ form.instructor }}{{ form.instructor.errors }}</div>
                 <div class="col-12 col-md-6" data-operacion-field="practica_calculo"><label class="form-label">Cálculo automático</label><div class="form-control bg-body-secondary" id="practicaCalculo">Horas: — · Kilómetros: —</div></div>
 
                 <div class="col-12" data-operacion-field="autorizaciones">
                     <label class="form-label fw-semibold">Autorizado por <span class="text-danger">*</span></label>
-                    <div class="d-flex flex-wrap gap-3 p-2 border rounded">{{ form.autorizaciones }}</div>{{ form.autorizaciones.errors }}
+                    <input type="search" class="form-control form-control-sm mb-2" data-filter-checks="autorizado_por" placeholder="Buscar por clave o nombre">
+                    <div class="d-flex flex-wrap gap-3 p-2 border rounded">{% for checkbox in form.autorizado_por %}<div class="form-check" data-authorized-row>{{ checkbox.tag }} <label class="form-check-label" for="{{ checkbox.id_for_label }}">{{ checkbox.choice_label }}</label></div>{% endfor %}</div>{{ form.autorizado_por.errors }}
                 </div>
 
                 <div class="col-12"><h2 class="h6 fw-bold border-bottom pb-2 mt-2 mb-0" data-section-for="combustible_6_14">Carga de combustible</h2></div>
@@ -182,6 +187,8 @@
 {% endif %}
 
 {{ codigos_por_tipo|json_script:'registro-codigos' }}
+{{ claves_por_familia|json_script:'registro-claves-por-familia' }}
+{{ familias_claves|json_script:'registro-familias-claves' }}
 {{ rondas_checklist|json_script:'registro-checklist' }}
 {{ usuarios_asistencia|json_script:'registro-usuarios-asistencia' }}
 <style>
@@ -214,6 +221,9 @@ document.addEventListener('DOMContentLoaded', function () {
     const tipo = document.getElementById('id_tipo_operativo');
     const codigo = document.getElementById('id_codigo');
     const codigos = JSON.parse(document.getElementById('registro-codigos').textContent);
+    const clavesPorFamilia = JSON.parse(document.getElementById('registro-claves-por-familia').textContent);
+    const familiasClaves = JSON.parse(document.getElementById('registro-familias-claves').textContent);
+    const familiaCodigo = document.getElementById('id_familia_codigo');
     const checklist = JSON.parse(document.getElementById('registro-checklist').textContent);
     const asistenciaDialog = document.getElementById('asistenciaOperativaDialog');
     const asistenciaButton = document.getElementById('abrirAsistenciaOperativa');
@@ -229,21 +239,23 @@ document.addEventListener('DOMContentLoaded', function () {
     const asistenciaUnidadesInput = document.getElementById('id_asistencia_unidades');
     const usuariosPorUnidad = JSON.parse(document.getElementById('registro-usuarios-asistencia').textContent);
     const visibleByType = {
-        codigo: ['emergencia','emergencia_vehicular','servicio_especial','practica_maquinista','rodaje_6_13','combustible_6_14'],
-        fecha_inicio: ['emergencia','emergencia_vehicular','servicio_especial','practica_maquinista','rodaje_6_13','combustible_6_14','llegada_cuartel','ronda_maquinistas'],
-        fecha_termino: ['emergencia','emergencia_vehicular','servicio_especial','practica_maquinista','rodaje_6_13'],
-        hora_despacho: ['emergencia','emergencia_vehicular','servicio_especial','practica_maquinista','rodaje_6_13','combustible_6_14'],
-        hora_llegada: ['emergencia','emergencia_vehicular','servicio_especial','practica_maquinista','rodaje_6_13'],
-        kilometraje_despacho: ['emergencia','emergencia_vehicular','servicio_especial','practica_maquinista','rodaje_6_13','combustible_6_14'],
-        kilometraje_llegada: ['emergencia','emergencia_vehicular','servicio_especial','practica_maquinista','rodaje_6_13'],
-        direccion: ['emergencia','emergencia_vehicular','servicio_especial','practica_maquinista','rodaje_6_13','llegada_cuartel'],
-        vehiculo: ['emergencia','emergencia_vehicular','servicio_especial','practica_maquinista','rodaje_6_13','combustible_6_14','ronda_maquinistas'],
-        maquinista: ['emergencia','emergencia_vehicular','servicio_especial','rodaje_6_13','combustible_6_14','ronda_maquinistas','llegada_cuartel'],
-        obac: ['emergencia','emergencia_vehicular','servicio_especial','rodaje_6_13'],
+        codigo: ['emergencia','emergencia_vehicular','servicio_especial'],
+        familia_codigo: ['emergencia','emergencia_vehicular'],
+        detalle_codigo: ['emergencia','emergencia_vehicular','servicio_especial'],
+        fecha_inicio: ['emergencia','emergencia_vehicular','servicio_especial','practica_maquinista','rodaje','se_dirige_6_13','rodaje_6_13','combustible_6_14','llegada_cuartel','ronda_maquinistas'],
+        fecha_termino: ['emergencia','emergencia_vehicular','servicio_especial','practica_maquinista','rodaje','se_dirige_6_13','rodaje_6_13'],
+        hora_despacho: ['emergencia','emergencia_vehicular','servicio_especial','practica_maquinista','rodaje','se_dirige_6_13','rodaje_6_13','combustible_6_14'],
+        hora_llegada: ['emergencia','emergencia_vehicular','servicio_especial','practica_maquinista','rodaje','se_dirige_6_13','rodaje_6_13'],
+        kilometraje_despacho: ['emergencia','emergencia_vehicular','servicio_especial','practica_maquinista','rodaje','se_dirige_6_13','rodaje_6_13','combustible_6_14'],
+        kilometraje_llegada: ['emergencia','emergencia_vehicular','servicio_especial','practica_maquinista','rodaje','se_dirige_6_13','rodaje_6_13'],
+        direccion: ['emergencia','emergencia_vehicular','servicio_especial','practica_maquinista','rodaje','se_dirige_6_13','rodaje_6_13','llegada_cuartel'],
+        vehiculo: ['emergencia','emergencia_vehicular','servicio_especial','practica_maquinista','rodaje','se_dirige_6_13','rodaje_6_13','combustible_6_14','ronda_maquinistas'],
+        maquinista: ['emergencia','emergencia_vehicular','servicio_especial','rodaje','se_dirige_6_13','rodaje_6_13','combustible_6_14','ronda_maquinistas','llegada_cuartel'],
+        obac: ['emergencia','emergencia_vehicular','servicio_especial','rodaje','se_dirige_6_13','rodaje_6_13'],
         instituciones_apoyo: ['emergencia','emergencia_vehicular'],
         apoyo_otro_cuerpo: ['emergencia','emergencia_vehicular'], apoyo_otros: ['emergencia','emergencia_vehicular'],
-        informe: ['emergencia_vehicular','servicio_especial','rodaje_6_13','llegada_cuartel'],
-        novedades_unidad: ['emergencia','emergencia_vehicular','servicio_especial','practica_maquinista','rodaje_6_13'],
+        informe: ['emergencia_vehicular','servicio_especial','rodaje','se_dirige_6_13','rodaje_6_13','llegada_cuartel'],
+        novedades_unidad: ['emergencia','emergencia_vehicular','servicio_especial','practica_maquinista','rodaje','se_dirige_6_13','rodaje_6_13'],
         lesionados_externos: ['emergencia_vehicular'], involucrados_json: ['emergencia_vehicular'],
         autorizaciones: ['servicio_especial','practica_maquinista'],
         aspirante_nombre: ['practica_maquinista'], aspirante_clave: ['practica_maquinista'], instructor: ['practica_maquinista'], practica_calculo: ['practica_maquinista'],
@@ -252,10 +264,12 @@ document.addEventListener('DOMContentLoaded', function () {
         checklist_json: ['ronda_maquinistas']
     };
     const requiredByType = {
-        emergencia: ['codigo','fecha_inicio','fecha_termino','hora_despacho','hora_llegada','kilometraje_despacho','kilometraje_llegada','direccion','vehiculo','maquinista','obac','novedades_unidad'],
-        emergencia_vehicular: ['codigo','fecha_inicio','fecha_termino','hora_despacho','hora_llegada','kilometraje_despacho','kilometraje_llegada','direccion','vehiculo','maquinista','obac','informe','novedades_unidad','lesionados_externos'],
+        emergencia: ['familia_codigo','codigo','fecha_inicio','fecha_termino','hora_despacho','hora_llegada','kilometraje_despacho','kilometraje_llegada','direccion','vehiculo','maquinista','obac','novedades_unidad'],
+        emergencia_vehicular: ['familia_codigo','codigo','fecha_inicio','fecha_termino','hora_despacho','hora_llegada','kilometraje_despacho','kilometraje_llegada','direccion','vehiculo','maquinista','obac','informe','novedades_unidad','lesionados_externos'],
         servicio_especial: ['codigo','fecha_inicio','fecha_termino','hora_despacho','hora_llegada','kilometraje_despacho','kilometraje_llegada','direccion','vehiculo','maquinista','obac','informe','novedades_unidad','autorizaciones'],
         practica_maquinista: ['fecha_inicio','fecha_termino','hora_despacho','hora_llegada','kilometraje_despacho','kilometraje_llegada','direccion','vehiculo','instructor','novedades_unidad','autorizaciones'],
+        rodaje: ['fecha_inicio','fecha_termino','hora_despacho','hora_llegada','kilometraje_despacho','kilometraje_llegada','direccion','vehiculo','maquinista','obac','informe','novedades_unidad'],
+        se_dirige_6_13: ['fecha_inicio','fecha_termino','hora_despacho','hora_llegada','kilometraje_despacho','kilometraje_llegada','direccion','vehiculo','maquinista','obac','informe','novedades_unidad'],
         rodaje_6_13: ['fecha_inicio','fecha_termino','hora_despacho','hora_llegada','kilometraje_despacho','kilometraje_llegada','direccion','vehiculo','maquinista','obac','informe','novedades_unidad'],
         combustible_6_14: ['fecha_inicio','hora_despacho','kilometraje_despacho','vehiculo','maquinista','estacion_servicio','combustible_tipo','monto_combustible'],
         ronda_maquinistas: ['vehiculo','maquinista','checklist_json'],
@@ -404,7 +418,7 @@ document.addEventListener('DOMContentLoaded', function () {
             if (name === 'asistentes') isShown = selected === 'llegada_cuartel';
             wrapper.hidden = !isShown;
             wrapper.querySelectorAll('input,select,textarea').forEach((input) => {
-                if (input.type !== 'hidden') input.required = isShown && (requiredByType[selected] || []).includes(name);
+                if (input.type !== 'hidden') input.required = input.type !== 'checkbox' && !input.hasAttribute('data-filter-select') && !input.hasAttribute('data-filter-checks') && isShown && (requiredByType[selected] || []).includes(name);
             });
         });
         const campoAsistencia = document.querySelector('[data-operacion-field="asistentes"]');
@@ -418,22 +432,59 @@ document.addEventListener('DOMContentLoaded', function () {
         botonAgregarUnidad.hidden = selected === 'combustible_6_14';
         document.querySelectorAll('[data-section-for]').forEach((heading) => {
             const key = heading.dataset.sectionFor;
-            const types = key === 'vehicular' ? ['emergencia_vehicular'] : key === 'informe' ? ['emergencia_vehicular','servicio_especial','rodaje_6_13'] : [key];
+            const types = key === 'vehicular' ? ['emergencia_vehicular'] : key === 'informe' ? ['emergencia_vehicular','servicio_especial','rodaje','se_dirige_6_13','rodaje_6_13'] : [key];
             heading.hidden = !types.includes(selected);
         });
         const dateLabel = document.getElementById('fechaInicioLabel');
         if (dateLabel) dateLabel.textContent = selected === 'llegada_cuartel' ? 'Fecha de la emergencia *' : selected === 'combustible_6_14' ? 'Fecha de carga *' : selected === 'ronda_maquinistas' ? 'Fecha de la ronda' : 'Fecha de inicio *';
-        const autorizacion7 = document.querySelector('[name="autorizaciones"][value="7"]');
-        if (autorizacion7) autorizacion7.closest('label').hidden = selected !== 'practica_maquinista';
         const current = codigo.value;
-        codigo.replaceChildren(new Option('Seleccionar', ''));
-        (codigos[selected] || []).forEach(([value, label]) => codigo.add(new Option(label, value)));
-        if ((codigos[selected] || []).some(([value]) => value === current)) codigo.value = current;
+        if (selected === 'emergencia' || selected === 'emergencia_vehicular') {
+            const availableFamilies = selected === 'emergencia_vehicular' ? familiasClaves.filter(([value]) => value === '10-4') : familiasClaves;
+            const familyCurrent = familiaCodigo.value;
+            familiaCodigo.replaceChildren(new Option('Seleccionar familia', ''));
+            availableFamilies.forEach(([value, label]) => familiaCodigo.add(new Option(label, value)));
+            if (availableFamilies.some(([value]) => value === familyCurrent)) familiaCodigo.value = familyCurrent;
+            else familiaCodigo.value = selected === 'emergencia_vehicular' ? '10-4' : '';
+            actualizarOpcionesClave(current);
+        } else {
+            codigo.replaceChildren(new Option('Seleccionar', ''));
+            (codigos[selected] || []).forEach(([value, label]) => codigo.add(new Option(label, value)));
+            if ((codigos[selected] || []).some(([value]) => value === current)) codigo.value = current;
+        }
         updateConditionalFields();
         updateChecklist();
         updatePractice();
     }
+    function actualizarOpcionesClave(valorAnterior = '') {
+        const opciones = clavesPorFamilia[familiaCodigo.value] || [];
+        codigo.replaceChildren(new Option('Seleccionar clave', ''));
+        opciones.forEach(([value, label]) => codigo.add(new Option(label, value)));
+        if (opciones.some(([value]) => value === valorAnterior)) codigo.value = valorAnterior;
+    }
+    familiaCodigo.addEventListener('change', () => { actualizarOpcionesClave(''); updateConditionalFields(); });
+    codigo.addEventListener('change', updateConditionalFields);
+    document.querySelectorAll('[data-filter-select]').forEach((buscador) => {
+        const select = document.getElementById(buscador.dataset.filterSelect);
+        if (!select) return;
+        const opcionesOriginales = Array.from(select.options).map((opcion) => ({opcion, texto: opcion.textContent.toLocaleLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')}));
+        buscador.addEventListener('input', () => {
+            const consulta = buscador.value.toLocaleLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+            opcionesOriginales.forEach(({opcion, texto}) => { opcion.hidden = Boolean(consulta && opcion.value && !texto.includes(consulta)); });
+        });
+    });
+    document.querySelectorAll('[data-filter-checks]').forEach((buscador) => {
+        const nombre = buscador.dataset.filterChecks;
+        buscador.addEventListener('input', () => {
+            const consulta = buscador.value.toLocaleLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+            document.querySelectorAll(`[name="${nombre}"]`).forEach((input) => {
+                const fila = input.closest('[data-authorized-row]');
+                if (fila) fila.hidden = Boolean(consulta && !fila.textContent.toLocaleLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').includes(consulta));
+            });
+        });
+    });
     function updateConditionalFields() {
+        const detalleCodigoWrap = document.querySelector('[data-operacion-field="detalle_codigo"]');
+        if (detalleCodigoWrap) detalleCodigoWrap.hidden = !['emergencia','emergencia_vehicular','servicio_especial'].includes(tipo.value) || codigo.value !== 'otro';
         const station = document.getElementById('id_estacion_servicio');
         const detail = document.getElementById('id_estacion_detalle');
         const detailWrap = detail?.closest('[data-operacion-field]');

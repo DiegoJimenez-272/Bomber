@@ -62,6 +62,20 @@ class Compania(models.Model):
     def __str__(self):
         return self.nombre 
 
+class EspecialidadVoluntario(models.Model):
+    slug = models.SlugField(max_length=50, unique=True)
+    nombre = models.CharField(max_length=100, unique=True)
+    activa = models.BooleanField(default=True)
+    orden = models.PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        ordering = ['orden', 'nombre']
+        verbose_name = 'Especialidad de voluntario'
+        verbose_name_plural = 'Especialidades de voluntarios'
+
+    def __str__(self):
+        return self.nombre
+
 class UsuarioManager(BaseUserManager):
     def miembros_activos(self):
         return self.filter(is_active=True, compania__isnull=False)
@@ -88,6 +102,10 @@ class Usuario(AbstractBaseUser, PermissionsMixin):
     clave_radial = models.CharField(max_length=20, null=True, blank=True, verbose_name='Clave Radial')
     rol = models.ForeignKey(Rol, on_delete=models.SET_NULL, null=True, blank=True)
     compania = models.ForeignKey(Compania, on_delete=models.SET_NULL, null=True, blank=True)
+    especialidades = models.ManyToManyField(
+        'EspecialidadVoluntario', blank=True, related_name='voluntarios',
+        verbose_name='Especialidades operativas',
+    )
     foto_perfil = models.ImageField(upload_to=SecureFilePath('fotos_perfil/'), null=True, blank=True, verbose_name='Foto de Perfil', validators=[validar_extension_imagen])
     
     # Campos requeridos para AbstractBaseUser
@@ -292,42 +310,73 @@ class SalidaTerrenoUnidad(models.Model):
 
 class Emergencia(models.Model):
     TIPO_EMERGENCIA_CHOICES = [
+        ('10-0', '10-0 — Llamado estructural'),
         ('10-0-1', '10-0-1 — Incendio estructural'),
+        ('10-0-2', '10-0-2 — Edificio de cuatro o más pisos'),
+        ('10-0-3', '10-0-3 — Lugar público en horario de funcionamiento'),
+        ('10-0-4', '10-0-4 — Incendio estructural industrial'),
+        ('10-0-5', '10-0-5 — Incendio estructural Hazmat'),
         ('10-0-15', '10-0-15 — Incendio rural'),
         ('10-0-7', '10-0-7 — Inflamación de ducto'),
         ('10-1-1', '10-1-1 — Incendio vehicular menor'),
-        ('10-1-2', '10-1-2 — Incendio de camión'),
-        ('10-1-5', '10-1-5 — Incendio de maquinaria forestal'),
+        ('10-1-2', '10-1-2 — Incendio de vehículo de carga'),
+        ('10-1-3', '10-1-3 — Incendio de vehículo con pasajeros'),
+        ('10-1-4', '10-1-4 — Incendio de maquinaria agrícola, pesada o forestal'),
+        ('10-1-5', '10-1-5 — Incendio de aeronave'),
+        ('10-1-6', '10-1-6 — Incendio en vehículo a gas'),
+        ('10-1-7', '10-1-7 — Incendio en vehículo eléctrico'),
         ('10-2-1', '10-2-1 — Incendio de pastizal urbano'),
         ('10-2-2', '10-2-2 — Incendio de pastizal rural'),
         ('10-2-3', '10-2-3 — Incendio agrícola'),
         ('10-2-4', '10-2-4 — Incendio de microbasural'),
+        ('10-2-6', '10-2-6 — Vertedero'),
         ('10-3', '10-3 — Rescate de persona'),
         ('10-4', '10-4 — Rescate vehicular'),
+        ('10-4-1', '10-4-1 — Rescate vehicular de vehículo menor'),
+        ('10-4-2', '10-4-2 — Rescate de vehículo de carga, maquinaria o transporte'),
+        ('10-4-3', '10-4-3 — Rescate vehicular en desnivel, aguas o quebradas'),
+        ('10-4-4', '10-4-4 — Rescate vehicular de vehículos de emergencia'),
+        ('10-4-5', '10-4-5 — Rescate vehicular relacionado con Hazmat'),
+        ('10-5-1', '10-5-1 — Derrame de hidrocarburos'),
+        ('10-5-2', '10-5-2 — Incidente con materiales peligrosos'),
+        ('10-5-3', '10-5-3 — Atentado con elementos químicos, biológicos o radiológicos'),
+        ('10-6-1', '10-6-1 — Emanación de gas combustible'),
+        ('10-6-2', '10-6-2 — Explosión de gas'),
+        ('10-6-3', '10-6-3 — Explosión de gas con fuego'),
         ('10-6', '10-6 — Emanación de gas'),
         ('10-7', '10-7 — Riesgo eléctrico'),
+        ('10-7-1', '10-7-1 — Eléctrico habitacional, comercial o industrial'),
+        ('10-7-2', '10-7-2 — Eléctrico en cámara, transformador o subestación'),
         ('10-8', '10-8 — Llamado no clasificado'),
         ('10-8-8', '10-8-8 — Rastreo de persona'),
         ('10-8-10', '10-8-10 — Rastreo en aguas abiertas'),
         ('10-8-11', '10-8-11 — Recuperación de cadáver'),
+        ('10-8-12', '10-8-12 — Instrucción, asesorías o capacitación'),
         ('10-8-13', '10-8-13 — Caída de árbol'),
         ('10-8-14', '10-8-14 — Voladuras de techo'),
         ('10-8-15', '10-8-15 — Inundación'),
         ('10-8-16', '10-8-16 — Rescate de animal'),
         ('10-8-18', '10-8-18 — Derrame'),
+        ('10-9-1', '10-9-1 — Peritaje solicitado por el Ministerio Público'),
+        ('10-9-2', '10-9-2 — Revisión de edificios'),
+        ('10-9-3', '10-9-3 — Inspección de local comercial'),
+        ('10-9-4', '10-9-4 — Inspección de industrias'),
+        ('10-9-5', '10-9-5 — Inspección de grifo'),
+        ('10-9-6', '10-9-6 — Simulacros o ejercicios a terceros'),
         ('10-9-7', '10-9-7 — Inspección'),
-        ('9-3', '9-3 — Acuartelamiento general'),
-        ('10-12', '10-12 — Apoyo a otro Cuerpo'),
+        ('10-9-19', '10-9-19 — Instrucción, asesorías o capacitación'),
+        ('10-10-1', '10-10-1 — Rebrote estructural'),
+        ('10-10-2', '10-10-2 — Rebrote forestal'),
         ('10-10', '10-10 — Rebrote de fuego'),
-        ('9-4', '9-4 — Acuartelamiento preventivo'),
-        ('10-0-2', 'Código histórico 10-0-2 — Llamado a vehículo'),
+        ('10-11', '10-11 — Servicio o accidente aéreo'),
+        ('10-12', '10-12 — Apoyo a otros Cuerpos'),
+        ('10-13', '10-13 — Artefacto explosivo o acto terrorista'),
+        ('10-14', '10-14 — Accidente de aviación'),
+        ('9-3', '9-3 — Acuartelamiento general (histórico)'),
+        ('9-4', '9-4 — Acuartelamiento preventivo (histórico)'),
         ('10-1', 'Código histórico 10-1 — Incendio forestal'),
         ('10-2', 'Código histórico 10-2 — Rescate vehicular'),
-        ('10-4-1', 'Código histórico 10-4-1 — Emergencia vehicular'),
-        ('10-4-2', 'Código histórico 10-4-2 — Emergencia vehicular'),
-        ('10-4-3', 'Código histórico 10-4-3 — Emergencia vehicular'),
-        ('10-4-4', 'Código histórico 10-4-4 — Emergencia vehicular'),
-        ('10-4-5', 'Código histórico 10-4-5 — Emergencia vehicular'),
+        ('otro', 'Otro — Tipo de emergencia especificado'),
         ('Otro', 'Otro'),
     ]
     ESTADO_CHOICES = [
@@ -337,6 +386,7 @@ class Emergencia(models.Model):
     ]
 
     tipo = models.CharField(max_length=50, choices=TIPO_EMERGENCIA_CHOICES, default='Otro')
+    tipo_historico = models.CharField(max_length=200, blank=True, default='')
     direccion = models.CharField(max_length=255, null=True, blank=True)
     fecha_hora_alarma = models.DateTimeField(null=True, blank=True)
     descripcion = models.TextField(verbose_name="Detalles del Incidente", null=True, blank=True)
@@ -351,6 +401,16 @@ class Emergencia(models.Model):
 
     class Meta:
         ordering = ['-fecha_hora_alarma']
+
+    def get_tipo_display(self):
+        return self.tipo_historico or dict(self.TIPO_EMERGENCIA_CHOICES).get(self.tipo, self.tipo)
+
+    def save(self, *args, **kwargs):
+        if self.pk and self.tipo_historico:
+            anterior = type(self).objects.filter(pk=self.pk).values_list('tipo', flat=True).first()
+            if anterior is not None and anterior != self.tipo:
+                self.tipo_historico = ''
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.get_tipo_display()} - {self.direccion}"
@@ -643,8 +703,10 @@ class RegistroOperativo(models.Model):
         ('emergencia', 'Emergencia'),
         ('emergencia_vehicular', 'Emergencia vehicular (10-4)'),
         ('servicio_especial', 'Servicio especial'),
-        ('practica_maquinista', 'Práctica de maquinista'),
-        ('rodaje_6_13', 'Se dirige a (6-13) — Rodaje'),
+        ('practica_maquinista', 'Práctica de aspirante a maquinista (6-18)'),
+        ('rodaje', 'Rodaje'),
+        ('se_dirige_6_13', 'Se dirige a (6-13)'),
+        ('rodaje_6_13', 'Registro histórico: Se dirige a (6-13) — Rodaje'),
         ('combustible_6_14', 'Carga de combustible (6-14)'),
         ('ronda_maquinistas', 'Ronda de maquinistas'),
         ('llegada_cuartel', 'Voluntarios llegados al cuartel'),
@@ -682,6 +744,10 @@ class RegistroOperativo(models.Model):
     vehiculo = models.ForeignKey(Vehiculo, on_delete=models.SET_NULL, null=True, blank=True, related_name='registros_operativos')
     maquinista = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='registros_operativos_conduccion')
     obac = models.CharField(max_length=160, blank=True, default='')
+    obac_voluntario = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='registros_operativos_obac',
+    )
     instituciones_apoyo = models.JSONField(default=list, blank=True)
     apoyo_otro_cuerpo = models.CharField(max_length=160, blank=True, default='')
     apoyo_otros = models.CharField(max_length=255, blank=True, default='')
@@ -690,8 +756,15 @@ class RegistroOperativo(models.Model):
     lesionados_externos = models.TextField(blank=True, default='')
     involucrados = models.JSONField(default=list, blank=True)
     autorizaciones = models.JSONField(default=list, blank=True)
+    autorizado_por = models.ManyToManyField(
+        settings.AUTH_USER_MODEL, blank=True, related_name='registros_operativos_autorizados',
+    )
     aspirante_nombre = models.CharField(max_length=160, blank=True, default='')
     aspirante_clave = models.CharField(max_length=40, blank=True, default='')
+    aspirante_voluntario = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='registros_operativos_como_aspirante',
+    )
     instructor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='practicas_maquinista_instructor')
     combustible_tipo = models.CharField(max_length=20, choices=COMBUSTIBLE_CHOICES, blank=True, default='')
     monto_combustible = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)

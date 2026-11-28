@@ -52,23 +52,134 @@ RONDAS_CHECKLIST = [
 TIPOS_EMERGENCIA = {'emergencia', 'emergencia_vehicular'}
 TIPOS_CON_KILOMETRAJE = {
     'emergencia', 'emergencia_vehicular', 'servicio_especial',
-    'practica_maquinista', 'rodaje_6_13', 'combustible_6_14',
+    'practica_maquinista', 'rodaje', 'se_dirige_6_13', 'rodaje_6_13', 'combustible_6_14',
 }
 TIPOS_CON_NOVEDADES = {
     'emergencia', 'emergencia_vehicular', 'servicio_especial',
-    'practica_maquinista', 'rodaje_6_13',
+    'practica_maquinista', 'rodaje', 'se_dirige_6_13', 'rodaje_6_13',
+}
+
+FAMILIAS_CLAVES_EMERGENCIA = [
+    ('10-0', '10-0 · Emergencias estructurales'),
+    ('10-1', '10-1 · Llamado a vehículos'),
+    ('10-2', '10-2 · Pastizales y/o basura'),
+    ('10-3', '10-3 · Rescate de emergencia'),
+    ('10-4', '10-4 · Rescate vehicular'),
+    ('10-5', '10-5 · Hazmat'),
+    ('10-6', '10-6 · Emanación de gas'),
+    ('10-7', '10-7 · Llamado eléctrico'),
+    ('10-8', '10-8 · Llamado no clasificado'),
+    ('10-9', '10-9 · Otros servicios'),
+    ('10-10', '10-10 · Rebrote de fuego'),
+    ('otros', 'Otros llamados'),
+]
+
+CLAVES_POR_FAMILIA = {
+    '10-0': [
+        ('10-0', '10-0 · Llamado estructural'),
+        ('10-0-1', '10-0-1 · Llamado estructural básico (hasta 3 pisos)'),
+        ('10-0-2', '10-0-2 · Llamado estructural edificio (4 o más pisos)'),
+        ('10-0-3', '10-0-3 · Llamado estructural lugar público'),
+        ('10-0-4', '10-0-4 · Llamado estructural industrial'),
+        ('10-0-5', '10-0-5 · Llamado estructural Hazmat'),
+        ('10-0-7', '10-0-7 · Inflamación de chimenea o ducto'),
+        ('10-0-15', '10-0-15 · Llamado estructural rural'),
+    ],
+    '10-1': [
+        ('10-1-1', '10-1-1 · Incendio de vehículo menor'),
+        ('10-1-2', '10-1-2 · Incendio de vehículo de carga'),
+        ('10-1-3', '10-1-3 · Incendio de vehículo con pasajeros'),
+        ('10-1-4', '10-1-4 · Maquinaria agrícola, pesada o forestal'),
+        ('10-1-5', '10-1-5 · Incendio de aeronave'),
+        ('10-1-6', '10-1-6 · Incendio en vehículo a gas'),
+        ('10-1-7', '10-1-7 · Incendio en vehículo eléctrico'),
+    ],
+    '10-2': [
+        ('10-2-1', '10-2-1 · Incendio vegetacional urbano'),
+        ('10-2-2', '10-2-2 · Incendio vegetacional rural'),
+        ('10-2-3', '10-2-3 · Incendio de sembrado agrícola'),
+        ('10-2-4', '10-2-4 · Incendio de microbasurales, desechos o escombros'),
+        ('10-2-6', '10-2-6 · Vertedero'),
+    ],
+    '10-3': [('10-3', '10-3 · Rescate de persona (indicar situación)')],
+    '10-4': [
+        ('10-4-1', '10-4-1 · Rescate vehicular de vehículo menor'),
+        ('10-4-2', '10-4-2 · Rescate de vehículo de carga, maquinaria o transporte'),
+        ('10-4-3', '10-4-3 · Rescate vehicular en desnivel, aguas o quebradas'),
+        ('10-4-4', '10-4-4 · Rescate vehicular de vehículos de emergencia'),
+        ('10-4-5', '10-4-5 · Rescate vehicular relacionado con Hazmat'),
+        ('10-4', '10-4 · Rescate vehicular (histórico)'),
+    ],
+    '10-5': [
+        ('10-5-1', '10-5-1 · Derrame de hidrocarburos'),
+        ('10-5-2', '10-5-2 · Incidente con materiales peligrosos'),
+        ('10-5-3', '10-5-3 · Atentado químico, biológico, radiológico o equivalente'),
+    ],
+    '10-6': [
+        ('10-6-1', '10-6-1 · Emanación de gas combustible'),
+        ('10-6-2', '10-6-2 · Explosión de gas'),
+        ('10-6-3', '10-6-3 · Explosión de gas con fuego'),
+        ('10-6', '10-6 · Emanación de gas (histórico)'),
+    ],
+    '10-7': [
+        ('10-7-1', '10-7-1 · Eléctrico habitacional, comercial o industrial'),
+        ('10-7-2', '10-7-2 · Eléctrico en cámara, transformador o subestación'),
+        ('10-7', '10-7 · Riesgo eléctrico (histórico)'),
+    ],
+    '10-8': [
+        ('10-8', '10-8 · Llamado no clasificado'),
+        ('10-8-8', '10-8-8 · Rastreo de personas en sectores urbanos/rurales'),
+        ('10-8-10', '10-8-10 · Rastreo superficial en cauces o aguas abiertas'),
+        ('10-8-11', '10-8-11 · Recuperación de cadáveres'),
+        ('10-8-12', '10-8-12 · Instrucción, asesorías o capacitación'),
+        ('10-8-13', '10-8-13 · Caída de árbol'),
+        ('10-8-14', '10-8-14 · Voladura de techo o temporal de viento'),
+        ('10-8-15', '10-8-15 · Extracción de agua por inundación'),
+        ('10-8-16', '10-8-16 · Rescate animal'),
+        ('10-8-18', '10-8-18 · Lavado de carreteras (derrames)'),
+    ],
+    '10-9': [
+        ('10-9-1', '10-9-1 · Peritaje solicitado por el Ministerio Público'),
+        ('10-9-2', '10-9-2 · Revisión de edificios'),
+        ('10-9-3', '10-9-3 · Inspección de local comercial'),
+        ('10-9-4', '10-9-4 · Inspección de industrias'),
+        ('10-9-5', '10-9-5 · Inspección de grifo'),
+        ('10-9-6', '10-9-6 · Simulacros o ejercicios a terceros'),
+        ('10-9-7', '10-9-7 · Monitoreo / inspección'),
+        ('10-9-19', '10-9-19 · Instrucción, asesorías o capacitación'),
+    ],
+    '10-10': [
+        ('10-10-1', '10-10-1 · Rebrote estructural'),
+        ('10-10-2', '10-10-2 · Rebrote forestal'),
+        ('10-10', '10-10 · Rebrote de fuego (histórico)'),
+    ],
+    'otros': [
+        ('10-11', '10-11 · Servicio o accidente aéreo'),
+        ('10-12', '10-12 · Apoyo a otros Cuerpos'),
+        ('10-13', '10-13 · Artefacto explosivo o acto terrorista'),
+        ('10-14', '10-14 · Accidente de aviación'),
+        ('9-3', '9-3 · Acuartelamiento general (histórico)'),
+        ('9-4', '9-4 · Acuartelamiento preventivo (histórico)'),
+        ('otro', 'Otro'),
+    ],
 }
 
 
 class RegistroOperativoForm(forms.ModelForm):
     codigo = forms.ChoiceField(label='Código / tipo', choices=(), required=False, widget=forms.Select(attrs={'class': 'form-select'}))
+    familia_codigo = forms.ChoiceField(label='Familia de clave', choices=FAMILIAS_CLAVES_EMERGENCIA, required=False, widget=forms.Select(attrs={'class': 'form-select'}))
+    detalle_codigo = forms.CharField(label='Especifica el tipo "Otro"', required=False, widget=forms.TextInput(attrs={'class': 'form-control', 'maxlength': 255}))
     instituciones_apoyo = forms.MultipleChoiceField(
         label='Apoyo de otras instituciones', choices=RegistroOperativo.APOYO_CHOICES,
         required=False, widget=forms.CheckboxSelectMultiple,
     )
     autorizaciones = forms.MultipleChoiceField(
-        label='Autorizado por', choices=[('6', '6'), ('7', '7'), ('1', '1'), ('2', '2')],
-        required=False, widget=forms.CheckboxSelectMultiple,
+        label='Autorización histórica', choices=[('6', '6'), ('7', '7'), ('1', '1'), ('2', '2')],
+        required=False, widget=forms.MultipleHiddenInput,
+    )
+    autorizado_por = forms.ModelMultipleChoiceField(
+        label='Autorizado por', queryset=Usuario.objects.none(), required=False,
+        widget=forms.CheckboxSelectMultiple,
     )
     involucrados_json = forms.CharField(required=False, widget=forms.HiddenInput())
     checklist_json = forms.CharField(required=False, widget=forms.HiddenInput())
@@ -91,10 +202,11 @@ class RegistroOperativoForm(forms.ModelForm):
         fields = [
             'tipo', 'codigo', 'fecha_inicio', 'fecha_termino', 'hora_despacho', 'hora_llegada',
             'kilometraje_despacho', 'kilometraje_llegada', 'direccion', 'estacion_servicio',
-            'estacion_detalle', 'vehiculo', 'maquinista', 'obac', 'apoyo_otro_cuerpo',
+            'estacion_detalle', 'vehiculo', 'maquinista', 'obac', 'obac_voluntario', 'apoyo_otro_cuerpo',
             'instituciones_apoyo', 'apoyo_otros', 'informe', 'novedades_unidad', 'lesionados_externos',
-            'aspirante_nombre', 'aspirante_clave', 'instructor', 'combustible_tipo',
-            'monto_combustible', 'autorizaciones', 'asistentes', 'unidades', 'asistencia_unidades',
+            'aspirante_nombre', 'aspirante_clave', 'aspirante_voluntario', 'instructor', 'combustible_tipo',
+            'monto_combustible', 'autorizaciones', 'autorizado_por', 'asistentes', 'unidades', 'asistencia_unidades',
+            'familia_codigo', 'detalle_codigo',
         ]
         widgets = {
             'tipo': forms.Select(attrs={'class': 'form-select', 'id': 'id_tipo_operativo'}),
@@ -109,60 +221,34 @@ class RegistroOperativoForm(forms.ModelForm):
             'estacion_detalle': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Nombre de la estación'}),
             'vehiculo': forms.HiddenInput(),
             'maquinista': forms.Select(attrs={'class': 'form-select'}),
-            'obac': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Nombre del oficial o voluntario'}),
+            'obac': forms.HiddenInput(),
+            'obac_voluntario': forms.Select(attrs={'class': 'form-select'}),
             'apoyo_otro_cuerpo': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Nombre del Cuerpo de Bomberos'}),
             'apoyo_otros': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Especifica la institución'}),
             'informe': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             'novedades_unidad': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Indica las novedades o “Sin novedad”'}),
             'lesionados_externos': forms.Textarea(attrs={'class': 'form-control', 'rows': 2, 'placeholder': 'Nombre y RUT'}),
-            'aspirante_nombre': forms.TextInput(attrs={'class': 'form-control'}),
-            'aspirante_clave': forms.TextInput(attrs={'class': 'form-control'}),
+            'aspirante_nombre': forms.HiddenInput(),
+            'aspirante_clave': forms.HiddenInput(),
+            'aspirante_voluntario': forms.Select(attrs={'class': 'form-select'}),
             'instructor': forms.Select(attrs={'class': 'form-select'}),
             'combustible_tipo': forms.Select(attrs={'class': 'form-select'}),
             'monto_combustible': forms.NumberInput(attrs={'class': 'form-control', 'min': '1', 'step': '1', 'inputmode': 'decimal'}),
         }
 
     CODIGOS = {
-        'emergencia': [
-            ('10-0-1', '10-0-1 — Incendio estructural'),
-            ('10-0-15', '10-0-15 — Incendio rural'),
-            ('10-0-7', '10-0-7 — Inflamación de ducto'),
-            ('10-1-1', '10-1-1 — Incendio vehicular menor'),
-            ('10-1-2', '10-1-2 — Incendio de camión'),
-            ('10-1-5', '10-1-5 — Incendio de maquinaria forestal'),
-            ('10-2-1', '10-2-1 — Incendio de pastizal urbano'),
-            ('10-2-2', '10-2-2 — Incendio de pastizal rural'),
-            ('10-2-3', '10-2-3 — Incendio agrícola'),
-            ('10-2-4', '10-2-4 — Incendio de microbasural'),
-            ('10-3', '10-3 — Rescate de persona'),
-            ('10-4', '10-4 — Rescate vehicular'),
-            ('10-6', '10-6 — Emanación de gas'),
-            ('10-7', '10-7 — Riesgo eléctrico'),
-            ('10-8', '10-8 — Llamado no clasificado'),
-            ('10-8-8', '10-8-8 — Rastreo de persona'),
-            ('10-8-10', '10-8-10 — Rastreo en aguas abiertas'),
-            ('10-8-11', '10-8-11 — Recuperación de cadáver'),
-            ('10-8-13', '10-8-13 — Caída de árbol'),
-            ('10-8-14', '10-8-14 — Voladuras de techo'),
-            ('10-8-15', '10-8-15 — Inundación'),
-            ('10-8-16', '10-8-16 — Rescate de animal'),
-            ('10-8-18', '10-8-18 — Derrame'),
-            ('10-9-7', '10-9-7 — Inspección'),
-            ('9-3', '9-3 — Acuartelamiento general'),
-            ('10-12', '10-12 — Apoyo a otro Cuerpo'),
-            ('10-10', '10-10 — Rebrote de fuego'),
-            ('9-4', '9-4 — Acuartelamiento preventivo'),
-            ('otro', 'Otro'),
-        ],
-        'emergencia_vehicular': [('10-4', '10-4 — Rescate vehicular')],
+        'emergencia': [choice for family in FAMILIAS_CLAVES_EMERGENCIA for choice in CLAVES_POR_FAMILIA[family[0]]],
+        'emergencia_vehicular': CLAVES_POR_FAMILIA['10-4'],
         'servicio_especial': [
             ('reunion_superintendencia', 'Reunión de Superintendencia'),
             ('reunion_comandancia', 'Reunión de Comandancia'),
             ('actividad_entidad', 'Actividad solicitada por otra entidad'),
             ('simulacro', 'Simulacro'), ('otro', 'Otro'),
         ],
-        'practica_maquinista': [('practica_maquinista', 'Práctica de maquinista')],
-        'rodaje_6_13': [('6-13', '6-13 — Se dirige a')],
+        'practica_maquinista': [('6-18', '6-18 — Práctica de aspirante a maquinista')],
+        'rodaje': [('', 'Rodaje (sin clave)')],
+        'se_dirige_6_13': [('6-13', '6-13 — Se dirige a')],
+        'rodaje_6_13': [('6-13', '6-13 — Registro histórico: Se dirige a / Rodaje')],
         'combustible_6_14': [('6-14', '6-14 — Carga de combustible')],
         'ronda_maquinistas': [('ronda_maquinistas', 'Ronda de maquinistas')],
         'llegada_cuartel': [('llegada_cuartel', 'Voluntarios llegados al cuartel')],
@@ -176,34 +262,57 @@ class RegistroOperativoForm(forms.ModelForm):
         puede_salidas = bool(user and (user.is_superuser or (rol and rol.editar_salidas_terreno)))
         tipos_disponibles = [
             choice for choice in RegistroOperativo.TIPO_CHOICES
-            if (choice[0] in TIPOS_EMERGENCIA or choice[0] == 'llegada_cuartel') and puede_emergencias
+            if choice[0] != 'rodaje_6_13' and (
+                (choice[0] in TIPOS_EMERGENCIA or choice[0] == 'llegada_cuartel') and puede_emergencias
             or (choice[0] not in TIPOS_EMERGENCIA and choice[0] != 'llegada_cuartel') and puede_salidas
+            )
         ]
         self.fields['tipo'].choices = tipos_disponibles
         if tipos_disponibles and not self.is_bound:
             self.fields['tipo'].initial = tipos_disponibles[0][0]
         tipo = (self.data.get('tipo') if self.is_bound else self.initial.get('tipo')) or 'emergencia'
-        codigos = list(self.CODIGOS.get(tipo, []))
+        familias_disponibles = [('10-4', dict(FAMILIAS_CLAVES_EMERGENCIA)['10-4'])] if tipo == 'emergencia_vehicular' else (
+            FAMILIAS_CLAVES_EMERGENCIA if tipo == 'emergencia' else []
+        )
+        self.fields['familia_codigo'].choices = [('', 'Seleccionar familia')] + familias_disponibles
+        familia = (self.data.get('familia_codigo') if self.is_bound else self.initial.get('familia_codigo')) or ''
+        if tipo == 'emergencia_vehicular' and not familia:
+            familia = '10-4'
+            self.fields['familia_codigo'].initial = familia
+        if tipo in TIPOS_EMERGENCIA:
+            codigos = list(CLAVES_POR_FAMILIA.get(familia, []))
+            if tipo == 'emergencia_vehicular':
+                codigos = list(CLAVES_POR_FAMILIA['10-4'])
+        else:
+            codigos = list(self.CODIGOS.get(tipo, []))
         codigo_actual = getattr(self.instance, 'codigo', '')
         if self.instance.pk and codigo_actual and all(valor != codigo_actual for valor, _ in codigos):
             codigos.append((codigo_actual, f'{codigo_actual} — Código histórico'))
         self.fields['codigo'].choices = [('', 'Seleccionar')] + codigos
         self.fields['vehiculo'].queryset = Vehiculo.objects.select_related('compania').order_by('compania__nombre', 'nombre')
         self.fields['unidades'].queryset = self.fields['vehiculo'].queryset
-        self.fields['maquinista'].queryset = Usuario.objects.miembros_activos().order_by('apellido', 'nombre')
-        self.fields['instructor'].queryset = Usuario.objects.miembros_activos().order_by('apellido', 'nombre')
-        self.fields['asistentes'].queryset = Usuario.objects.miembros_activos().order_by('apellido', 'nombre')
+        miembros = Usuario.objects.miembros_activos().select_related('compania').order_by('clave_radial', 'apellido', 'nombre')
+        self.fields['maquinista'].queryset = miembros.filter(especialidades__slug='maquinista', especialidades__activa=True).distinct()
+        self.fields['instructor'].queryset = miembros
+        self.fields['obac_voluntario'].queryset = miembros
+        self.fields['aspirante_voluntario'].queryset = miembros.filter(especialidades__slug='aspirante_maquinista', especialidades__activa=True).distinct()
+        self.fields['autorizado_por'].queryset = miembros
+        self.fields['asistentes'].queryset = miembros
         self.fields['maquinista'].label_from_instance = lambda usuario: usuario.nombre_operativo
         self.fields['instructor'].label_from_instance = lambda usuario: usuario.nombre_operativo
+        self.fields['obac_voluntario'].label_from_instance = lambda usuario: usuario.nombre_operativo
+        self.fields['aspirante_voluntario'].label_from_instance = lambda usuario: usuario.nombre_operativo
+        self.fields['autorizado_por'].label_from_instance = lambda usuario: usuario.nombre_operativo
         self.fields['asistentes'].label_from_instance = lambda usuario: usuario.nombre_operativo
         if user and not user.is_superuser and user.compania_id and getattr(getattr(user, 'rol', None), 'nombre', '').strip().casefold() not in {'admin', 'administrador'}:
             self.fields['vehiculo'].queryset = self.fields['vehiculo'].queryset.filter(compania_id=user.compania_id)
-            self.fields['maquinista'].queryset = self.fields['maquinista'].queryset.filter(compania_id=user.compania_id)
-            self.fields['instructor'].queryset = self.fields['instructor'].queryset.filter(compania_id=user.compania_id)
-            self.fields['asistentes'].queryset = self.fields['asistentes'].queryset.filter(compania_id=user.compania_id)
+            for name in ('maquinista', 'instructor', 'obac_voluntario', 'aspirante_voluntario', 'autorizado_por', 'asistentes'):
+                self.fields[name].queryset = self.fields[name].queryset.filter(compania_id=user.compania_id)
         self.fields['vehiculo'].empty_label = 'Seleccionar carro'
         self.fields['maquinista'].empty_label = 'Seleccionar maquinista'
         self.fields['instructor'].empty_label = 'Seleccionar instructor'
+        self.fields['obac_voluntario'].empty_label = 'Seleccionar OBAC'
+        self.fields['aspirante_voluntario'].empty_label = 'Seleccionar aspirante'
         emergencias_activas = Emergencia.objects.filter(estado='Activa')
         if user and not user.is_superuser and user.compania_id and getattr(getattr(user, 'rol', None), 'nombre', '').strip().casefold() not in {'admin', 'administrador'}:
             emergencias_activas = emergencias_activas.filter(
@@ -214,18 +323,16 @@ class RegistroOperativoForm(forms.ModelForm):
         self.fields['emergencia_activa'].empty_label = 'Seleccionar emergencia activa'
         for name in ('fecha_inicio', 'fecha_termino', 'hora_despacho', 'hora_llegada', 'kilometraje_despacho', 'kilometraje_llegada', 'direccion', 'vehiculo', 'maquinista', 'instructor', 'estacion_servicio', 'combustible_tipo', 'monto_combustible'):
             self.fields[name].required = False
+        for name in ('obac_voluntario', 'aspirante_voluntario', 'autorizado_por'):
+            self.fields[name].required = False
+        self.fields['obac'].required = False
+        self.fields['aspirante_nombre'].required = False
+        self.fields['aspirante_clave'].required = False
+        self.fields['detalle_codigo'].required = False
         self.fields['estacion_detalle'].required = False
 
     def clean_instituciones_apoyo(self):
         return list(self.cleaned_data.get('instituciones_apoyo') or [])
-
-    def clean_autorizaciones(self):
-        values = list(self.cleaned_data.get('autorizaciones') or [])
-        tipo = self.data.get('tipo') or self.initial.get('tipo') or ''
-        permitidos = {'6', '1', '2'} if tipo == 'servicio_especial' else {'6', '7', '1', '2'}
-        if set(values) - permitidos:
-            raise ValidationError('La autorización seleccionada no corresponde a este tipo de actividad.')
-        return values
 
     def _json_list(self, field_name, label):
         raw = self.cleaned_data.get(field_name) or '[]'
@@ -242,6 +349,25 @@ class RegistroOperativoForm(forms.ModelForm):
         tipo = data.get('tipo')
         if not tipo:
             return data
+
+        obac = data.get('obac_voluntario')
+        if obac:
+            data['obac'] = obac.get_full_name()
+        codigos_fijos = {
+            'practica_maquinista': '6-18',
+            'se_dirige_6_13': '6-13',
+            'rodaje_6_13': '6-13',
+            'combustible_6_14': '6-14',
+        }
+        if tipo in codigos_fijos:
+            data['codigo'] = codigos_fijos[tipo]
+        aspirante = data.get('aspirante_voluntario')
+        if aspirante:
+            data['aspirante_nombre'] = aspirante.get_full_name()
+            data['aspirante_clave'] = (aspirante.clave_radial or '')[:40]
+        if data.get('detalle_codigo'):
+            detalle = f"Tipo específico: {data['detalle_codigo'].strip()}"
+            data['informe'] = '\n'.join(filter(None, [data.get('informe', '').strip(), detalle]))
 
         unidades_limpias = list(data.get('unidades') or [])
         if not unidades_limpias and data.get('vehiculo'):
@@ -301,6 +427,16 @@ class RegistroOperativoForm(forms.ModelForm):
         if tipo == 'combustible_6_14' and len(unidades_ordenadas) > 1:
             self.add_error('unidades', 'Registra cada carga de combustible para un solo carro.')
 
+        if tipo in TIPOS_EMERGENCIA:
+            familia = data.get('familia_codigo')
+            codigos_familia = {codigo for codigo, _label in CLAVES_POR_FAMILIA.get(familia, [])}
+            if not familia:
+                self.add_error('familia_codigo', 'Selecciona la familia de la clave.')
+            if data.get('codigo') and data['codigo'] not in codigos_familia:
+                self.add_error('codigo', 'La clave no corresponde a la familia seleccionada.')
+        if data.get('codigo') == 'otro' and not data.get('detalle_codigo', '').strip():
+            self.add_error('detalle_codigo', 'Describe el tipo seleccionado como “Otro”.')
+
         if tipo == 'llegada_cuartel':
             if not data.get('fecha_inicio'):
                 self.add_error('fecha_inicio', 'Ingresa la fecha de la emergencia.')
@@ -334,6 +470,11 @@ class RegistroOperativoForm(forms.ModelForm):
                     self.add_error(field_name, f'{label.capitalize()} es obligatorio.')
             if not es_combustible and data.get('kilometraje_despacho') is not None and data.get('kilometraje_llegada') is not None and data['kilometraje_llegada'] < data['kilometraje_despacho']:
                 self.add_error('kilometraje_llegada', 'El kilometraje de llegada debe ser igual o mayor al de despacho.')
+            if not es_combustible and data.get('fecha_inicio') and data.get('fecha_termino') and data.get('hora_despacho') and data.get('hora_llegada'):
+                inicio = (data['fecha_inicio'], data['hora_despacho'])
+                termino = (data['fecha_termino'], data['hora_llegada'])
+                if termino <= inicio:
+                    self.add_error('hora_llegada', 'La hora de llegada debe ser posterior al despacho; usa la fecha de llegada si cruzó medianoche.')
             if not data.get('direccion') and tipo != 'combustible_6_14':
                 self.add_error('direccion', 'La dirección es obligatoria.')
             if tipo != 'practica_maquinista' and not data.get('maquinista'):
@@ -342,8 +483,8 @@ class RegistroOperativoForm(forms.ModelForm):
                 self.add_error('codigo', 'Selecciona el código de la emergencia.')
             if tipo == 'servicio_especial' and not data.get('codigo'):
                 self.add_error('codigo', 'Selecciona el tipo de servicio especial.')
-            if tipo in {'emergencia', 'emergencia_vehicular', 'servicio_especial', 'rodaje_6_13'} and not data.get('obac'):
-                self.add_error('obac', 'Indica el OBAC responsable.')
+            if tipo in {'emergencia', 'emergencia_vehicular', 'servicio_especial', 'rodaje', 'se_dirige_6_13', 'rodaje_6_13'} and not data.get('obac_voluntario'):
+                self.add_error('obac_voluntario', 'Selecciona el OBAC responsable.')
             if tipo == 'emergencia_vehicular':
                 apoyos_validos = {'municipalidad', 'carabineros', 'ambulancia', 'ruta_5_sur', 'otro_cuerpo', 'otros'}
                 if set(data.get('instituciones_apoyo') or []) - apoyos_validos:
@@ -354,8 +495,8 @@ class RegistroOperativoForm(forms.ModelForm):
                     self.add_error('lesionados_externos', 'Indica los lesionados externos o escribe “Sin lesionados”.')
             if tipo in TIPOS_CON_NOVEDADES and not data.get('novedades_unidad'):
                 self.add_error('novedades_unidad', 'Describe las novedades o escribe “Sin novedad”.')
-            if tipo in {'servicio_especial', 'practica_maquinista'} and not data.get('autorizaciones'):
-                self.add_error('autorizaciones', 'Selecciona quién autorizó la actividad.')
+            if tipo in {'servicio_especial', 'practica_maquinista'} and not data.get('autorizado_por'):
+                self.add_error('autorizado_por', 'Selecciona quién autorizó la actividad.')
             apoyos = set(data.get('instituciones_apoyo') or [])
             if 'otro_cuerpo' in apoyos and not data.get('apoyo_otro_cuerpo'):
                 self.add_error('apoyo_otro_cuerpo', 'Indica el nombre del Cuerpo de Bomberos.')
@@ -363,7 +504,7 @@ class RegistroOperativoForm(forms.ModelForm):
                 self.add_error('apoyo_otros', 'Describe la institución de apoyo.')
             if tipo == 'servicio_especial' and not data.get('informe'):
                 self.add_error('informe', 'Describe la actividad especial realizada.')
-            if tipo == 'rodaje_6_13' and not data.get('informe'):
+            if tipo in {'rodaje', 'se_dirige_6_13', 'rodaje_6_13'} and not data.get('informe'):
                 self.add_error('informe', 'Describe brevemente el recorrido o prueba realizada.')
             if tipo == 'combustible_6_14':
                 if not data.get('estacion_servicio'):
@@ -516,7 +657,8 @@ def _guardar_registro(form, user):
             inicio = _momento(registro.fecha_inicio, registro.hora_despacho)
             fin = None if tipo == 'combustible_6_14' else _momento(registro.fecha_termino or registro.fecha_inicio, registro.hora_llegada)
             motivo = f'{registro.get_tipo_display()} — {registro.codigo or registro.get_tipo_display()}'
-            descripcion = '\n'.join(filter(None, [registro.informe, f'OBAC: {registro.obac}', f'Autorizado por: {", ".join(registro.autorizaciones)}', registro.novedades_unidad]))
+            autorizaciones = ', '.join(usuario.nombre_operativo for usuario in registro.autorizado_por.all())
+            descripcion = '\n'.join(filter(None, [registro.informe, f'OBAC: {registro.obac}', f'Autorizado por: {autorizaciones}', registro.novedades_unidad]))
             salida = SalidaTerreno.objects.create(
                 motivo=motivo[:255],
                 direccion=registro.estacion_detalle if tipo == 'combustible_6_14' and registro.estacion_servicio == 'otra' else (registro.get_estacion_servicio_display() if tipo == 'combustible_6_14' else registro.direccion),
@@ -543,12 +685,13 @@ def _guardar_registro(form, user):
                 registro.vehiculo.save(update_fields=['odometro_actual'])
 
         if tipo in TIPOS_CON_NOVEDADES and registro.novedades_unidad.strip().casefold() not in {'sin novedad', 'sin novedades', 'ninguna'}:
-            RondaVehiculo.objects.create(
-                vehiculo=registro.vehiculo,
-                registrado_por=registro.maquinista,
-                tipo_hallazgo='Observación',
-                detalle=f'{registro.get_tipo_display()} ({registro.fecha_inicio:%d/%m/%Y}): {registro.novedades_unidad}',
-            )
+            for unidad in unidades:
+                RondaVehiculo.objects.create(
+                    vehiculo=unidad,
+                    registrado_por=registro.maquinista,
+                    tipo_hallazgo='Observación',
+                    detalle=f'{registro.get_tipo_display()} ({registro.fecha_inicio:%d/%m/%Y}): {registro.novedades_unidad}',
+                )
     return registro
 
 
@@ -623,6 +766,8 @@ def registro_operativo_view(request):
         'registros': registros,
         'rondas_checklist': RONDAS_CHECKLIST,
         'codigos_por_tipo': RegistroOperativoForm.CODIGOS,
+        'claves_por_familia': CLAVES_POR_FAMILIA,
+        'familias_claves': FAMILIAS_CLAVES_EMERGENCIA,
         'puede_registrar_emergencias': puede_registrar_emergencias,
         'puede_registrar_salidas': puede_registrar_salidas,
         'unidades_iniciales': unidades_iniciales,

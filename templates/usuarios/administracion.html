@@ -566,6 +566,7 @@
                         <div class="col-md-6 mb-3"><label class="form-label">Rol</label>{{ user_creation_form.rol }}</div>
                         <div class="col-md-6 mb-3"><label class="form-label">Compañía</label>{{ user_creation_form.compania }}</div>
                     </div>
+                    <div class="mb-3"><label class="form-label">Especialidades operativas</label><div class="d-flex flex-wrap gap-3">{% for checkbox in user_creation_form.especialidades %}<div class="form-check">{{ checkbox.tag }} <label class="form-check-label" for="{{ checkbox.id_for_label }}">{{ checkbox.choice_label }}</label></div>{% endfor %}</div></div>
                     <div class="form-check form-switch mb-2">{{ user_creation_form.is_active }} <label class="form-check-label">Usuario Activo</label></div>
                     <div class="form-check form-switch">{{ user_creation_form.is_superuser }} <label class="form-check-label">Superusuario</label></div>
                 </div>
@@ -603,6 +604,7 @@
                         <div class="col-md-6 mb-3"><label class="form-label">Rol</label>{{ user_change_form.rol }}</div>
                         <div class="col-md-6 mb-3"><label class="form-label">Compañía</label>{{ user_change_form.compania }}</div>
                     </div>
+                    <div class="mb-3"><label class="form-label">Especialidades operativas</label><div class="d-flex flex-wrap gap-3">{% for checkbox in user_change_form.especialidades %}<div class="form-check">{{ checkbox.tag }} <label class="form-check-label" for="{{ checkbox.id_for_label }}">{{ checkbox.choice_label }}</label></div>{% endfor %}</div></div>
                     <div class="form-check form-switch mb-2">{{ user_change_form.is_active }} <label class="form-check-label" for="{{ user_change_form.is_active.id_for_label }}">Usuario Activo</label></div>
                     <div class="form-check form-switch">{{ user_change_form.is_superuser }} <label class="form-check-label" for="{{ user_change_form.is_superuser.id_for_label }}">Superusuario (Administrador)</label></div>
                 </div>

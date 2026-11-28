@@ -5,7 +5,7 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import Sum, Case, When, DecimalField, F, Q
 from django.utils import timezone
-from .models import Usuario, Compania, Rol, Proyecto, Documento, Carpeta, SalidaTerreno, SalidaTerrenoUnidad, Emergencia, EmergenciaUnidad, Capacitacion, Mantenimiento, Inventario, CajaChica, Aviso, PasswordResetCode, Vehiculo, RondaVehiculo, LicenciaMedica
+from .models import Usuario, Compania, Rol, EspecialidadVoluntario, Proyecto, Documento, Carpeta, SalidaTerreno, SalidaTerrenoUnidad, Emergencia, EmergenciaUnidad, Capacitacion, Mantenimiento, Inventario, CajaChica, Aviso, PasswordResetCode, Vehiculo, RondaVehiculo, LicenciaMedica
 from .validators import validar_rut_chileno, formatear_rut, validar_extension_imagen, validar_extension_archivo
 from .inventory_permissions import puede_gestionar_inventario_global
 
@@ -120,7 +120,7 @@ class AdminUserCreationForm(forms.ModelForm):
 
     class Meta:
         model = Usuario
-        fields = ['nombre', 'apellido', 'rut', 'clave_radial', 'email', 'rol', 'compania', 'is_active', 'is_superuser']
+        fields = ['nombre', 'apellido', 'rut', 'clave_radial', 'email', 'rol', 'compania', 'especialidades', 'is_active', 'is_superuser']
 
     def clean_rut(self):
         rut = self.cleaned_data.get('rut')
@@ -137,8 +137,16 @@ class AdminUserCreationForm(forms.ModelForm):
         self.fields['rol'].required = False
         self.fields['compania'].queryset = Compania.objects.all()
         self.fields['compania'].required = False
+        especialidades = EspecialidadVoluntario.objects.filter(activa=True)
+        if self.instance.pk:
+            especialidades = EspecialidadVoluntario.objects.filter(Q(activa=True) | Q(voluntarios=self.instance)).distinct()
+        self.fields['especialidades'].queryset = especialidades
+        self.fields['especialidades'].required = False
+        self.fields['especialidades'].widget = forms.CheckboxSelectMultiple()
         for field_name, field in self.fields.items():
             if isinstance(field.widget, forms.CheckboxInput):
+                field.widget.attrs['class'] = 'form-check-input'
+            elif isinstance(field.widget, forms.CheckboxSelectMultiple):
                 field.widget.attrs['class'] = 'form-check-input'
             elif isinstance(field.widget, forms.Select):
                 field.widget.attrs['class'] = 'form-select'
@@ -157,12 +165,13 @@ class AdminUserCreationForm(forms.ModelForm):
         user.set_password(self.cleaned_data["password"])
         if commit:
             user.save()
+            self.save_m2m()
         return user
 
 class AdminUserChangeForm(forms.ModelForm):
     class Meta:
         model = Usuario
-        fields = ['nombre', 'apellido', 'rut', 'clave_radial', 'email', 'rol', 'compania', 'is_active', 'is_superuser']
+        fields = ['nombre', 'apellido', 'rut', 'clave_radial', 'email', 'rol', 'compania', 'especialidades', 'is_active', 'is_superuser']
 
     def __init__(self, *args, **kwargs):
         # Sacamos 'request' de kwargs para que no interfiera con el __init__ del padre
@@ -172,8 +181,16 @@ class AdminUserChangeForm(forms.ModelForm):
         self.fields['rol'].required = False
         self.fields['compania'].queryset = Compania.objects.all()
         self.fields['compania'].required = False
+        especialidades = EspecialidadVoluntario.objects.filter(activa=True)
+        if self.instance.pk:
+            especialidades = EspecialidadVoluntario.objects.filter(Q(activa=True) | Q(voluntarios=self.instance)).distinct()
+        self.fields['especialidades'].queryset = especialidades
+        self.fields['especialidades'].required = False
+        self.fields['especialidades'].widget = forms.CheckboxSelectMultiple()
         for field_name, field in self.fields.items():
             if isinstance(field.widget, forms.CheckboxInput):
+                field.widget.attrs['class'] = 'form-check-input'
+            elif isinstance(field.widget, forms.CheckboxSelectMultiple):
                 field.widget.attrs['class'] = 'form-check-input'
             elif isinstance(field.widget, forms.Select):
                 field.widget.attrs['class'] = 'form-select'
