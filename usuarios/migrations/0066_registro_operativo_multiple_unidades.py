@@ -8,7 +8,9 @@ def copiar_unidades_existentes(apps, schema_editor):
     RegistroOperativoUnidad = apps.get_model('usuarios', 'RegistroOperativoUnidad')
     alias = schema_editor.connection.alias
     registros = RegistroOperativo.objects.using(alias).exclude(vehiculo_id__isnull=True).prefetch_related('asistentes')
-    for registro in registros.iterator():
+    # Django requires an explicit batch size when iterator() follows
+    # prefetch_related(); otherwise the migration fails on current Django.
+    for registro in registros.iterator(chunk_size=500):
         detalle = RegistroOperativoUnidad.objects.using(alias).create(
             registro_id=registro.pk,
             unidad_id=registro.vehiculo_id,
